@@ -7,9 +7,36 @@ public class Utils {
         return a;
     }
 
+    public static int ClampI(int a, int b, int c) {
+        if (a < b) return b;
+        if (a > c) return c;
+        return a;
+    }
+
+    public static uint ClampU(uint a, uint b, uint c) {
+        if (a < b) return b;
+        if (a > c) return c;
+        return a;
+    }
+
     public static float LerpF(float a, float b, float t) {
         t = XB.Utils.ClampF(t, 0.0f, 1.0f);
         return (a + (b-a)*t);
+    }
+
+    public static Godot.Vector2 LerpV2(Godot.Vector2 a, Godot.Vector2 b, float t) {
+        t = XB.Utils.ClampF(t, 0.0f, 1.0f);
+        return (a + (b-a)*t);
+    }
+
+    public static float AbsF(float a) {
+        if (a < 0.0f) return (-1.0f*a);
+        else          return a;
+    }
+
+    public static int AbsI(int a) {
+        if (a < 0) return (-1*a);
+        else       return a;
     }
 
     public static Godot.Vector3 IntersectRayPlaneV3(Godot.Vector3 rPoint, Godot.Vector3 rDir,

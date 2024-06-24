@@ -30,6 +30,7 @@ public struct Constants {
 }
 
 public struct ScenePaths {
+    public static string Player       = "res://assets/player/playerController.tscn";
 }
 
 public struct WorldData {

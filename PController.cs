@@ -29,10 +29,10 @@ public partial class PController : Godot.CharacterBody3D {
                    private Godot.Node3D         CCtrH;
     [Godot.Export] private Godot.NodePath       _cameraRotationVNode; // camera's rot ctr vertically
                    private Godot.Node3D         _cCtrV;
-    // [Godot.Export] private Godot.NodePath       _playerRiggedNode;
-    //          public static Godot.Node3D         PModel;
-    // [Godot.Export] private Godot.NodePath       _animationTreeNode;
-    //                private Godot.AnimationTree  _pATree;
+    [Godot.Export] private Godot.NodePath       _playerRiggedNode;
+             public static Godot.Node3D         PModel;
+    [Godot.Export] private Godot.NodePath       _animationTreeNode;
+                   private Godot.AnimationTree  _pATree;
     [Godot.Export] private Godot.NodePath       _gunTipNode;
                    private Godot.Node3D         _gunTip;              // point from which bullets spawn
     // [Godot.Export] private Godot.NodePath       _hudNode;
@@ -45,9 +45,17 @@ public partial class PController : Godot.CharacterBody3D {
     // zoom
     public static bool Zoomed = false;
 
-    // // audio
-    // [Godot.Export] private Godot.AudioStreamPlayer3D[] _audFootStep;
-    //                private float                       _tFootStep = 0.0f;
+    // audio
+    //NOTE[ALEX]: exporting the array directly does not consistently work in Godot 4.2.2 (bug)
+    [Godot.Export] private Godot.AudioStreamPlayer3D   _audFootStep0;
+    [Godot.Export] private Godot.AudioStreamPlayer3D   _audFootStep1;
+    [Godot.Export] private Godot.AudioStreamPlayer3D   _audFootStep2;
+    [Godot.Export] private Godot.AudioStreamPlayer3D   _audFootStep3;
+    [Godot.Export] private Godot.AudioStreamPlayer3D   _audFootStep4;
+    [Godot.Export] private Godot.AudioStreamPlayer3D   _audFootStep5;
+                   private Godot.AudioStreamPlayer3D[] _audFootStep;
+                   private int                         _audFootStepAmnt = 6;
+                   private float                       _tFootStep       = 0.0f;
 
     private Godot.Vector2   _mouse    = new Godot.Vector2(0.0f, 0.0f); // mouse motion this tick
 
@@ -91,13 +99,20 @@ public partial class PController : Godot.CharacterBody3D {
         CCtrH       = GetNode<Godot.Node3D>          (_cameraRotationHNode);
         _cCtrV      = GetNode<Godot.Node3D>          (_cameraRotationVNode);
         _gunTip     = GetNode<Godot.Node3D>          (_gunTipNode);
-        // PModel      = GetNode<Godot.Node3D>          (_playerRiggedNode);
-        // _pATree     = GetNode<Godot.AnimationTree>   (_animationTreeNode);
+        PModel      = GetNode<Godot.Node3D>          (_playerRiggedNode);
+        // _plSkel  = GetNode<Godot.Skeleton3D>      (_playerSkeletonNode);
+        _pATree     = GetNode<Godot.AnimationTree>   (_animationTreeNode);
         // Hud         = (XB.HUD)GetNode<Godot.Control> (_hudNode);
         // Menu        = (XB.Menu)GetNode<Godot.Control>(_menuNode);
         Zoomed      = false;
 
-        // _plSkel  = GetNode<Godot.Skeleton3D>(_playerSkeletonNode);
+        _audFootStep    = new Godot.AudioStreamPlayer3D[_audFootStepAmnt];
+        _audFootStep[0] = _audFootStep0;
+        _audFootStep[1] = _audFootStep1;
+        _audFootStep[2] = _audFootStep2;
+        _audFootStep[3] = _audFootStep3;
+        _audFootStep[4] = _audFootStep4;
+        _audFootStep[5] = _audFootStep5;
     }
 
     // get input using godot's system, used for mouse movement input
@@ -183,41 +198,43 @@ public partial class PController : Godot.CharacterBody3D {
         MoveAndSlide();
 
         // // STEP 5: footstep sounds
-        // if ((XB.AData.Input.MoveX != 0.0f || XB.AData.Input.MoveY != 0.0f) && PlJ == XB.JumpSt.OnGround) {
-        //     _tFootStep += (dt*_walkAnm); // align footstep timing with animation multiplier
-        // }
-        // if (_tFootStep > 1.0f) {
-        //     int rand = XB.Random.RandomInRangeI(0, _audFootStep.Length-1);
-        //     _audFootStep[rand].Play();
-        //     _tFootStep = 0.0f;
-        // }
+        if ((XB.AData.Input.MoveX != 0.0f || XB.AData.Input.MoveY != 0.0f)
+            && PlJ == XB.JumpSt.OnGround                                  ) {
+            _tFootStep += (dt*_walkAnm); // align footstep timing with animation multiplier
+        }
+        if (_tFootStep > 1.0f) {
+            int rand = XB.Random.RandomInRangeI(0, _audFootStepAmnt-1);
+            _audFootStep[rand].Play();
+            _tFootStep = 0.0f;
+        }
 
 
         // CAMERA
         // STEP 1: aiming
         if (XB.AData.Input.SLBot) {
-            Zoomed                = false;
-            _move                 = XB.MoveSt.Walk;
-            PlAiming              = true;
-            _aimOff.X             = _aimHOff;
-            _aimOff.Y             = _aimVOff;
+            Zoomed    = false;
+            _move     = XB.MoveSt.Walk;
+            PlAiming  = true;
+            _aimOff.X = _aimHOff;
+            _aimOff.Y = _aimVOff;
         } else if (Zoomed) {
-            _move                 = XB.MoveSt.Walk;
-            _aimOff.X             = _aimHOff;
-            _aimOff.Y             = _aimVOff;
+            _move     = XB.MoveSt.Walk;
+            _aimOff.X = _aimHOff;
+            _aimOff.Y = _aimVOff;
         } else {
             if (_move != XB.MoveSt.Sprint) {
                 _move = XB.MoveSt.Run;
             }
-            PlAiming              = false;
-            _aimOff.X             = 0.0f;
-            _aimOff.Y             = 0.0f;
+            PlAiming  = false;
+            _aimOff.X = 0.0f;
+            _aimOff.Y = 0.0f;
         }
 
         XB.AData.Input.CamX += _mouse.X;
         XB.AData.Input.CamY += _mouse.Y;
         _mouse.X = 0.0f;
         _mouse.Y = 0.0f;
+
         // STEP 2: horizontal camera movement
         float horAmount = dt*XB.AData.CamXSens*XB.AData.Input.CamX;
         CCtrH.RotateObjectLocal(CCtrH.Transform.Basis.Y, horAmount);
@@ -268,13 +285,14 @@ public partial class PController : Godot.CharacterBody3D {
 
         // STEP 5: rotating player
         if (PlAiming) {
-            // PModel.Rotation = new Godot.Vector3(0.0f, CCtrH.Rotation.Y+XB.Constants.Pi, 0.0f);
+            PModel.Rotation = new Godot.Vector3(0.0f, CCtrH.Rotation.Y+XB.Constants.Pi, 0.0f);
         } else if (_plMoved && _plA == XB.AirSt.Grounded) {
             var   mRef = new Godot.Vector3(v.X, 0.0f, v.Z);
             float rot  = Godot.Vector3.Forward.AngleTo(mRef)+XB.Constants.Pi;
-            if (Godot.Vector3.Forward.Cross(mRef).Y < 0)
+            if (Godot.Vector3.Forward.Cross(mRef).Y < 0) {
                 rot = 2.0f*XB.Constants.Pi -rot;
-            // PModel.Rotation = new Godot.Vector3(0.0f, rot, 0.0f);
+            }
+            PModel.Rotation = new Godot.Vector3(0.0f, rot, 0.0f);
         }
 
 
@@ -299,7 +317,9 @@ public partial class PController : Godot.CharacterBody3D {
             // check backwards for hits with geometry near to the player
             var resultN = XB.Utils.Raycast(spaceSt, camHit-0.1f*gunDir, 
                                            _cam.GlobalPosition+0.1f*gunDir, XB.LayerMasks.AimMask);
-            if (resultN.Count > 0) canShoot = false;
+            if (resultN.Count > 0) {
+                canShoot = false;
+            }
 
             if (XB.AData.Input.SRBot && canShoot) {
                 //TODO[ALEX]
@@ -310,59 +330,58 @@ public partial class PController : Godot.CharacterBody3D {
         } else {
             _fov = XB.AData.FovDef;
         }
+
         var cAP                    = (Godot.CameraAttributesPhysical)_cam.Attributes;
             cAP.FrustumFocalLength = XB.Utils.LerpF(cAP.FrustumFocalLength, _fov, _cSmooth*dt);
 
 
-        // // ANIMATIONS
-        // float moveMode  = 0.0f;
-        // float idleMode  = 0.0f;
-        // var   walkBlend = new Godot.Vector2(0.0f, 0.0f);  // idle
-        // float walkSpeed = 0.0f;
-        // if (_tDash < _dashDur) {
-        //     //TODO[ALEX]: dash animation
-        // } else if (_plA == XB.AirSt.Grounded) {
-        //     moveMode = 0.0f; // walk
-        //     _blMove = XB.Utils.LerpF(_blMove, moveMode, _moveSm*dt);
-        //     if (_plMoved) {
-        //         idleMode = 1.0f; // walk
-        //         if (PlAiming) {
-        //             walkBlend.X = XB.AData.Input.MoveX; // walk left/right
-        //             walkBlend.Y = XB.AData.Input.MoveY; // walk forwards/backwards
-        //         } else {
-        //             walkBlend.Y = new Godot.Vector2(XB.AData.Input.MoveX, XB.AData.Input.MoveY).Length();
-        //         }
-        //         walkBlend /= walkBlend.Length();
-        //         walkSpeed  = walkBlend.Length()*_walkAnm;
-        //         float walkMult = 0.0f;
-        //         switch (_move) {
-        //             case XB.MoveSt.Walk:   {walkMult = _walkSpd/_runSpd; break;}
-        //             case XB.MoveSt.Run:    {walkMult = 1.0f;             break;}
-        //             case XB.MoveSt.Sprint: {walkMult = _sprSpd/_runSpd;  break;}
-        //         }
-        //         walkBlend *= walkMult;
-        //     } else {
-        //         if (!PlAiming) idleMode = 0.0f; // idle
-        //     }
-        //     _blIdle = XB.Utils.LerpF(_blIdle, idleMode, _moveSm*dt);
-        //     _blWalk = XB.Utils.LerpV2(_blWalk, walkBlend, _walkSm*dt);
-        // } else {
-        //     moveMode = 1.0f; // jump
-        //     //TODO[ALEX]: these transitions are too immediate for land/launch
-        //     _blMove = XB.Utils.LerpF(_blMove, moveMode, _moveSm*dt);
-        //     if      (PlJ == XB.JumpSt.OneJumpS || PlJ == XB.JumpSt.TwoJumpS)
-        //         _pATree.Set("parameters/jumpTr/transition_request", "state_0");
-        //     else if (_plA == XB.AirSt.Rising || _plA == XB.AirSt.Falling)
-        //         _pATree.Set("parameters/jumpTr/transition_request", "state_1");
-        //     else if (PlJ == XB.JumpSt.Landed)
-        //         _pATree.Set("parameters/jumpTr/transition_request", "state_2");
-        // }
-        //
-        // _pATree.Set("parameters/walkSpeed/scale",          walkSpeed);
-        // _pATree.Set("parameters/moveIdle/blend_amount",    _blIdle  );
-        // _pATree.Set("parameters/moveJump/blend_amount",    _blMove  );
-        // _pATree.Set("parameters/walkSpace/blend_position", _blWalk  );
-        //
+        // ANIMATIONS
+        float moveMode  = 0.0f;
+        float idleMode  = 0.0f;
+        var   walkBlend = new Godot.Vector2(0.0f, 0.0f);  // idle
+        float walkSpeed = 0.0f;
+        if (_plA == XB.AirSt.Grounded) {
+            moveMode = 0.0f; // walk
+            _blMove = XB.Utils.LerpF(_blMove, moveMode, _moveSm*dt);
+            if (_plMoved) {
+                idleMode = 1.0f; // walk
+                if (PlAiming) {
+                    walkBlend.X = XB.AData.Input.MoveX; // walk left/right
+                    walkBlend.Y = XB.AData.Input.MoveY; // walk forwards/backwards
+                } else {
+                    walkBlend.Y = new Godot.Vector2(XB.AData.Input.MoveX, XB.AData.Input.MoveY).Length();
+                }
+                walkBlend /= walkBlend.Length();
+                walkSpeed  = walkBlend.Length()*_walkAnm;
+                float walkMult = 0.0f;
+                switch (_move) {
+                    case XB.MoveSt.Walk:   {walkMult = _walkSpd/_runSpd; break;}
+                    case XB.MoveSt.Run:    {walkMult = 1.0f;             break;}
+                    case XB.MoveSt.Sprint: {walkMult = _sprSpd/_runSpd;  break;}
+                }
+                walkBlend *= walkMult;
+            } else {
+                if (!PlAiming) { idleMode = 0.0f; } // idle
+            }
+            _blIdle = XB.Utils.LerpF(_blIdle, idleMode, _moveSm*dt);
+            _blWalk = XB.Utils.LerpV2(_blWalk, walkBlend, _walkSm*dt);
+        } else {
+            moveMode = 1.0f; // jump
+            _blMove = XB.Utils.LerpF(_blMove, moveMode, _moveSm*dt);
+            if      (PlJ == XB.JumpSt.OneJumpS) {
+                _pATree.Set("parameters/jumpTr/transition_request", "state_0");
+            } else if (_plA == XB.AirSt.Rising || _plA == XB.AirSt.Falling) {
+                _pATree.Set("parameters/jumpTr/transition_request", "state_1");
+            } else if (PlJ == XB.JumpSt.Landed) {
+                _pATree.Set("parameters/jumpTr/transition_request", "state_2");
+            }
+        }
+
+        _pATree.Set("parameters/walkSpeed/scale",          walkSpeed);
+        _pATree.Set("parameters/moveIdle/blend_amount",    _blIdle  );
+        _pATree.Set("parameters/moveJump/blend_amount",    _blMove  );
+        _pATree.Set("parameters/walkSpace/blend_position", _blWalk  );
+
         // if (PlAiming) {
         //     _pATree.Set("parameters/aimingBlend/blend_amount", 1.0);
         //     float angleAmount = cAngle/90.0f; // -1.0 to 1.0
