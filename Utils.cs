@@ -60,5 +60,11 @@ public class Utils {
 
         return res;
     }
+
+    public static void PlayUISound(string path) {
+        var sScn  = Godot.ResourceLoader.Load<Godot.PackedScene>(path);
+        var sound = sScn.Instantiate();
+        XB.AData.MainRoot.AddChild(sound);
+    }
 }
 } // namespace close

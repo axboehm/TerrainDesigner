@@ -18,7 +18,7 @@ public class InputAction {
 //            when the game or a level is initialized, the input node is attached to the root
 //            when the scene gets changed, it gets de-attached but not deleted
 public partial class Input : Godot.Node {
-    public const  int   Amount = 26;       // number of total input slots
+    public const int Amount = 26;       // number of total input slots
 
     public bool  Mode1  = false;
     public bool  Mode2  = false;
@@ -112,7 +112,7 @@ public partial class Input : Godot.Node {
     public bool Debug5     = false;
 
 
-    public void UpdateInput() {
+    public override void _PhysicsProcess(double delta) {
         // clear old input values, then get input for current tick
         // IsActionPressed will continually trigger, IsActionJustPressed only on pushing down
         Mode1  = false;
@@ -140,8 +140,8 @@ public partial class Input : Godot.Node {
 
         //NOTE[ALEX]: analog sticks are hacked to work with keyboard for now
         // mouse and keyboard
-        if (Godot.Input.IsActionJustPressed("Mode1"))  Mode1   = true;    // projectile mode (keyboard only)
-        if (Godot.Input.IsActionJustPressed("Mode2"))  Mode2   = true;    // impact mode (keyboard only)
+        if (Godot.Input.IsActionJustPressed("Mode1"))  Mode1   = true;    // unused
+        if (Godot.Input.IsActionJustPressed("Mode2"))  Mode2   = true;    // unused
         // menu buttons
         if (Godot.Input.IsActionJustPressed("Start"))  Start   = true;    // system menu
         if (Godot.Input.IsActionJustPressed("Select")) Select  = true;    // unused
@@ -158,20 +158,20 @@ public partial class Input : Godot.Node {
         if (Godot.Input.IsActionPressed    ("RRight")) CamX   -= 1.0f;
         if (Godot.Input.IsActionJustPressed("RIn"))    RIn     = true;    // unused
         // d pad
-        if (Godot.Input.IsActionJustPressed("DUp"))    DUp     = true;    // toggle player lights
-        if (Godot.Input.IsActionJustPressed("DDown"))  DDown   = true;    // use middle item
-        if (Godot.Input.IsActionJustPressed("DLeft"))  DLeft   = true;    // use left item
-        if (Godot.Input.IsActionJustPressed("DRight")) DRight  = true;    // use right item
+        if (Godot.Input.IsActionJustPressed("DUp"))    DUp     = true;    // unused
+        if (Godot.Input.IsActionJustPressed("DDown"))  DDown   = true;    // unused
+        if (Godot.Input.IsActionJustPressed("DLeft"))  DLeft   = true;    // unused
+        if (Godot.Input.IsActionJustPressed("DRight")) DRight  = true;    // unused
         // face buttons
-        if (Godot.Input.IsActionJustPressed("FUp"))    FUp     = true;    // heal
-        if (Godot.Input.IsActionJustPressed("FDown"))  FDown   = true;    // jump
-        if (Godot.Input.IsActionJustPressed("FLeft"))  FLeft   = true;    // dash
-        if (Godot.Input.IsActionJustPressed("FRight")) FRight  = true;    // interact
+        if (Godot.Input.IsActionJustPressed("FUp"))    FUp     = true;    // unused
+        if (Godot.Input.IsActionJustPressed("FDown"))  FDown   = true;    // unused
+        if (Godot.Input.IsActionJustPressed("FLeft"))  FLeft   = true;    // unused
+        if (Godot.Input.IsActionJustPressed("FRight")) FRight  = true;    // unused
         // left shoulder buttons
         if (Godot.Input.IsActionJustPressed("SLTop"))  SLTop   = true;    // unused
         if (Godot.Input.IsActionPressed    ("SLBot"))  SLBot   = true;    // aim
         // right shoulder buttons
-        if (Godot.Input.IsActionJustPressed("SRTop"))  SRTop   = true;    // change mode
+        if (Godot.Input.IsActionJustPressed("SRTop"))  SRTop   = true;    // unused
         if (Godot.Input.IsActionPressed    ("SRBot"))  SRBot   = true;    // shoot
 
 
@@ -195,23 +195,105 @@ public partial class Input : Godot.Node {
         if (Godot.Input.IsActionJustPressed("Debug5"))     Debug5     = true;
     }
 
-    public void UpdateInputActions(Godot.InputEvent[] iEvRead) {
-        for (int i = 0; i < Amount; i++) {
-            string name        = InputNames[i];
-            string desc        = InputDescriptions[i];
-            string key         = "UNDEFINED";
-            var    iEvent      = iEvRead[i];
-
+    //TODO[ALEX]: update names and descriptions of buttons in csv file
+    public void DefaultInputActions() {
+        for (int i = 0; i < Amount; i++ ) {
+            string name = InputNames[i];
+            string desc = InputDescriptions[i];
+            string key  = "UNDEFINED";
             Godot.InputMap.ActionEraseEvents(name);
-            Godot.InputMap.ActionAddEvent(name, iEvent);
-
-            if (iEvent is Godot.InputEventKey) {
-                string[] keyText = iEvent.AsText().Split(' ');
-                key = keyText[0];
-            } else if (iEvent is Godot.InputEventMouseButton) {
+            if        (name == "SLBot") { // right mouse button
+                var iEvent = new Godot.InputEventMouseButton();
+                iEvent.ButtonIndex = Godot.MouseButton.Right;
+                Godot.InputMap.ActionAddEvent(name, iEvent);
                 key = iEvent.AsText();
+                InputActions[i] = new XB.InputAction(name, desc, key, iEvent);
+            } else if (name == "SRBot") { // left mouse button
+                var iEvent = new Godot.InputEventMouseButton();
+                iEvent.ButtonIndex = Godot.MouseButton.Left;
+                Godot.InputMap.ActionAddEvent(name, iEvent);
+                key = iEvent.AsText();
+                InputActions[i] = new XB.InputAction(name, desc, key, iEvent);
+            } else { // keyboard keys
+                var iEvent = new Godot.InputEventKey();
+                switch (name) {
+                    case "Mode1": {
+                        iEvent.Keycode = Godot.Key.Key1;
+                    } break;
+                    case "Mode2": {
+                        iEvent.Keycode = Godot.Key.Key2;
+                    } break;
+                    case "Start": {
+                        iEvent.Keycode = Godot.Key.Escape;
+                    } break;
+                    case "Select": {
+                        iEvent.Keycode = Godot.Key.Tab;
+                    } break;
+                    case "LUp": {
+                        iEvent.Keycode = Godot.Key.W;
+                    } break;
+                    case "LDown": {
+                        iEvent.Keycode = Godot.Key.S;
+                    } break;
+                    case "LLeft": {
+                        iEvent.Keycode = Godot.Key.A;
+                    } break;
+                    case "LRight": {
+                        iEvent.Keycode = Godot.Key.D;
+                    } break;
+                    case "LIn": {
+                        iEvent.Keycode = Godot.Key.Shift;
+                    } break;
+                    case "RUp": {
+                        iEvent.Keycode = Godot.Key.Up;
+                    } break;
+                    case "RDown": {
+                        iEvent.Keycode = Godot.Key.Down;
+                    } break;
+                    case "RLeft": {
+                        iEvent.Keycode = Godot.Key.Left;
+                    } break;
+                    case "RRight": {
+                        iEvent.Keycode = Godot.Key.Right;
+                    } break;
+                    case "RIn": {
+                        iEvent.Keycode = Godot.Key.L;
+                    } break;
+                    case "DUp": {
+                        iEvent.Keycode = Godot.Key.F;
+                    } break;
+                    case "DDown": {
+                        iEvent.Keycode = Godot.Key.X;
+                    } break;
+                    case "DLeft": {
+                        iEvent.Keycode = Godot.Key.Z;
+                    } break;
+                    case "DRight": {
+                        iEvent.Keycode = Godot.Key.C;
+                    } break;
+                    case "FUp": {
+                        iEvent.Keycode = Godot.Key.Q;
+                    } break;
+                    case "FDown": {
+                        iEvent.Keycode = Godot.Key.Space;
+                    } break;
+                    case "FLeft": {
+                        iEvent.Keycode = Godot.Key.H;
+                    } break;
+                    case "FRight": {
+                        iEvent.Keycode = Godot.Key.E;
+                    } break;
+                    case "SLTop": {
+                        iEvent.Keycode = Godot.Key.P;
+                    } break;
+                    case "SRTop": {
+                        iEvent.Keycode = Godot.Key.Key3;
+                    } break;
+                }
+                Godot.InputMap.ActionAddEvent(name, iEvent);
+                key = iEvent.AsText();
+                InputActions[i] = new XB.InputAction(name, desc, key, iEvent);
             }
-            InputActions[i] = new XB.InputAction(name, desc, key, iEvent);
         }
     }
 

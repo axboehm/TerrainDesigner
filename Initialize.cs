@@ -8,11 +8,13 @@ public partial class Initialize : Godot.Node3D {
         // create input manager that will persist throughout the running of the game
         XB.AData.Input = new XB.Input();
         XB.AData.Input.ProcessMode = Godot.Node.ProcessModeEnum.Always;
+        XB.AData.Input.DefaultInputActions();
 
-        XB.AData.MainRoot     = this;
-        XB.AData.Environment  = _environment.Environment;
-        XB.AData.MainLight    = _mainLight;
+        XB.AData.MainRoot    = this;
+        XB.AData.Environment = _environment.Environment;
+        XB.AData.MainLight   = _mainLight;
         XB.PersistData.UpdateFov();
+        XB.PersistData.SettingsDefault();
         XB.Random.InitializeRandom((uint)System.DateTime.Now.GetHashCode());
 
         Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Captured;

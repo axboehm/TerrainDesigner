@@ -49,8 +49,8 @@ public partial class HUD : Godot.Control {
     }
 
     public void UpdateHUD(float dt) {
-        if (XB.PController.PlAiming && XB.AData.Crosshairs) _tCrosshairs.Show();
-        else                                                _tCrosshairs.Hide();
+        if (XB.PController.PlAiming) _tCrosshairs.Show();
+        else                         _tCrosshairs.Hide();
 
         _t += dt;
         if (_receivedMsg) {

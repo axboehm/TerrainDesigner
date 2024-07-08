@@ -30,10 +30,13 @@ public struct Constants {
 }
 
 public struct ScenePaths {
-    public static string Player       = "res://assets/player/playerController.tscn";
+    public static string Player      = "res://assets/player/playerController.tscn";
+    public static string ButtonAudio = "res://assets/audio/soundButtonPress.tscn";
 }
 
 public struct WorldData {
+    public static Godot.Color MsgColor     = new Godot.Color (0.2f, 0.2f, 0.22f, 1.0f);
+    public static Godot.Color MsgFadeColor = new Godot.Color (0.1f, 0.1f, 0.11f, 0.0f);
 }
 
 public class AData {
@@ -47,7 +50,6 @@ public class AData {
     public static bool       Controller     = false;
     public static int        Fps            = 60;
     public static bool       ShowFps        = false;
-    public static bool       Crosshairs     = true;
     public static float      FovDef         = 0.0f; // camera fov when not aiming (in mm)
     public static float      FovAim         = 0.0f; // when aiming
     public static float      FovZoom        = 0.0f;
@@ -61,33 +63,30 @@ public class AData {
     public static float      Volume         = 0.0f; // audio master volume
     public static string[]   WindowModes    = new string[] {"WINDOWED", "FULLSCREEN"};
     public static bool       FullScreen     = false;
-    // public static string[]   Languages      = new string[] {"en", "de"};
-    // public static string     Language       = "en";
-    // public static bool       VoxelGI        = false;
-    // public static bool       VoxelGIHQ      = false;
-    // public static bool       VoxelGIHalf    = false;
-    // public static bool       VSync          = false;
-    // public static string[]   MSAA           = new string[] {"DISABLED", "MSAA2", "MSAA4", "MSAA8"};
-    // public static string     MSAASel        = "DISABLED";
-    // public static string[]   SSAA           = new string[] {"DISABLED", "FXAA"};
-    // public static string     SSAASel        = "DISABLED";
-    // public static bool       TAA            = false;
-    // public static bool       Debanding      = false;
-    // public static int[]      ShadowSizes    = new int[] {512, 1024, 2048, 4096};
-    // public static int        ShadowSize     = 512;
-    // public static string[]   ShadowFilters  = new string[] {"SHADOWF0", "SHADOWF1", "SHADOWF2",
-    //                                                         "SHADOWF3", "SHADOWF4", "SHADOWF5"};
-    // public static string     ShadowFilter   = "SHADOWF0";
-    // public static int        ShadowDistance = 300;
-    // public static float[]    LOD            = new float[] {4.0f, 2.0f, 1.0f};
-    // public static float      LODSel         = 1.0f;
-    // public static string[]   SSAO           = new string[] {"SSAO0", "SSAO1", "SSAO2", "SSAO3"};
-    // public static string     SSAOSel        = "SSAO0";
-    // public static bool       SSAOHalf       = false;
-    // public static string[]   SSIL           = new string[] {"SSIL0", "SSIL1", "SSIL2", "SSIL3"};
-    // public static string     SSILSel        = "SSIL0";
-    // public static bool       SSILHalf       = false;
-    // public static bool       SSR            = false;
+    public static string[]   Languages      = new string[] {"en", "de"};
+    public static string     Language       = "en";
+    public static bool       VSync          = false;
+    public static string[]   MSAA           = new string[] {"DISABLED", "MSAA2", "MSAA4", "MSAA8"};
+    public static string     MSAASel        = "DISABLED";
+    public static string[]   SSAA           = new string[] {"DISABLED", "FXAA"};
+    public static string     SSAASel        = "DISABLED";
+    public static bool       TAA            = false;
+    public static bool       Debanding      = false;
+    public static int[]      ShadowSizes    = new int[] {512, 1024, 2048, 4096};
+    public static int        ShadowSize     = 512;
+    public static string[]   ShadowFilters  = new string[] {"SHADOWF0", "SHADOWF1", "SHADOWF2",
+                                                            "SHADOWF3", "SHADOWF4", "SHADOWF5"};
+    public static string     ShadowFilter   = "SHADOWF0";
+    public static int        ShadowDistance = 300;
+    public static float[]    LOD            = new float[] {4.0f, 2.0f, 1.0f};
+    public static float      LODSel         = 1.0f;
+    public static string[]   SSAO           = new string[] {"SSAO0", "SSAO1", "SSAO2", "SSAO3"};
+    public static string     SSAOSel        = "SSAO0";
+    public static bool       SSAOHalf       = false;
+    public static string[]   SSIL           = new string[] {"SSIL0", "SSIL1", "SSIL2", "SSIL3"};
+    public static string     SSILSel        = "SSIL0";
+    public static bool       SSILHalf       = false;
+    public static bool       SSR            = false;
     public static string     BaseResolution = "1920x1080";
     public static string     Resolution     = BaseResolution;
     public static SysCG.Dictionary<string, Godot.Vector2I> Resolutions
@@ -101,8 +100,9 @@ public class AData {
 }
 
 public class PersistData {
-    private static float _fovAimM      = 1.25f;
-    private static float _fovZM        = 2.25f;
+    private static float _fovAimM = 1.25f;
+    private static float _fovZM   = 2.25f;
+    private static float _fovDef  = 28.0f;
 
     public static void UpdateFov(float value = 28.0f) {
         XB.AData.FovDef     = value;
@@ -113,5 +113,144 @@ public class PersistData {
         XB.AData.CamMaxDist = value*(1.0f/28.0f)*4.2f;
         XB.AData.CamAimDist = value*(1.0f/28.0f)*1.0f;
     }
+
+    public static void UpdateScreen() {
+        var window  = XB.AData.MainRoot.GetTree().Root;
+        window.Size = XB.AData.Resolutions[XB.AData.Resolution];
+        float scale = ((float)XB.AData.Resolutions[XB.AData.Resolution].X) /
+                      ((float)XB.AData.Resolutions[XB.AData.BaseResolution].X);
+        if (XB.AData.FullScreen) {
+            window.Mode               = Godot.Window.ModeEnum.Fullscreen;
+            XB.PController.Hud.Scale  = new Godot.Vector2(scale, scale);
+            XB.PController.Menu.Scale = new Godot.Vector2(scale, scale);
+            window.ContentScaleFactor = 1.0f/scale;
+            window.ContentScaleMode   = Godot.Window.ContentScaleModeEnum.Viewport;
+        } else {
+            window.Mode               = Godot.Window.ModeEnum.Windowed;
+            XB.PController.Hud.Scale  = new Godot.Vector2(1.0f, 1.0f);
+            XB.PController.Menu.Scale = new Godot.Vector2(1.0f, 1.0f);
+            window.ContentScaleFactor = scale;
+            window.ContentScaleMode   = Godot.Window.ContentScaleModeEnum.Disabled;
+        }
+
+        // VIEWPORT SETTINGS
+        var viewport = XB.AData.MainRoot.GetViewport();
+        viewport.UseDebanding = XB.AData.Debanding;
+        viewport.UseTaa       = XB.AData.TAA;
+
+        //NOTE[ALEX]: I could not figure out the c# naming of the msaa enums in Godot, so I am casting ints:
+        //            0 -> disabled, 1 -> 2x, 2 -> 4x, 3 -> 8x
+        switch (XB.AData.MSAASel) {
+            case "DISABLED": viewport.Msaa3D = (Godot.Viewport.Msaa)0; break;
+            case "MSAA2":    viewport.Msaa3D = (Godot.Viewport.Msaa)1; break;
+            case "MSAA4":    viewport.Msaa3D = (Godot.Viewport.Msaa)2; break;
+            case "MSAA8":    viewport.Msaa3D = (Godot.Viewport.Msaa)3; break;
+        }
+
+        switch (XB.AData.SSAASel) {
+            case "DISABLED": viewport.ScreenSpaceAA = (Godot.Viewport.ScreenSpaceAAEnum)0; break;
+            case "FXAA":     viewport.ScreenSpaceAA = (Godot.Viewport.ScreenSpaceAAEnum)1; break;
+        }
+
+        // ENGINE SETTINGS
+        Godot.Engine.MaxFps = XB.AData.Fps;
+
+        // DISPLAYSERVER SETTINGS
+        if (XB.AData.VSync) {
+            Godot.DisplayServer.WindowSetVsyncMode(Godot.DisplayServer.VSyncMode.Enabled);
+        } else {
+            Godot.DisplayServer.WindowSetVsyncMode(Godot.DisplayServer.VSyncMode.Disabled);
+        }
+
+        // RENDERINGSERVER SETTINGS
+        Godot.RenderingServer.DirectionalShadowAtlasSetSize(XB.AData.ShadowSize, true);
+        var sFQuality = Godot.RenderingServer.ShadowQuality.Hard;
+        switch (XB.AData.ShadowFilter) {
+            case "SHADOWF0": sFQuality = Godot.RenderingServer.ShadowQuality.Hard;        break;
+            case "SHADOWF1": sFQuality = Godot.RenderingServer.ShadowQuality.SoftVeryLow; break;
+            case "SHADOWF2": sFQuality = Godot.RenderingServer.ShadowQuality.SoftLow;     break;
+            case "SHADOWF3": sFQuality = Godot.RenderingServer.ShadowQuality.SoftMedium;  break;
+            case "SHADOWF4": sFQuality = Godot.RenderingServer.ShadowQuality.SoftHigh;    break;
+            case "SHADOWF5": sFQuality = Godot.RenderingServer.ShadowQuality.SoftUltra;   break;
+        }
+        Godot.RenderingServer.DirectionalSoftShadowFilterSetQuality(sFQuality);
+
+        var ssilQuality = Godot.RenderingServer.EnvironmentSsilQuality.VeryLow;
+        switch (XB.AData.SSILSel) {
+            case "SSIL0": ssilQuality = Godot.RenderingServer.EnvironmentSsilQuality.VeryLow; break; 
+            case "SSIL1": ssilQuality = Godot.RenderingServer.EnvironmentSsilQuality.Low;     break; 
+            case "SSIL2": ssilQuality = Godot.RenderingServer.EnvironmentSsilQuality.Medium;  break; 
+            case "SSIL3": ssilQuality = Godot.RenderingServer.EnvironmentSsilQuality.High;    break; 
+        }
+        Godot.RenderingServer.EnvironmentSetSsilQuality(ssilQuality, XB.AData.SSILHalf, 
+                                                        0.5f, 4, 50.0f, 300.0f);
+
+        var ssaoQuality = Godot.RenderingServer.EnvironmentSsaoQuality.VeryLow;
+        switch (XB.AData.SSAOSel) {
+            case "SSAO0": ssaoQuality = Godot.RenderingServer.EnvironmentSsaoQuality.VeryLow; break;
+            case "SSAO1": ssaoQuality = Godot.RenderingServer.EnvironmentSsaoQuality.Low;     break;
+            case "SSAO2": ssaoQuality = Godot.RenderingServer.EnvironmentSsaoQuality.Medium;  break;
+            case "SSAO3": ssaoQuality = Godot.RenderingServer.EnvironmentSsaoQuality.High;    break;
+        }
+        Godot.RenderingServer.EnvironmentSetSsaoQuality(ssaoQuality, XB.AData.SSAOHalf,
+                                                        0.5f, 2, 50.0f, 300.0f);
+
+        XB.AData.MainRoot.GetTree().Root.MeshLodThreshold = XB.AData.LODSel;
+
+        if (XB.AData.MainLight != null) {
+            XB.AData.MainLight.DirectionalShadowMaxDistance = XB.AData.ShadowDistance;
+        }
+
+        if (XB.AData.ShowFps) XB.PController.Hud.LbFps.Show();
+        else                  XB.PController.Hud.LbFps.Hide();
+
+        XB.AData.Environment.SsrEnabled = XB.AData.SSR;
+    }
+
+    public static void SettingsDefault() {
+        XB.AData.Controller   = false;
+        XB.AData.FullScreen   = false;
+        XB.AData.Resolution   = XB.AData.BaseResolution;
+        XB.AData.Fps          = 60;
+        XB.AData.ShowFps      = false;
+        UpdateFov(_fovDef);
+        XB.AData.CamXSens     = 2.0f;
+        XB.AData.CamYSens     = 2.0f;
+        XB.AData.Volume       = -30.0f;
+        XB.AData.Language     = "en";
+        XB.AData.VSync        = false;
+        XB.AData.MSAASel      = "MSAA4";
+        XB.AData.SSAASel      = "FXAA";
+        XB.AData.TAA          = false;
+        XB.AData.Debanding    = true;
+        XB.AData.ShadowSize   = 4096;
+        XB.AData.ShadowFilter = "SHADOWF4";
+        XB.AData.ShadowDistance = 300;
+        XB.AData.LODSel       = 2.0f;
+        XB.AData.SSAOSel      = "SSAO2";
+        XB.AData.SSAOHalf     = true;
+        XB.AData.SSILSel      = "SSIL2";
+        XB.AData.SSILHalf     = true;
+        XB.AData.SSR          = true;
+        Godot.TranslationServer.SetLocale(XB.AData.Language);
+    }
+
+    public static void UpdateAudio() {
+        Godot.AudioServer.SetBusVolumeDb(0, XB.AData.Volume); // 0 is master bus
+    }
+
+    public static void UpdateLanguage() {
+        Godot.TranslationServer.SetLocale(XB.AData.Language);
+    }
+    //
+    // public static void ControlBindingsDefault() {
+    //     Godot.InputEvent[] inputEvents = new Godot.InputEvent[XB.Input.Amount];
+    //     for (int i = 0; i < XB.Input.Amount; i++) {
+    //         inputEvents[i] =  (Godot.InputEvent)file.GetValue("c", XB.AData.Input.InputNames[i]);
+    //     }
+    //     XB.AData.Input.UpdateInputActions(inputEvents);
+    //     //TODO[ALEX]: implement control bindings default
+    //     Godot.GD.Print("ControlBindingsDefault not implemented yet.");
+    // }
 }
 } // namespace close

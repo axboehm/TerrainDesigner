@@ -129,7 +129,7 @@ public partial class PController : Godot.CharacterBody3D {
     public override void _PhysicsProcess(double delta) {
         // UPDATE GENERAL
         float dt = (float)delta;
-        XB.AData.Input.UpdateInput();
+        //NOTE[ALEX]: input gets collected in _PhysicsProcess of Input to also work in menus
         Hud.UpdateHUD(dt);
         var spaceSt = RequestSpaceState(); // get spacestate for raycasting
 
@@ -396,7 +396,7 @@ public partial class PController : Godot.CharacterBody3D {
         // INPUTS
         if        (XB.AData.Input.Start) { // system menu
             Zoomed = false;
-            //Menu.OpenMenu();
+            Menu.OpenMenu();
         } else if (XB.AData.Input.Select) { //
         } else {
             // DUp
@@ -412,6 +412,9 @@ public partial class PController : Godot.CharacterBody3D {
             }
             // SLBot - aiming (handled earlier)
             if (XB.AData.Input.SRTop) { //
+            }
+            if (XB.AData.Input.Mode1) {
+                Godot.GD.Print("mode1");
             }
             // if        (XB.AData.Input.Mode1 && WpnMode == XB.WpnMd.Impact) { //
             // } else if (XB.AData.Input.Mode2 && WpnMode == XB.WpnMd.Projectile) { //
