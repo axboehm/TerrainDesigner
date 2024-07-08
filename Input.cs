@@ -112,7 +112,7 @@ public partial class Input : Godot.Node {
     public bool Debug5     = false;
 
 
-    public override void _PhysicsProcess(double delta) {
+    public void UpdateInput() {
         // clear old input values, then get input for current tick
         // IsActionPressed will continually trigger, IsActionJustPressed only on pushing down
         Mode1  = false;
@@ -174,6 +174,8 @@ public partial class Input : Godot.Node {
         if (Godot.Input.IsActionJustPressed("SRTop"))  SRTop   = true;    // change mode
         if (Godot.Input.IsActionPressed    ("SRBot"))  SRBot   = true;    // shoot
 
+
+        // DEBUG INPUTS
         DebugMenu  = false;
         DebugHud   = false;
         DebugPause = false;
@@ -183,7 +185,6 @@ public partial class Input : Godot.Node {
         Debug4     = false;
         Debug5     = false;
 
-        // DEBUG INPUTS
         if (Godot.Input.IsActionJustPressed("DebugMenu"))  DebugMenu  = true;
         if (Godot.Input.IsActionJustPressed("DebugHud"))   DebugHud   = true;
         if (Godot.Input.IsActionJustPressed("DebugPause")) DebugPause = true;

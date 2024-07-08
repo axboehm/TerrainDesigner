@@ -34,10 +34,10 @@ public partial class PController : Godot.CharacterBody3D {
                    private Godot.AnimationTree  _pATree;
     [Godot.Export] private Godot.NodePath       _gunTipNode;
                    private Godot.Node3D         _gunTip;              // point from which bullets spawn
-    // [Godot.Export] private Godot.NodePath       _hudNode;
-    //          public static XB.HUD               Hud;
-    // [Godot.Export] private Godot.NodePath       _menuNode;
-    //          public static XB.Menu              Menu;
+    [Godot.Export] private Godot.NodePath       _hudNode;
+             public static XB.HUD               Hud;
+    [Godot.Export] private Godot.NodePath       _menuNode;
+             public static XB.Menu              Menu;
     // [Godot.Export] private Godot.NodePath       _playerSkeletonNode;
     //                private Godot.Skeleton3D     _plSkel;
 
@@ -100,8 +100,10 @@ public partial class PController : Godot.CharacterBody3D {
         PModel     = GetNode<Godot.Node3D>          (_playerRiggedNode);
         // _plSkel = GetNode<Godot.Skeleton3D>      (_playerSkeletonNode);
         _pATree    = GetNode<Godot.AnimationTree>   (_animationTreeNode);
-        // Hud        = (XB.HUD)GetNode<Godot.Control> (_hudNode);
-        // Menu       = (XB.Menu)GetNode<Godot.Control>(_menuNode);
+        Hud        = (XB.HUD)GetNode<Godot.Control> (_hudNode);
+        Hud.Initialize();
+        Menu       = (XB.Menu)GetNode<Godot.Control>(_menuNode);
+        Menu.Hide();
         Zoomed     = false;
 
         _audFootStep    = new Godot.AudioStreamPlayer3D[_audFootStepAmnt];
@@ -113,7 +115,8 @@ public partial class PController : Godot.CharacterBody3D {
         _audFootStep[5] = _audFootStep5;
     }
 
-    // get input using godot's system, used for mouse movement input
+    // get input using godot's system, used for mouse movement input, 
+    // general input is handled at beginning of _PhysicsProcess below
     public override void _Input(Godot.InputEvent @event) {
         if (@event is not Godot.InputEventMouseMotion) return;
 
@@ -122,14 +125,12 @@ public partial class PController : Godot.CharacterBody3D {
         _mouse.Y   = -0.027777f * mouseM.Relative.Y;
     }
 
-    // Called every frame at fixed time steps, Project Settings > Physics > Common > Physics Fps
-    // used for calculations that must happen before the physics step, like moving colliders
-    // the camera is child of CCtrV, which is child of CCtrH
-    // this allows vertical rotation independent of horizontal rotation
+    // Called every frame at fixed time steps
     public override void _PhysicsProcess(double delta) {
         // UPDATE GENERAL
         float dt = (float)delta;
-        // Hud.UpdateHUD(WpnMode, (float)delta);
+        XB.AData.Input.UpdateInput();
+        Hud.UpdateHUD(dt);
         var spaceSt = RequestSpaceState(); // get spacestate for raycasting
 
 
@@ -448,22 +449,7 @@ public partial class PController : Godot.CharacterBody3D {
     }
 
     public void PlayerDied() {
-        // var target = GlobalPosition + 100.0f*Godot.Vector3.Down;
-        // var result = XB.Utils.Raycast(RequestSpaceState(), GlobalPosition, target, XB.LayerMasks.AimMask);
-        // if (result.Count == 0) {
-        //     XB.PersistData.FragmentsPos = GlobalPosition;
-        // } else {
-        //     XB.PersistData.FragmentsPos = (Godot.Vector3)result["position"];
-        // }
-        // XB.PersistData.FragmentsDrop  = XB.PersistData.Fragments;
-        // XB.PersistData.FragmentsLevel = XB.Entries.LevelEntries[XB.AData.SceneID].Level;
-        //
-        // var toCam = _cam.GlobalPosition-CCtrH.GlobalPosition;
-        //     toCam = toCam.Normalized();
-        // var pos = CCtrH.GlobalPosition +  toCam*0.35f;
-        // _effectDeath.InitializeEffect(XB.Utils.ConstructTransformFromV3(pos));
-        // XB.PersistData.SaveDataWrite("PlayerDied");
-        // DeathScreen.OpenDeathMenu();
+        //TODO[ALEX]: for when player falls through the world, etc.
     }
 
     public Godot.PhysicsDirectSpaceState3D RequestSpaceState() {
