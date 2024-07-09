@@ -129,7 +129,7 @@ public partial class PController : Godot.CharacterBody3D {
     public override void _PhysicsProcess(double delta) {
         // UPDATE GENERAL
         float dt = (float)delta;
-        //NOTE[ALEX]: input gets collected in _PhysicsProcess of Input to also work in menus
+        XB.AData.Input.GetInputs();
         Hud.UpdateHUD(dt);
         var spaceSt = RequestSpaceState(); // get spacestate for raycasting
 
@@ -161,6 +161,12 @@ public partial class PController : Godot.CharacterBody3D {
 
             _plYV += dt*PlGrav; // gravity
             _plYV  = XB.Utils.ClampF(_plYV, -_maxVertVelo, _maxVertVelo);
+
+            if (GlobalPosition.Y < XB.WorldData.KillPlane || 
+                GlobalPosition.Y < (XB.WorldData.LowestPoint - 50.0f)) {
+                Godot.GD.Print("Player fell off");
+                //TODO[ALEX]: respawn player
+            }
             
             if      (_plYV < 0) _plA = XB.AirSt.Rising;
             else if (_plYV > 0) _plA = XB.AirSt.Falling;
@@ -412,9 +418,6 @@ public partial class PController : Godot.CharacterBody3D {
             }
             // SLBot - aiming (handled earlier)
             if (XB.AData.Input.SRTop) { //
-            }
-            if (XB.AData.Input.Mode1) {
-                Godot.GD.Print("mode1");
             }
             // if        (XB.AData.Input.Mode1 && WpnMode == XB.WpnMd.Impact) { //
             // } else if (XB.AData.Input.Mode2 && WpnMode == XB.WpnMd.Projectile) { //

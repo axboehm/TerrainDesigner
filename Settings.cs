@@ -195,10 +195,22 @@ public partial class Settings {
         return XB.AData.TR.Tr("CHANGED_LANGUAGE");
     }
 
-    public static string DefaultSettings() {
-        XB.PersistData.SettingsDefault();
+    public static string PresetSettings(XB.SettingsPreset preset) {
+        XB.PersistData.SetPresetSettings(preset);
         Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Visible;
-        return XB.AData.TR.Tr("SETTINGS_DEFAULT");
+        string msg = "";
+        switch (preset) {
+            case XB.SettingsPreset.Minimum: { msg = "SETTINGS_MINIMUM"; break; }
+            case XB.SettingsPreset.Default: { msg = "SETTINGS_DEFAULT"; break; }
+            case XB.SettingsPreset.Maximum: { msg = "SETTINGS_MAXIMUM"; break; }
+        }
+        return XB.AData.TR.Tr(msg);
+    }
+
+    public static string ApplicationDefaults() {
+        XB.PersistData.SetApplicationDefaults();
+        Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Visible;
+        return XB.AData.TR.Tr("APPLICATION_DEFAULT");
     }
 
     public static void AddSeparators(Godot.OptionButton ob) {

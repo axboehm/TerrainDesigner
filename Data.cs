@@ -1,6 +1,12 @@
 //#define XBDEBUG
 namespace XB { // namespace open
 using SysCG = System.Collections.Generic;
+public enum SettingsPreset {
+    Minimum,
+    Default,
+    Maximum,
+}
+
 // layer is which layers the object is in, mask is which layers an object scans for collisions
 public struct LayerMasks {               //24--20--16--12--8---4---  
     public static uint EmptyMask       = 0b000000000000000000000000;
@@ -35,17 +41,20 @@ public struct ScenePaths {
 }
 
 public struct WorldData {
-    public static Godot.Color MsgColor     = new Godot.Color (0.2f, 0.2f, 0.22f, 1.0f);
-    public static Godot.Color MsgFadeColor = new Godot.Color (0.1f, 0.1f, 0.11f, 0.0f);
+    public static Godot.Color MsgColor     = new Godot.Color (0.2f, 0.2f, 0.2f, 1.0f);
+    public static Godot.Color MsgFadeColor = new Godot.Color (0.1f, 0.1f, 0.1f, 0.0f);
+    public static float       LowestPoint  = -128.0f;  // lowest used point used in player falling off,
+                                                       // gets updated with terrain updating
+    public static float       KillPlane    = -4096.0f; // fallback for the player falling off
 }
 
 public class AData {
-    public static XB.Input          Input;
-    // public static XB.DebugHUD       DHud;
+    public static XB.Input                 Input;
     public static Godot.DirectionalLight3D MainLight;
-    public static Godot.Environment Environment;
-    public static Godot.Node        MainRoot;
-    public static Godot.Node        TR = new Godot.Node(); //NOTE[ALEX]: necessary to use Tr()
+    public static Godot.Environment        Environment;
+    public static Godot.Node               MainRoot;
+    public static Godot.Node               TR = new Godot.Node(); //NOTE[ALEX]: necessary to use Tr()
+
     public static float      CamCollDist    = 0.2f;     // distance from camera to colliders
     public static bool       Controller     = false;
     public static int        Fps            = 60;
@@ -207,32 +216,69 @@ public class PersistData {
         XB.AData.Environment.SsrEnabled = XB.AData.SSR;
     }
 
-    public static void SettingsDefault() {
-        XB.AData.Controller   = false;
-        XB.AData.FullScreen   = false;
-        XB.AData.Resolution   = XB.AData.BaseResolution;
-        XB.AData.Fps          = 60;
-        XB.AData.ShowFps      = false;
+    public static void SetApplicationDefaults() {
+        XB.AData.Controller = false;
+        XB.AData.FullScreen = false;
+        XB.AData.Resolution = XB.AData.BaseResolution;
+        XB.AData.Fps        = 60;
+        XB.AData.ShowFps    = false;
         UpdateFov(_fovDef);
-        XB.AData.CamXSens     = 2.0f;
-        XB.AData.CamYSens     = 2.0f;
-        XB.AData.Volume       = -30.0f;
-        XB.AData.Language     = "en";
-        XB.AData.VSync        = false;
-        XB.AData.MSAASel      = "MSAA4";
-        XB.AData.SSAASel      = "FXAA";
-        XB.AData.TAA          = false;
-        XB.AData.Debanding    = true;
-        XB.AData.ShadowSize   = 4096;
-        XB.AData.ShadowFilter = "SHADOWF4";
-        XB.AData.ShadowDistance = 300;
-        XB.AData.LODSel       = 2.0f;
-        XB.AData.SSAOSel      = "SSAO2";
-        XB.AData.SSAOHalf     = true;
-        XB.AData.SSILSel      = "SSIL2";
-        XB.AData.SSILHalf     = true;
-        XB.AData.SSR          = true;
+        XB.AData.CamXSens   = 2.0f;
+        XB.AData.CamYSens   = 2.0f;
+        XB.AData.Volume     = -30.0f;
+        XB.AData.VSync      = false;
+        XB.AData.Language   = "en";
         Godot.TranslationServer.SetLocale(XB.AData.Language);
+    }
+
+    public static void SetPresetSettings(XB.SettingsPreset preset) {
+        switch (preset) {
+            case XB.SettingsPreset.Minimum: {
+                XB.AData.MSAASel        = "DISABLED";
+                XB.AData.SSAASel        = "DISABLED";
+                XB.AData.TAA            = false;
+                XB.AData.Debanding      = false;
+                XB.AData.ShadowSize     = 512;
+                XB.AData.ShadowFilter   = "SHADOWF0";
+                XB.AData.ShadowDistance = 50;
+                XB.AData.LODSel         = 4.0f;
+                XB.AData.SSAOSel        = "SSAO0";
+                XB.AData.SSAOHalf       = true;
+                XB.AData.SSILSel        = "SSIL0";
+                XB.AData.SSILHalf       = true;
+                XB.AData.SSR            = false;
+            } break;
+            case XB.SettingsPreset.Default: {
+                XB.AData.MSAASel        = "MSAA4";
+                XB.AData.SSAASel        = "FXAA";
+                XB.AData.TAA            = false;
+                XB.AData.Debanding      = true;
+                XB.AData.ShadowSize     = 2048;
+                XB.AData.ShadowFilter   = "SHADOWF3";
+                XB.AData.ShadowDistance = 150;
+                XB.AData.LODSel         = 2.0f;
+                XB.AData.SSAOSel        = "SSAO2";
+                XB.AData.SSAOHalf       = true;
+                XB.AData.SSILSel        = "SSIL2";
+                XB.AData.SSILHalf       = true;
+                XB.AData.SSR            = true;
+            } break;
+            case XB.SettingsPreset.Maximum: {
+                XB.AData.MSAASel        = "MSAA8";
+                XB.AData.SSAASel        = "FXAA";
+                XB.AData.TAA            = true;
+                XB.AData.Debanding      = true;
+                XB.AData.ShadowSize     = 4096;
+                XB.AData.ShadowFilter   = "SHADOWF5";
+                XB.AData.ShadowDistance = 300;
+                XB.AData.LODSel         = 1.0f;
+                XB.AData.SSAOSel        = "SSAO3";
+                XB.AData.SSAOHalf       = false;
+                XB.AData.SSILSel        = "SSIL3";
+                XB.AData.SSILHalf       = false;
+                XB.AData.SSR            = true;
+            } break;
+        }
     }
 
     public static void UpdateAudio() {
@@ -242,15 +288,5 @@ public class PersistData {
     public static void UpdateLanguage() {
         Godot.TranslationServer.SetLocale(XB.AData.Language);
     }
-    //
-    // public static void ControlBindingsDefault() {
-    //     Godot.InputEvent[] inputEvents = new Godot.InputEvent[XB.Input.Amount];
-    //     for (int i = 0; i < XB.Input.Amount; i++) {
-    //         inputEvents[i] =  (Godot.InputEvent)file.GetValue("c", XB.AData.Input.InputNames[i]);
-    //     }
-    //     XB.AData.Input.UpdateInputActions(inputEvents);
-    //     //TODO[ALEX]: implement control bindings default
-    //     Godot.GD.Print("ControlBindingsDefault not implemented yet.");
-    // }
 }
 } // namespace close

@@ -112,31 +112,10 @@ public partial class Input : Godot.Node {
     public bool Debug5     = false;
 
 
-    public override void _PhysicsProcess(double delta) {
+    public void GetInputs() {
         // clear old input values, then get input for current tick
         // IsActionPressed will continually trigger, IsActionJustPressed only on pushing down
-        Mode1  = false;
-        Mode2  = false;
-        Start  = false;
-        Select = false;
-        MoveY  = 0.0f;
-        MoveX  = 0.0f;
-        LIn    = false;
-        CamY   = 0.0f;
-        CamX   = 0.0f;
-        RIn    = false;
-        DUp    = false;
-        DDown  = false;
-        DLeft  = false;
-        DRight = false;
-        FUp    = false;
-        FDown  = false;
-        FLeft  = false;
-        FRight = false;
-        SLTop  = false;
-        SLBot  = false;
-        SRTop  = false;
-        SRBot  = false;
+        ConsumeAllInputs();
 
         //NOTE[ALEX]: analog sticks are hacked to work with keyboard for now
         // mouse and keyboard
@@ -297,43 +276,48 @@ public partial class Input : Godot.Node {
         }
     }
 
+    public void ConsumeAllInputs() {
+        Mode1  = false;
+        Mode2  = false;
+        Start  = false;
+        Select = false;
+        MoveY  = 0.0f;
+        MoveX  = 0.0f;
+        LIn    = false;
+        CamY   = 0.0f;
+        CamX   = 0.0f;
+        RIn    = false;
+        DUp    = false;
+        DDown  = false;
+        DLeft  = false;
+        DRight = false;
+        FUp    = false;
+        FDown  = false;
+        FLeft  = false;
+        FRight = false;
+        SLTop  = false;
+        SLBot  = false;
+        SRTop  = false;
+        SRBot  = false;
+    }
+
     public void ConsumeInputStart() {
-        if (!Start) {
-            // XB.Log.Err("Start input consumed more than once.", XB.D.InputConsumeInputStart);
-            return;
-        }
         Start = false;
     }
 
     public void ConsumeInputFRight() {
-        if (!FRight) {
-            // XB.Log.Err("FRight input consumed more than once.", XB.D.InputConsumeInputFRight);
-            return;
-        }
         FRight = false;
     }
 
     public void ConsumeInputDebugMenu() {
-        if (!DebugMenu) {
-            // XB.Log.Err("DebugMenu input consumed more than once.", XB.D.InputConsumeInputDebugMenu);
-            return;
-        }
         DebugMenu = false;
     }
 
     public void ConsumeInputDebugHud() {
-        if (!DebugHud) {
-            // XB.Log.Err("DebugHud input consumed more than once.", XB.D.InputConsumeInputDebugHud);
-            return;
-        }
         DebugHud = false;
     }
 
     public void ConsumeInputDebugPause() {
-        if (!DebugPause) {
-            // XB.Log.Err("DebugPause input consumed more than once.", XB.D.InputConsumeInputDebugPause);
-            return;
-        }
         DebugPause = false;
     }
 }

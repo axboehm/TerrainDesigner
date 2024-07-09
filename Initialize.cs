@@ -14,7 +14,7 @@ public partial class Initialize : Godot.Node3D {
         XB.AData.Environment = _environment.Environment;
         XB.AData.MainLight   = _mainLight;
         XB.PersistData.UpdateFov();
-        XB.PersistData.SettingsDefault();
+        XB.PersistData.SetPresetSettings(XB.SettingsPreset.Default);
         XB.Random.InitializeRandom((uint)System.DateTime.Now.GetHashCode());
 
         Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Captured;
