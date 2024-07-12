@@ -1,11 +1,9 @@
 namespace XB { // namespace opegn
-using SysCG = System.Collections.Generic;
 public enum MenuType {
     None,
     Pause,
     Save,
 }
-//TODO[ALEX]: controller inputs just as alternative to keyboard, work around that toggle
 public partial class Menu : Godot.Control {
     [Godot.Export] private XB.HUD             _hud;
     [Godot.Export] private Godot.Label        _lbTab;
@@ -37,18 +35,19 @@ public partial class Menu : Godot.Control {
 
     // system tab
     [Godot.Export] private Godot.TabContainer _tabSys;
-    [Godot.Export] private Godot.Button       _bAppDefaults;
-    [Godot.Export] private Godot.Button       _bDefaults;
-    [Godot.Export] private Godot.Button       _bMinimum;
-    [Godot.Export] private Godot.Button       _bMaximum;
-    [Godot.Export] private Godot.Button       _bApply;
+    [Godot.Export] private Godot.LineEdit     _leSetCode;
+    [Godot.Export] private Godot.Button       _bApplyCode;
+
         // camera
-    [Godot.Export] private Godot.Label  _lbCamHor;
-    [Godot.Export] private Godot.Slider _slCamHor;
-    [Godot.Export] private Godot.Label  _lbCamVer;
-    [Godot.Export] private Godot.Slider _slCamVer;
-    [Godot.Export] private Godot.Label  _lbFov;
-    [Godot.Export] private Godot.Slider _slFov;
+    [Godot.Export] private Godot.Label        _lbCamHor;
+    [Godot.Export] private Godot.Slider       _slCamHor;
+    [Godot.Export] private Godot.Label        _lbCamVer;
+    [Godot.Export] private Godot.Slider       _slCamVer;
+    [Godot.Export] private Godot.Label        _lbFov;
+    [Godot.Export] private Godot.Slider       _slFov;
+    [Godot.Export] private Godot.OptionButton _obPresets;
+    [Godot.Export] private Godot.Button       _bApplyPreset;
+    [Godot.Export] private Godot.Button       _bAppDefaults;
         // display
     [Godot.Export] private Godot.OptionButton _obRes;
     [Godot.Export] private Godot.OptionButton _obMode;
@@ -108,22 +107,26 @@ public partial class Menu : Godot.Control {
         _bQuit.Pressed += ButtonPopupQuitOnPressed;
 
         // system tab
-        _bAppDefaults.Pressed += ButtonAppDefaultsOnPressed;
-        _bDefaults.Pressed    += ButtonDefaultsOnPressed;
-        _bMinimum.Pressed     += ButtonMinimumOnPressed;
-        _bMaximum.Pressed     += ButtonMaximumOnPressed;
-        _bApply.Pressed       += ButtonApplyOnPressed;
+        _bApplyCode.Pressed    += ButtonApplyCodeOnPressed;
         // camera
-        _slFov.MinValue      = XB.AData.FovMin;
-        _slFov.MaxValue      = XB.AData.FovMax;
-        _slFov.DragEnded    += SliderFovOnDragEnded;
-        _slCamHor.DragEnded += SliderCamHorOnDragEnded;
-        _slCamVer.DragEnded += SliderCamVerOnDragEnded;
+        _slFov.MinValue        = XB.AData.FovMin;
+        _slFov.MaxValue        = XB.AData.FovMax;
+        _slFov.DragEnded      += SliderFovOnDragEnded;
+        _slCamHor.DragEnded   += SliderCamHorOnDragEnded;
+        _slCamVer.DragEnded   += SliderCamVerOnDragEnded;
+        _bAppDefaults.Pressed += ButtonAppDefaultsOnPressed;
+        _bApplyPreset.Pressed += ButtonApplyOnPressed;
+        foreach (var preset in XB.AData.Presets) { _obPresets.AddItem(preset.Key); }
+        XB.Settings.AddSeparators(_obPresets);
+        _obPresets.Select(1); // select default preset on startup
+        _obPresets.ItemSelected += OptionButtonPresetsOnItemSelected;
         // display
         foreach (var resolution in XB.AData.Resolutions) { _obRes.AddItem(resolution.Key); }
         XB.Settings.AddSeparators(_obRes);
+        _obRes.ItemSelected += OptionButtonResOnItemSelected;
         foreach (var windowMode in XB.AData.WindowModes) { _obMode.AddItem(windowMode); }
         XB.Settings.AddSeparators(_obMode);
+        _obMode.ItemSelected += OptionButtonModeOnItemSelected;
         _cbFps.Pressed     += ButtonShowFPSOnPressed;
         _cbVSync.Pressed   += ButtonVSyncOnPressed;
         _slFrame.DragEnded += SliderFrameRateOnDragEnded;
@@ -136,14 +139,19 @@ public partial class Menu : Godot.Control {
         _cbSSR.Pressed         += ButtonSSROnPressed;
         foreach (var option in XB.AData.MSAA) { _obMSAA.AddItem(option); }
         XB.Settings.AddSeparators(_obMSAA);
+        _obMSAA.ItemSelected += OptionButtonMSAAOnItemSelected;
         foreach (var option in XB.AData.SSAA) { _obSSAA.AddItem(option); }
         XB.Settings.AddSeparators(_obSSAA);
+        _obSSAA.ItemSelected += OptionButtonSSAAOnItemSelected;
         foreach (var option in XB.AData.ShadowFilters) { _obShdwFilter.AddItem(option); }
         XB.Settings.AddSeparators(_obShdwFilter);
+        _obShdwFilter.ItemSelected += OptionButtonShdwFilterOnItemSelected;
         foreach (var option in XB.AData.SSAO) { _obSSAO.AddItem(option); }
         XB.Settings.AddSeparators(_obSSAO);
+        _obSSAO.ItemSelected += OptionButtonSSAOOnItemSelected;
         foreach (var option in XB.AData.SSIL) { _obSSIL.AddItem(option); }
         XB.Settings.AddSeparators(_obSSIL);
+        _obSSIL.ItemSelected += OptionButtonSSILOnItemSelected;
         _slShdwSize.DragEnded += SliderShadowSizeOnDragEnded;
         _slShdwDist.DragEnded += SliderShadowDistanceOnDragEnded;
         _slLOD.DragEnded      += SliderLODOnDragEnded;
@@ -305,12 +313,10 @@ public partial class Menu : Godot.Control {
             switch (_tabCont.CurrentTab) {
                 case _tPau: { // pause
                     _lbTab.Text = Tr("TAB_PAUSE");
-                    _bResume.GrabFocus();
                     UpdatePauseTab();
                     break;
                 }
                 case _tSys: { // system
-                    _bApply.GrabFocus();
                     UpdateSystemTabContainer();
                     UpdateSettingsTab();
                     break;
@@ -318,10 +324,10 @@ public partial class Menu : Godot.Control {
                 case _tCon: { // controls
                     UpdateControlTabContainer();
                     UpdateControlTab();
-                    _bResume.GrabFocus();
                     break;
                 }
             }
+            _bResume.GrabFocus();
             _tabPrev = _tabCont.CurrentTab;
         }
 
@@ -379,6 +385,7 @@ public partial class Menu : Godot.Control {
         _crMsg.Hide();
         UpdatePauseTab();
         UpdateTabNames();
+        XB.Settings.SettingsCodeFromSettings(_leSetCode);
     }
 
     private void UpdatePauseTab() {
@@ -405,7 +412,7 @@ public partial class Menu : Godot.Control {
             case _tSysPer: _lbTab.Text = Tr("TAB_SYSTEM") + " | " + Tr("TAB_PERFORMANCE"); break;
             case _tSysAud: _lbTab.Text = Tr("TAB_SYSTEM") + " | " + Tr("TAB_AUDIO");       break;
             case _tSysLan: _lbTab.Text = Tr("TAB_SYSTEM") + " | " + Tr("TAB_LANGUAGE");    break;
-            default:                                                                break;
+            default:                                                                       break;
         }
     }
 
@@ -425,7 +432,7 @@ public partial class Menu : Godot.Control {
 
     private void UpdateSettingsTab() {
         XB.Settings.UpdateSettingsTabs(_slCamHor, _lbCamHor, _slCamVer, _lbCamVer, _slFov, _lbFov, 
-                                       _slFrame, _lbFrame,  _obRes, _obMode, _cbFps,
+                                       _slFrame, _lbFrame, _obRes, _obMode, _cbFps,
                                        _cbVSync, 
                                        _obMSAA, _obSSAA, _cbTAA, _cbDebanding,
                                        _lbShdwSize, _slShdwSize, _obShdwFilter,
@@ -437,6 +444,14 @@ public partial class Menu : Godot.Control {
 
     private void UpdateSettingsSliders() {
         XB.Settings.UpdateSliders(_slFrame, _lbFrame, _slShdwSize, _lbShdwSize, _slLOD, _lbLOD);
+    }
+
+    private void ApplySettings() {
+        UpdateSettingsTab();
+        XB.PersistData.UpdateScreen();
+        XB.PersistData.UpdateAudio();
+        XB.PersistData.UpdateLanguage();
+        XB.Settings.SettingsCodeFromSettings(_leSetCode);
     }
 
     private void ShowMessage(string msg) {
@@ -461,114 +476,94 @@ public partial class Menu : Godot.Control {
     public void SliderShadowDistanceOnDragEnded(bool valueChanged) {
         if (!valueChanged) return;
         ShowMessage(XB.Settings.ChangeShadowDistance(_slShdwDist));
-        UpdateSettingsTab();
-        XB.PersistData.UpdateScreen();
+        ApplySettings();
     }
 
     public void SliderFovOnDragEnded(bool valueChanged) {
         if (!valueChanged) return;
         ShowMessage(XB.Settings.ChangeFov(_slFov));
-        UpdateSettingsTab();
+        ApplySettings();
     }
 
     public void SliderCamHorOnDragEnded(bool valueChanged) {
         if (!valueChanged) return;
         ShowMessage(XB.Settings.ChangeSensitivityHorizontal(_slCamHor));
-        UpdateSettingsTab();
+        ApplySettings();
     }
 
     public void SliderCamVerOnDragEnded(bool valueChanged) {
         if (!valueChanged) return;
         ShowMessage(XB.Settings.ChangeSensitivityVertical(_slCamVer));
-        UpdateSettingsTab();
+        ApplySettings();
     }
 
     public void SliderVolumeOnDragEnded(bool valueChanged) {
         if (!valueChanged) return;
         ShowMessage(XB.Settings.ChangeVolume(_slVolume));
-        UpdateSettingsTab();
+        ApplySettings();
     }
 
     public void SliderFrameRateOnDragEnded(bool valueChanged) {
         UpdateSettingsSliders();
+        ApplySettings();
     }
 
     public void SliderShadowSizeOnDragEnded(bool valueChanged) {
         UpdateSettingsSliders();
+        ApplySettings();
     }
 
     public void SliderLODOnDragEnded(bool valueChanged) {
         UpdateSettingsSliders();
+        ApplySettings();
     }
 
     public void ButtonAppDefaultsOnPressed() {
         XB.Utils.PlayUISound(XB.ScenePaths.ButtonAudio);
         ShowMessage(XB.Settings.ApplicationDefaults());
-        XB.PersistData.UpdateScreen();
-        UpdateSettingsTab();
-    }
-
-    public void ButtonDefaultsOnPressed() {
-        SettingsPresetShared(XB.SettingsPreset.Default);
-    }
-
-    public void ButtonMinimumOnPressed() {
-        SettingsPresetShared(XB.SettingsPreset.Minimum);
-    }
-
-    public void ButtonMaximumOnPressed() {
-        SettingsPresetShared(XB.SettingsPreset.Maximum);
-    }
-
-    private void SettingsPresetShared(XB.SettingsPreset preset) {
-        XB.Utils.PlayUISound(XB.ScenePaths.ButtonAudio);
-        ShowMessage(XB.Settings.PresetSettings(preset));
-        XB.PersistData.UpdateScreen();
-        UpdateSettingsTab();
+        ApplySettings();
     }
 
     public void ButtonApplyOnPressed () {
         XB.Utils.PlayUISound(XB.ScenePaths.ButtonAudio);
-        ShowMessage(XB.Settings.ApplySettings(_slFrame, _lbFrame, _slShdwSize, _lbShdwSize,
-                                              _slShdwDist, _lbShdwDist, _slLOD, _lbLOD, _obRes, _obMode,
-                                              _obMSAA,_obSSAA, _obShdwFilter, _obSSAO, _obSSIL));
-        XB.PersistData.UpdateScreen();
+        string preset = _obPresets.GetItemText(_obPresets.GetSelectedId());
+        ShowMessage(XB.Settings.PresetSettings(XB.AData.Presets[preset]));
+        ApplySettings();
     }
 
     public void ButtonTAAOnPressed() {
         ShowMessage(XB.Settings.ToggleTAA());
-        UpdateSettingsTab();
+        ApplySettings();
     }
 
     public void ButtonDebandingOnPressed() {
         ShowMessage(XB.Settings.ToggleDebanding());
-        UpdateSettingsTab();
+        ApplySettings();
     }
 
     public void ButtonSSAOHalfOnPressed() {
         ShowMessage(XB.Settings.ToggleSSAOHalf());
-        UpdateSettingsTab();
+        ApplySettings();
     }
 
     public void ButtonSSILHalfOnPressed() {
         ShowMessage(XB.Settings.ToggleSSILHalf());
-        UpdateSettingsTab();
+        ApplySettings();
     }
 
     public void ButtonSSROnPressed() {
         ShowMessage(XB.Settings.ToggleSSR());
-        UpdateSettingsTab();
+        ApplySettings();
     }
 
     public void ButtonVSyncOnPressed() {
         ShowMessage(XB.Settings.ToggleVSync());
-        UpdateSettingsTab();
+        ApplySettings();
     }
 
     public void ButtonShowFPSOnPressed() {
         ShowMessage(XB.Settings.ToggleShowFPS());
-        XB.PersistData.UpdateScreen();
-        UpdateSettingsTab();
+        ApplySettings();
     }
 
     public void ButtonPopupCancelOnPressed() {
@@ -629,8 +624,68 @@ public partial class Menu : Godot.Control {
     private void OptionButtonLanguageOnItemSelected(long id) {
         ShowMessage(XB.Settings.ChangeLanguage(_obLanguage));
         UpdateSystemTabContainer();
-        UpdateSettingsTab();
         UpdateTabNames();
+        ApplySettings();
+    }
+
+    private void OptionButtonPresetsOnItemSelected(long id) {
+        ApplySettings();
+    }
+
+    private void OptionButtonResOnItemSelected(long id) {
+        XB.AData.Resolution = _obRes.GetItemText(_obRes.GetSelectedId());
+        ApplySettings();
+    }
+
+    private void OptionButtonModeOnItemSelected(long id) {
+        if (_obMode.GetSelectedId() == 1) XB.AData.FullScreen = true;
+        else                              XB.AData.FullScreen = false;
+        ApplySettings();
+    }
+
+    private void OptionButtonMSAAOnItemSelected(long id) {
+        XB.AData.MSAASel = XB.AData.MSAA[_obMSAA.GetSelectedId()];
+        ApplySettings();
+    }
+
+    private void OptionButtonSSAAOnItemSelected(long id) {
+        XB.AData.SSAASel = XB.AData.SSAA[_obSSAA.GetSelectedId()];
+        ApplySettings();
+    }
+
+    private void OptionButtonSSILOnItemSelected(long id) {
+        XB.AData.SSILSel = XB.AData.SSIL[_obSSIL.GetSelectedId()];
+        ApplySettings();
+    }
+
+    private void OptionButtonShdwFilterOnItemSelected(long id) {
+        XB.AData.ShadowFilter = XB.AData.ShadowFilters[_obShdwFilter.GetSelectedId()];
+        ApplySettings();
+    }
+
+    private void OptionButtonSSAOOnItemSelected(long id) {
+        XB.AData.SSAOSel = XB.AData.SSAO[_obSSAO.GetSelectedId()];
+        ApplySettings();
+    }
+
+    private void ButtonApplyCodeOnPressed() {
+        string code = _leSetCode.Text;
+        if (code.Length != (XB.AData.SetCodeLengthL+XB.AData.SetCodeLengthR)) {
+            XB.Settings.SettingsCodeFromSettings(_leSetCode);
+            ShowMessage(Tr("INCORRECT_SETCODE"));
+            return;
+        }
+        for (int i = 0; i < (XB.AData.SetCodeLengthL+XB.AData.SetCodeLengthR); i++) {
+            if (code[i] != '0' && code[i] != '1') {
+                XB.Settings.SettingsCodeFromSettings(_leSetCode);
+                ShowMessage(Tr("INCORRECT_SETCODE"));
+                return;
+            }
+        }
+
+        XB.Settings.SettingsFromSettingsCode(code);
+        ApplySettings();
+        ShowMessage(Tr("SETCODE_APPLIED"));
     }
 }
 } // namespace close 

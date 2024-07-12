@@ -1,6 +1,5 @@
 // #define XBDEBUG
 namespace XB { // namespace open
-using SysCG = System.Collections.Generic;
 public partial class HUD : Godot.Control {
     [Godot.Export] private        Godot.NodePath       _labelInteractPromptNode;
                    public  static Godot.Label          LbInterAct;

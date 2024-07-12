@@ -56,8 +56,13 @@ public class AData {
     public static Godot.Node               TR = new Godot.Node(); //NOTE[ALEX]: necessary to use Tr()
 
     public static float      CamCollDist    = 0.2f;     // distance from camera to colliders
+    public static ulong      SetCodeR       = 0;
+    public static ulong      SetCodeL       = 0;
+    public static int        SetCodeLengthR = 45;
+    public static int        SetCodeLengthL = 35;
     public static bool       Controller     = false;
     public static int        Fps            = 60;
+    public static int[]      FpsOptions     = new int[] {30, 60, 120, 240}; //TODO[ALEX]: change 240 to unl
     public static bool       ShowFps        = false;
     public static float      FovDef         = 0.0f; // camera fov when not aiming (in mm)
     public static float      FovAim         = 0.0f; // when aiming
@@ -86,7 +91,7 @@ public class AData {
     public static string[]   ShadowFilters  = new string[] {"SHADOWF0", "SHADOWF1", "SHADOWF2",
                                                             "SHADOWF3", "SHADOWF4", "SHADOWF5"};
     public static string     ShadowFilter   = "SHADOWF0";
-    public static int        ShadowDistance = 300;
+    public static int        ShadowDistance = 256;
     public static float[]    LOD            = new float[] {4.0f, 2.0f, 1.0f};
     public static float      LODSel         = 1.0f;
     public static string[]   SSAO           = new string[] {"SSAO0", "SSAO1", "SSAO2", "SSAO3"};
@@ -98,13 +103,21 @@ public class AData {
     public static bool       SSR            = false;
     public static string     BaseResolution = "1920x1080";
     public static string     Resolution     = BaseResolution;
+    public static string[]   ResStrings     = new string[] {"3840x2160", "2560x1440", "2048x1152",
+                                                            "1920x1080", "1280x720"};
     public static SysCG.Dictionary<string, Godot.Vector2I> Resolutions
         = new SysCG.Dictionary<string, Godot.Vector2I>() {
-            {"3840x2160", new Godot.Vector2I(3840, 2160)},
-            {"2560x1440", new Godot.Vector2I(2560, 1440)},
-            {"2048x1152", new Godot.Vector2I(2048, 1152)},
-            {"1920x1080", new Godot.Vector2I(1920, 1080)},
-            {"1280x720",  new Godot.Vector2I(1280, 720)},
+            {ResStrings[0], new Godot.Vector2I(3840, 2160)},
+            {ResStrings[1], new Godot.Vector2I(2560, 1440)},
+            {ResStrings[2], new Godot.Vector2I(2048, 1152)},
+            {ResStrings[3], new Godot.Vector2I(1920, 1080)},
+            {ResStrings[4], new Godot.Vector2I(1280, 720)},
+        };
+    public static SysCG.Dictionary<string, XB.SettingsPreset> Presets
+        = new SysCG.Dictionary<string, XB.SettingsPreset>() {
+            {"Lowest",  XB.SettingsPreset.Minimum},
+            {"Default", XB.SettingsPreset.Default},
+            {"Highest", XB.SettingsPreset.Maximum},
         };
 }
 

@@ -13,8 +13,6 @@ public partial class Initialize : Godot.Node3D {
         XB.AData.MainRoot    = this;
         XB.AData.Environment = _environment.Environment;
         XB.AData.MainLight   = _mainLight;
-        XB.PersistData.UpdateFov();
-        XB.PersistData.SetPresetSettings(XB.SettingsPreset.Default);
         XB.Random.InitializeRandom((uint)System.DateTime.Now.GetHashCode());
 
         Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Captured;
@@ -24,6 +22,9 @@ public partial class Initialize : Godot.Node3D {
 
     public override void _Ready() { // after all children are ready
         XB.AData.MainRoot.AddChild(XB.AData.Input);
+        XB.PersistData.SetPresetSettings(XB.SettingsPreset.Default);
+        XB.PersistData.SetApplicationDefaults();
+        XB.PersistData.UpdateScreen();
     }
 }
 } // namespace close

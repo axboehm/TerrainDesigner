@@ -66,5 +66,31 @@ public class Utils {
         var sound = sScn.Instantiate();
         XB.AData.MainRoot.AddChild(sound);
     }
+
+    public static ulong BitStringToULong(string bitString, int length) {
+        ulong result = 0;
+        for (int i = 0; i < length; i++) {
+            if (bitString[length-1-i] == '0') continue;
+            ulong temp = 1;
+            temp = temp << i;
+            result |= temp;
+        }
+        return result;
+    }
+
+    public static string ULongToBitString(ulong bitCode, int length) {
+        string result = "";
+        for (int i = 0; i < length; i++) {
+            ulong temp = 1;
+            temp = temp << length-1-i;
+            if (bitCode >= temp) {
+                result += "1";
+                bitCode -= temp;
+            } else {
+                result += "0";
+            }
+        }
+        return result;
+    }
 }
 } // namespace close
