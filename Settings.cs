@@ -85,8 +85,7 @@ public partial class Settings {
             case 30:  slFrame.Value = 0; lbFrame.Text = "30";                        break;
             case 60:  slFrame.Value = 1; lbFrame.Text = "60";                        break;
             case 120: slFrame.Value = 2; lbFrame.Text = "120";                       break;
-            case 240: slFrame.Value = 3; lbFrame.Text = "240";                       break;
-            case 0:   slFrame.Value = 4; lbFrame.Text = XB.AData.TR.Tr("UNLIMITED"); break;
+            case 0:   slFrame.Value = 3; lbFrame.Text = XB.AData.TR.Tr("UNLIMITED"); break;
         }
         switch (XB.AData.ShadowSize) {
             case 512:  slShdwSize.Value = 0; lbShdwSize.Text = "512 px";  break;
@@ -138,8 +137,7 @@ public partial class Settings {
             case 0: XB.AData.Fps = 30;  lbFrame.Text = "30";                        break;
             case 1: XB.AData.Fps = 60;  lbFrame.Text = "60";                        break;
             case 2: XB.AData.Fps = 120; lbFrame.Text = "120";                       break;
-            case 3: XB.AData.Fps = 240; lbFrame.Text = "240";                       break;
-            case 4: XB.AData.Fps = 0;   lbFrame.Text = XB.AData.TR.Tr("UNLIMITED"); break;
+            case 3: XB.AData.Fps = 0;   lbFrame.Text = XB.AData.TR.Tr("UNLIMITED"); break;
         }
         switch (slShdwSize.Value) {
             case 0: XB.AData.ShadowSize = 512;  lbShdwSize.Text = "512 px";  break;

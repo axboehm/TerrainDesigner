@@ -38,11 +38,19 @@ public partial class PController : Godot.CharacterBody3D {
              public static XB.HUD               Hud;
     [Godot.Export] private Godot.NodePath       _menuNode;
              public static XB.Menu              Menu;
-    // [Godot.Export] private Godot.NodePath       _playerSkeletonNode;
-    //                private Godot.Skeleton3D     _plSkel;
+    [Godot.Export] private Godot.NodePath       _hairNode;
+                   private Godot.BaseMaterial3D _hairMat;
+    [Godot.Export] private Godot.NodePath       _lashNode;
+                   private Godot.BaseMaterial3D _lashMat;
+    [Godot.Export] private Godot.NodePath       _eyesNode;
+                   private Godot.BaseMaterial3D _eyesMat;
+    [Godot.Export] private Godot.NodePath       _bodyNode;
+                   private Godot.BaseMaterial3D _bodyMat;
+                   private Godot.BaseMaterial3D _headMat;
+                   private float                _colSm      = 14.0f;
+                   private Godot.Color          _colCurrent = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
 
-    // zoom
-    public static bool Zoomed = false;
+    private bool _thirdP = true;
 
     // audio
     //NOTE[ALEX]: exporting the array directly does not consistently work in Godot 4.2.2 (bug)
@@ -73,6 +81,7 @@ public partial class PController : Godot.CharacterBody3D {
     private const float     _maxVertVelo = 15.0f;
 
     private float         _fov      = 0.0f;     // camera fov to lerp to
+    private float         _cDist    = 0.0f;     // distance of camera from rotation center
     private const float   _cSmooth  = 28.0f;    // smoothing value for camera pos and fov lerping
     private const float   _cPushSpd = 12.0f;    // speed with which the camera pushes in
     private const float   _cPullSpd = 5.0f;     // speed with which the camera pulls back
@@ -98,13 +107,24 @@ public partial class PController : Godot.CharacterBody3D {
         _cCtrV     = GetNode<Godot.Node3D>          (_cameraRotationVNode);
         _gunTip    = GetNode<Godot.Node3D>          (_gunTipNode);
         PModel     = GetNode<Godot.Node3D>          (_playerRiggedNode);
-        // _plSkel = GetNode<Godot.Skeleton3D>      (_playerSkeletonNode);
         _pATree    = GetNode<Godot.AnimationTree>   (_animationTreeNode);
         Hud        = (XB.HUD)GetNode<Godot.Control> (_hudNode);
-        Hud.Initialize();
         Menu       = (XB.Menu)GetNode<Godot.Control>(_menuNode);
         Menu.Hide();
-        Zoomed     = false;
+
+        _thirdP = true;
+        _cDist  = XB.AData.CamMaxDist;
+
+        _hairMat = (Godot.BaseMaterial3D)GetNode<Godot.MeshInstance3D>
+                       (_hairNode).GetSurfaceOverrideMaterial(0);
+        _lashMat = (Godot.BaseMaterial3D)GetNode<Godot.MeshInstance3D>
+                       (_lashNode).GetSurfaceOverrideMaterial(0);
+        _eyesMat = (Godot.BaseMaterial3D)GetNode<Godot.MeshInstance3D>
+                       (_eyesNode).GetSurfaceOverrideMaterial(0);
+        _bodyMat = (Godot.BaseMaterial3D)GetNode<Godot.MeshInstance3D>
+                       (_bodyNode).GetSurfaceOverrideMaterial(0);
+        _headMat = (Godot.BaseMaterial3D)GetNode<Godot.MeshInstance3D>
+                       (_bodyNode).GetSurfaceOverrideMaterial(1);
 
         _audFootStep    = new Godot.AudioStreamPlayer3D[_audFootStepAmnt];
         _audFootStep[0] = _audFootStep0;
@@ -227,20 +247,22 @@ public partial class PController : Godot.CharacterBody3D {
 
         // CAMERA
         // STEP 1: aiming
-        if (XB.AData.Input.SLBot) {
-            Zoomed    = false;
+        if (!_thirdP) {
+            Hud.CrosshairsFadeIn();
+            PlAiming  = false;
+            _aimOff.X = XB.Utils.LerpF(_aimOff.X, 0.0f, _cSmooth*dt);
+            _aimOff.Y = XB.Utils.LerpF(_aimOff.Y, 0.0f, _cSmooth*dt);
+        } else if (XB.AData.Input.SLBot) {
+            Hud.CrosshairsFadeIn();
             _move     = XB.MoveSt.Walk;
             PlAiming  = true;
-            _aimOff.X = _aimHOff;
-            _aimOff.Y = _aimVOff;
-        } else if (Zoomed) {
-            _move     = XB.MoveSt.Walk;
-            _aimOff.X = _aimHOff;
-            _aimOff.Y = _aimVOff;
+            _aimOff.X = XB.Utils.LerpF(_aimOff.X, _aimHOff, _cSmooth*dt);
+            _aimOff.Y = XB.Utils.LerpF(_aimOff.Y, _aimVOff, _cSmooth*dt);
         } else {
+            Hud.CrosshairsFadeOut();
             PlAiming  = false;
-            _aimOff.X = 0.0f;
-            _aimOff.Y = 0.0f;
+            _aimOff.X = XB.Utils.LerpF(_aimOff.X, 0.0f, _cSmooth*dt);
+            _aimOff.Y = XB.Utils.LerpF(_aimOff.Y, 0.0f, _cSmooth*dt);
         }
 
         XB.AData.Input.CamX += _mouse.X;
@@ -257,7 +279,10 @@ public partial class PController : Godot.CharacterBody3D {
               rotCtr   += CCtrH.GlobalPosition;
               rotCtr   += _aimOff.X*_cam.GlobalTransform.Basis.X;
               rotCtr   += _aimOff.Y*_cam.GlobalTransform.Basis.Y;
-        var   toCam     = _cam.GlobalPosition-rotCtr;
+        var   toCam     = _cam.GlobalTransform.Basis.Z;
+        if (_thirdP) {
+            toCam = _cam.GlobalPosition-rotCtr;
+        }
         var   toCamG    = new Godot.Vector3(toCam.X, 0.0f, toCam.Z);
         float cAngle    = toCam.AngleTo(toCamG)*XB.Constants.Rad2Deg;
         float verAmount = dt*XB.AData.CamYSens*XB.AData.Input.CamY;
@@ -268,8 +293,10 @@ public partial class PController : Godot.CharacterBody3D {
         _cCtrV.RotateObjectLocal(_cCtrV.Transform.Basis.X, verAmount);
 
         // STEP 4: check for camera collisions and move camera
-        if (PlAiming || Zoomed) {
-            _cam.Position = new Godot.Vector3(_aimOff.X, _aimOff.Y, XB.AData.CamAimDist);
+        if (!_thirdP) {
+            _cDist = XB.Utils.LerpF(_cDist, 0.0f, _cSmooth*dt);
+        } else if (PlAiming) {
+            _cDist = XB.Utils.LerpF(_cDist, XB.AData.CamAimDist, _cSmooth*dt);
 
             var rayOrig  = XB.Utils.IntersectRayPlaneV3
                              (_cam.GlobalPosition,  _cam.GlobalTransform.Basis.Z,
@@ -279,8 +306,7 @@ public partial class PController : Godot.CharacterBody3D {
             if (resultCA.Count > 0) {
                 var camAimHit = (Godot.Vector3)resultCA["position"];
                 var camAimOff = (_cam.GlobalPosition-camAimHit).Length();
-                _cam.Position = new Godot.Vector3(_aimOff.X, _aimOff.Y, 
-                                                  XB.AData.CamAimDist-camAimOff);
+                _cDist = XB.Utils.LerpF(_cDist, XB.AData.CamAimDist-camAimOff, _cSmooth*dt);
             }
         } else {
             var resultC = XB.Utils.Raycast(spaceSt, CCtrH.GlobalPosition,
@@ -290,11 +316,12 @@ public partial class PController : Godot.CharacterBody3D {
                 var   toCollision = (Godot.Vector3)resultC["position"]-CCtrH.GlobalPosition;
                 float newDist     = toCollision.Length() - XB.AData.CamCollDist;
                       newDist     = XB.Utils.ClampF(newDist, XB.AData.CamMinDist, XB.AData.CamMaxDist);
-                _cam.Position = new Godot.Vector3(_aimOff.X, _aimOff.Y, newDist);
+                _cDist = XB.Utils.LerpF(_cDist, newDist, _cSmooth*dt);
             } else {
-                _cam.Position = new Godot.Vector3(_aimOff.X, _aimOff.Y, XB.AData.CamMaxDist);
+                _cDist = XB.Utils.LerpF(_cDist, XB.AData.CamMaxDist, _cSmooth*dt);
             }
         }
+        _cam.Position = new Godot.Vector3(_aimOff.X, _aimOff.Y, _cDist);
 
 
         // STEP 5: rotating player
@@ -311,7 +338,9 @@ public partial class PController : Godot.CharacterBody3D {
 
 
         // AIMING
-        if (PlAiming) {
+        if (!_thirdP) {
+            _fov = XB.AData.FovDef;
+        } else if (PlAiming) {
             bool canShoot = true;
             var camHit  = _cam.GlobalPosition - _cam.GlobalTransform.Basis.Z*1000.0f;
             var hitBox  = new Godot.StaticBody3D();
@@ -339,8 +368,6 @@ public partial class PController : Godot.CharacterBody3D {
                 //TODO[ALEX]: shooting/interacting
             }
             _fov = XB.AData.FovAim;
-        } else if (Zoomed) {
-            _fov = XB.AData.FovZoom;
         } else {
             _fov = XB.AData.FovDef;
         }
@@ -399,11 +426,28 @@ public partial class PController : Godot.CharacterBody3D {
         _pATree.Set("parameters/walkSpace/blend_position", _blWalk  );
 
 
+        // PLAYER MATERIAL
+        if (_thirdP) {
+            if (_colCurrent.A > 0.98f) {
+                _colCurrent.A = 1.0f; //NOTE[ALEX]: avoids visual artifacts at the end of fade in
+            } else {
+                _colCurrent.A = XB.Utils.LerpF(_colCurrent.A, 1.0f, _colSm*dt);
+            }
+        } else {
+            _colCurrent.A = XB.Utils.LerpF(_colCurrent.A, 0.0f, _colSm*dt);
+        }
+        _hairMat.AlbedoColor = _colCurrent;
+        _lashMat.AlbedoColor = _colCurrent;
+        _eyesMat.AlbedoColor = _colCurrent;
+        _bodyMat.AlbedoColor = _colCurrent;
+        _headMat.AlbedoColor = _colCurrent;
+
+
         // INPUTS
         if        (XB.AData.Input.Start) { // system menu
-            Zoomed = false;
             Menu.OpenMenu();
-        } else if (XB.AData.Input.Select) { //
+        } else if (XB.AData.Input.Select) { // toggle HUD visibility
+            Hud.ToggleHUD();
         } else {
             // DUp
             // DDown
@@ -417,7 +461,8 @@ public partial class PController : Godot.CharacterBody3D {
             if (XB.AData.Input.SLTop) { //
             }
             // SLBot - aiming (handled earlier)
-            if (XB.AData.Input.SRTop) { //
+            if (XB.AData.Input.SRTop) { // swap between first and third person view
+                _thirdP = !_thirdP;
             }
             // if        (XB.AData.Input.Mode1 && WpnMode == XB.WpnMd.Impact) { //
             // } else if (XB.AData.Input.Mode2 && WpnMode == XB.WpnMd.Projectile) { //

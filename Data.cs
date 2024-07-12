@@ -62,11 +62,10 @@ public class AData {
     public static int        SetCodeLengthL = 35;
     public static bool       Controller     = false;
     public static int        Fps            = 60;
-    public static int[]      FpsOptions     = new int[] {30, 60, 120, 240}; //TODO[ALEX]: change 240 to unl
+    public static int[]      FpsOptions     = new int[] {30, 60, 120, 0};
     public static bool       ShowFps        = false;
     public static float      FovDef         = 0.0f; // camera fov when not aiming (in mm)
     public static float      FovAim         = 0.0f; // when aiming
-    public static float      FovZoom        = 0.0f;
     public static float      FovMin         = 12.0f;
     public static float      FovMax         = 70.0f;
     public static float      CamMinDist     = 0.5f;
@@ -123,15 +122,12 @@ public class AData {
 
 public class PersistData {
     private static float _fovAimM = 1.25f;
-    private static float _fovZM   = 2.25f;
     private static float _fovDef  = 28.0f;
 
     public static void UpdateFov(float value = 28.0f) {
         XB.AData.FovDef     = value;
         XB.AData.FovAim     = value*_fovAimM;
         XB.AData.FovAim     = XB.Utils.ClampF(XB.AData.FovAim, XB.AData.FovMin, XB.AData.FovMax);
-        XB.AData.FovZoom    = value*_fovZM;
-        XB.AData.FovZoom    = XB.Utils.ClampF(XB.AData.FovZoom, XB.AData.FovMin, XB.AData.FovMax);
         XB.AData.CamMaxDist = value*(1.0f/28.0f)*4.2f;
         XB.AData.CamAimDist = value*(1.0f/28.0f)*1.0f;
     }

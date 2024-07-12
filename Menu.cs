@@ -623,9 +623,9 @@ public partial class Menu : Godot.Control {
 
     private void OptionButtonLanguageOnItemSelected(long id) {
         ShowMessage(XB.Settings.ChangeLanguage(_obLanguage));
+        ApplySettings();
         UpdateSystemTabContainer();
         UpdateTabNames();
-        ApplySettings();
     }
 
     private void OptionButtonPresetsOnItemSelected(long id) {

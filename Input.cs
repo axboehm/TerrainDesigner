@@ -123,7 +123,7 @@ public partial class Input : Godot.Node {
         if (Godot.Input.IsActionJustPressed("Mode2"))  Mode2   = true;    // unused
         // menu buttons
         if (Godot.Input.IsActionJustPressed("Start"))  Start   = true;    // system menu
-        if (Godot.Input.IsActionJustPressed("Select")) Select  = true;    // unused
+        if (Godot.Input.IsActionJustPressed("Select")) Select  = true;    // toggle HUD
         // left analog stick
         if (Godot.Input.IsActionPressed    ("LUp"))    MoveY  += 1.0f;    // movement
         if (Godot.Input.IsActionPressed    ("LDown"))  MoveY  -= 1.0f;
@@ -143,15 +143,15 @@ public partial class Input : Godot.Node {
         if (Godot.Input.IsActionJustPressed("DRight")) DRight  = true;    // unused
         // face buttons
         if (Godot.Input.IsActionJustPressed("FUp"))    FUp     = true;    // unused
-        if (Godot.Input.IsActionJustPressed("FDown"))  FDown   = true;    // unused
+        if (Godot.Input.IsActionJustPressed("FDown"))  FDown   = true;    // jump
         if (Godot.Input.IsActionJustPressed("FLeft"))  FLeft   = true;    // unused
         if (Godot.Input.IsActionJustPressed("FRight")) FRight  = true;    // unused
         // left shoulder buttons
         if (Godot.Input.IsActionJustPressed("SLTop"))  SLTop   = true;    // unused
         if (Godot.Input.IsActionPressed    ("SLBot"))  SLBot   = true;    // aim
         // right shoulder buttons
-        if (Godot.Input.IsActionJustPressed("SRTop"))  SRTop   = true;    // unused
-        if (Godot.Input.IsActionPressed    ("SRBot"))  SRBot   = true;    // shoot
+        if (Godot.Input.IsActionJustPressed("SRTop"))  SRTop   = true;    // toggle 1st/3rd person
+        if (Godot.Input.IsActionPressed    ("SRBot"))  SRBot   = true;    // shoot / unused
 
 
         // DEBUG INPUTS
@@ -174,7 +174,6 @@ public partial class Input : Godot.Node {
         if (Godot.Input.IsActionJustPressed("Debug5"))     Debug5     = true;
     }
 
-    //TODO[ALEX]: update names and descriptions of buttons in csv file
     public void DefaultInputActions() {
         for (int i = 0; i < Amount; i++ ) {
             string name = InputNames[i];

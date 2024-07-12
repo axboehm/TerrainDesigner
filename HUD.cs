@@ -16,6 +16,12 @@ public partial class HUD : Godot.Control {
     [Godot.Export] private        Godot.NodePath       _matHudEffectsNode;
                    private        Godot.ShaderMaterial _matHudEff;
 
+    private bool        _hudVisible   = true;
+    private bool        _crossVisible = true; //NOTE[ALEX]: additionaly track each hud element separately
+    private float       _hudSm        = 16.0f;
+    private float       _crossAlpha   = 0.0f;
+    private Godot.Color _colCross     = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
+
     private        float       _t            = 0.0f;
     private        Godot.Color _colLabel     = new Godot.Color(0.54f, 0.55f, 0.6f, 1.0f);
     private        float       _msgDur       = 3.0f;
@@ -37,19 +43,37 @@ public partial class HUD : Godot.Control {
         LbFps.Hide();
         _lbMessage.Text  = "";
         _lbMessage2.Text = "";
-        _tCrosshairs.Hide();
+
+        _colCross.A           = _crossAlpha;
+        _tCrosshairs.Modulate = _colCross;
+    }
+
+    public void ToggleHUD() {
+        _hudVisible = !_hudVisible;
     }
 
     public void UpdateInteractKey() {
         LbInterKey.Text = XB.AData.Input.InputActions[21].Key + " " + Tr("TO_INTERACT");
     }
 
-    public void Initialize() {
+    public void CrosshairsFadeIn() {
+        _crossVisible = true;
+    }
+
+    public void CrosshairsFadeOut() {
+        _crossVisible = false;
     }
 
     public void UpdateHUD(float dt) {
-        if (XB.PController.PlAiming) _tCrosshairs.Show();
-        else                         _tCrosshairs.Hide();
+        if (_hudVisible) {
+            if (_crossVisible) { _crossAlpha = 1.0f; }
+            else               { _crossAlpha = 0.0f; }
+        } else {
+            _crossAlpha = 0.0f;
+        }
+
+        _colCross.A           = XB.Utils.LerpF(_colCross.A, _crossAlpha, _hudSm*dt);
+        _tCrosshairs.Modulate = _colCross;
 
         _t += dt;
         if (_receivedMsg) {
