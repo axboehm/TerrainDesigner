@@ -19,6 +19,21 @@ public class Utils {
         return a;
     }
 
+    public static int MinI(int a, int b) {
+        if (a < b) return a;
+        else       return b;
+    }
+
+    public static float MinF(float a, float b) {
+        if (a < b) return a;
+        else       return b;
+    }
+
+    public static float MaxF(float a, float b) {
+        if (a > b) return a;
+        else       return b;
+    }
+
     public static float LerpF(float a, float b, float t) {
         t = XB.Utils.ClampF(t, 0.0f, 1.0f);
         return (a + (b-a)*t);

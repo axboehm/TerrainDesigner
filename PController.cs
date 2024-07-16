@@ -50,7 +50,10 @@ public partial class PController : Godot.CharacterBody3D {
                    private float                _colSm      = 14.0f;
                    private Godot.Color          _colCurrent = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
 
-    private bool _thirdP = true;
+    private       bool  _thirdP          = true;
+    private const float _respawnOff      = 0.5f;
+    private const float _vertOff         = 50.0f;
+    private const float _sphereSpawnDist = 2.0f; // distance to newly placed sphere in meter
 
     // audio
     //NOTE[ALEX]: exporting the array directly does not consistently work in Godot 4.2.2 (bug)
@@ -181,19 +184,27 @@ public partial class PController : Godot.CharacterBody3D {
 
             _plYV += dt*PlGrav; // gravity
             _plYV  = XB.Utils.ClampF(_plYV, -_maxVertVelo, _maxVertVelo);
-
-            if (GlobalPosition.Y < XB.WorldData.KillPlane || 
-                GlobalPosition.Y < (XB.WorldData.LowestPoint - 50.0f)) {
-                Godot.GD.Print("Player fell off");
-                //TODO[ALEX]: respawn player
-            }
             
             if      (_plYV < 0) _plA = XB.AirSt.Rising;
             else if (_plYV > 0) _plA = XB.AirSt.Falling;
             else                _plA = XB.AirSt.Floating;
         }
 
-        // STEP 2: horizontal movement relative to camera rotation
+        // STEP 2: check for player being outside of terrain area
+        if        (GlobalPosition.Y < XB.WorldData.KillPlane || 
+                   GlobalPosition.Y < (XB.WorldData.LowestPoint - _vertOff)) {
+            SpawnPlayer(new Godot.Vector2(GlobalPosition.X, GlobalPosition.Z));
+        } else if (GlobalPosition.X < 0.0f) {
+            SpawnPlayer(new Godot.Vector2(_respawnOff, GlobalPosition.Z));
+        } else if (GlobalPosition.X > XB.WorldData.WorldDim.X) {
+            SpawnPlayer(new Godot.Vector2(XB.WorldData.WorldDim.X-_respawnOff, GlobalPosition.Z));
+        } else if (GlobalPosition.Z < 0.0f) {
+            SpawnPlayer(new Godot.Vector2(GlobalPosition.X, _respawnOff));
+        } else if (GlobalPosition.Z > XB.WorldData.WorldDim.Y) {
+            SpawnPlayer(new Godot.Vector2(GlobalPosition.X, XB.WorldData.WorldDim.Y-_respawnOff));
+        }
+
+        // STEP 3: horizontal movement relative to camera rotation
         switch (_move) {
             case XB.MoveSt.Walk: {
                 _moveSpd = XB.Utils.LerpF(_moveSpd, _walkSpd, _moveSm*dt);
@@ -216,6 +227,18 @@ public partial class PController : Godot.CharacterBody3D {
             v    = v.Normalized()*_moveSpd;
             v.Y  = -_plYV;
             v    = v.Rotated(CCtrH.Transform.Basis.Y, CCtrH.Transform.Basis.GetEuler().Y);
+        var vRot = new Godot.Vector3(v.X, 0.0f, v.Z); // as reference when rotating the player
+
+        if        (GlobalPosition.X < _respawnOff) { // limit x movement
+            v.X = XB.Utils.MaxF(v.X, 0.0f);
+        } else if (GlobalPosition.X > XB.WorldData.WorldDim.X-_respawnOff) {
+            v.X = XB.Utils.MinF(v.X, 0.0f);
+        } 
+        if        (GlobalPosition.Z < _respawnOff) { // limit z movement
+            v.Z = XB.Utils.MaxF(v.Z, 0.0f);
+        } else if (GlobalPosition.Z > XB.WorldData.WorldDim.Y-_respawnOff) {
+            v.Z = XB.Utils.MinF(v.Z, 0.0f);
+        }
 
         // STEP 4: move using Godot's physics system
         if (v.Length() > 0.0f) _plMoved = true;
@@ -223,7 +246,7 @@ public partial class PController : Godot.CharacterBody3D {
         Velocity = v;
         MoveAndSlide();
 
-        // // STEP 5: footstep sounds
+        // STEP 5: footstep sounds
         if ((XB.AData.Input.MoveX != 0.0f || XB.AData.Input.MoveY != 0.0f)
             && PlJ == XB.JumpSt.OnGround                                  ) {
             // align footstep timing with animation
@@ -248,18 +271,18 @@ public partial class PController : Godot.CharacterBody3D {
         // CAMERA
         // STEP 1: aiming
         if (!_thirdP) {
-            Hud.CrosshairsFadeIn();
+            Hud.CrossVisible = true;
             PlAiming  = false;
             _aimOff.X = XB.Utils.LerpF(_aimOff.X, 0.0f, _cSmooth*dt);
             _aimOff.Y = XB.Utils.LerpF(_aimOff.Y, 0.0f, _cSmooth*dt);
         } else if (XB.AData.Input.SLBot) {
-            Hud.CrosshairsFadeIn();
+            Hud.CrossVisible = true;
             _move     = XB.MoveSt.Walk;
             PlAiming  = true;
             _aimOff.X = XB.Utils.LerpF(_aimOff.X, _aimHOff, _cSmooth*dt);
             _aimOff.Y = XB.Utils.LerpF(_aimOff.Y, _aimVOff, _cSmooth*dt);
         } else {
-            Hud.CrosshairsFadeOut();
+            Hud.CrossVisible = false;
             PlAiming  = false;
             _aimOff.X = XB.Utils.LerpF(_aimOff.X, 0.0f, _cSmooth*dt);
             _aimOff.Y = XB.Utils.LerpF(_aimOff.Y, 0.0f, _cSmooth*dt);
@@ -323,14 +346,12 @@ public partial class PController : Godot.CharacterBody3D {
         }
         _cam.Position = new Godot.Vector3(_aimOff.X, _aimOff.Y, _cDist);
 
-
         // STEP 5: rotating player
         if (PlAiming) {
             PModel.Rotation = new Godot.Vector3(0.0f, CCtrH.Rotation.Y+XB.Constants.Pi, 0.0f);
         } else if (_plMoved && _plA == XB.AirSt.Grounded) {
-            var   mRef = new Godot.Vector3(v.X, 0.0f, v.Z);
-            float rot  = Godot.Vector3.Forward.AngleTo(mRef)+XB.Constants.Pi;
-            if (Godot.Vector3.Forward.Cross(mRef).Y < 0) {
+            float rot  = Godot.Vector3.Forward.AngleTo(vRot)+XB.Constants.Pi;
+            if (Godot.Vector3.Forward.Cross(vRot).Y < 0) {
                 rot = 2.0f*XB.Constants.Pi -rot;
             }
             PModel.Rotation = new Godot.Vector3(0.0f, rot, 0.0f);
@@ -458,7 +479,12 @@ public partial class PController : Godot.CharacterBody3D {
             // FLeft
             if (XB.AData.Input.FRight) { //
             }
-            if (XB.AData.Input.SLTop) { //
+            if (XB.AData.Input.SLTop) { // place sphere
+                var spawnPos =   CCtrH.GlobalPosition
+                               + _cam.GlobalTransform.Basis.Z*-_sphereSpawnDist;
+                if (!XB.Manager.RequestSphere(spawnPos)) {
+                    Godot.GD.Print("all spheres used");
+                }
             }
             // SLBot - aiming (handled earlier)
             if (XB.AData.Input.SRTop) { // swap between first and third person view
@@ -499,8 +525,20 @@ public partial class PController : Godot.CharacterBody3D {
         CCtrH.Transform = CCtrH.Transform.Orthonormalized();
     }
 
-    public void PlayerDied() {
-        //TODO[ALEX]: for when player falls through the world, etc.
+    public void SpawnPlayer(Godot.Vector2 spawnXZ) {
+        var spawnPoint  = new Godot.Vector3(XB.WorldData.WorldDim.X/2.0f,
+                                            XB.WorldData.HighestPoint+_vertOff,
+                                            XB.WorldData.WorldDim.Y/2.0f); // fallback coordinates
+        var origin      = new Godot.Vector3(spawnXZ.X, XB.WorldData.HighestPoint+_vertOff, spawnXZ.Y);
+        var destination = new Godot.Vector3(spawnXZ.X, XB.WorldData.LowestPoint -_vertOff, spawnXZ.Y);
+        var resultCD    = XB.Utils.Raycast(RequestSpaceState(), origin, destination,
+                                           XB.LayerMasks.EnvironmentMask);
+        if (resultCD.Count > 0) {
+            spawnPoint    = (Godot.Vector3)resultCD["position"];
+            spawnPoint.Y += _respawnOff;
+        }
+
+        GlobalPosition = spawnPoint;
     }
 
     public Godot.PhysicsDirectSpaceState3D RequestSpaceState() {

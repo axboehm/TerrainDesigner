@@ -38,14 +38,18 @@ public struct Constants {
 public struct ScenePaths {
     public static string Player      = "res://assets/player/playerController.tscn";
     public static string ButtonAudio = "res://assets/audio/soundButtonPress.tscn";
+    public static string Sphere      = "res://assets/sphere/sphere.tscn";
 }
 
 public struct WorldData {
-    public static Godot.Color MsgColor     = new Godot.Color (0.2f, 0.2f, 0.2f, 1.0f);
-    public static Godot.Color MsgFadeColor = new Godot.Color (0.1f, 0.1f, 0.1f, 0.0f);
-    public static float       LowestPoint  = -128.0f;  // lowest used point used in player falling off,
-                                                       // gets updated with terrain updating
-    public static float       KillPlane    = -4096.0f; // fallback for the player falling off
+    public static Godot.Color   MsgColor     = new Godot.Color(0.2f, 0.2f, 0.2f, 1.0f);
+    public static Godot.Color   MsgFadeColor = new Godot.Color(0.1f, 0.1f, 0.1f, 0.0f);
+    public static float         LowestPoint  = -1.0f;  // lowest used point used in player falling off,
+                                                         // gets updated with terrain updating
+    public static float         HighestPoint = +1.0f;
+    public static float         KillPlane    = -4096.0f; // fallback for the player falling off
+    public static Godot.Vector2 WorldDim     = new Godot.Vector2(16.0f, 16.0f);
+    public static float         WorldRes     = 8.0f;     // subdivisions per meter
 }
 
 public class AData {
@@ -219,8 +223,8 @@ public class PersistData {
             XB.AData.MainLight.DirectionalShadowMaxDistance = XB.AData.ShadowDistance;
         }
 
-        if (XB.AData.ShowFps) XB.PController.Hud.LbFps.Show();
-        else                  XB.PController.Hud.LbFps.Hide();
+        if (XB.AData.ShowFps) XB.PController.Hud.FpsVisible = true;
+        else                  XB.PController.Hud.FpsVisible = false;
 
         XB.AData.Environment.SsrEnabled = XB.AData.SSR;
     }

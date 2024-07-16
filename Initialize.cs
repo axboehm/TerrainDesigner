@@ -15,8 +15,9 @@ public partial class Initialize : Godot.Node3D {
         XB.AData.MainLight   = _mainLight;
         XB.Random.InitializeRandom((uint)System.DateTime.Now.GetHashCode());
 
-        Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Captured;
+        XB.Manager.InitializeSpheres();
 
+        Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Captured;
         GetTree().Paused = false;
     }
 
