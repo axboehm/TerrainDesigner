@@ -51,6 +51,7 @@ public partial class PController : Godot.CharacterBody3D {
                    private Godot.Color          _colCurrent = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
 
     private       bool  _thirdP          = true;
+    private       bool  _canShoot        = false;
     private const float _respawnOff      = 0.5f;
     private const float _vertOff         = 50.0f;
     private const float _sphereSpawnDist = 2.0f; // distance to newly placed sphere in meter
@@ -154,6 +155,7 @@ public partial class PController : Godot.CharacterBody3D {
         float dt = (float)delta;
         XB.AData.Input.GetInputs();
         Hud.UpdateHUD(dt);
+        XB.Manager.UpdateSpheres(dt);
         var spaceSt = RequestSpaceState(); // get spacestate for raycasting
 
 
@@ -329,7 +331,7 @@ public partial class PController : Godot.CharacterBody3D {
             if (resultCA.Count > 0) {
                 var camAimHit = (Godot.Vector3)resultCA["position"];
                 var camAimOff = (_cam.GlobalPosition-camAimHit).Length();
-                _cDist = XB.Utils.LerpF(_cDist, XB.AData.CamAimDist-camAimOff, _cSmooth*dt);
+                _cDist = XB.AData.CamAimDist-camAimOff;
             }
         } else {
             var resultC = XB.Utils.Raycast(spaceSt, CCtrH.GlobalPosition,
@@ -339,7 +341,7 @@ public partial class PController : Godot.CharacterBody3D {
                 var   toCollision = (Godot.Vector3)resultC["position"]-CCtrH.GlobalPosition;
                 float newDist     = toCollision.Length() - XB.AData.CamCollDist;
                       newDist     = XB.Utils.ClampF(newDist, XB.AData.CamMinDist, XB.AData.CamMaxDist);
-                _cDist = XB.Utils.LerpF(_cDist, newDist, _cSmooth*dt);
+                _cDist = newDist;
             } else {
                 _cDist = XB.Utils.LerpF(_cDist, XB.AData.CamMaxDist, _cSmooth*dt);
             }
@@ -360,9 +362,10 @@ public partial class PController : Godot.CharacterBody3D {
 
         // AIMING
         if (!_thirdP) {
+            _canShoot = true;
             _fov = XB.AData.FovDef;
         } else if (PlAiming) {
-            bool canShoot = true;
+            _canShoot = true;
             var camHit  = _cam.GlobalPosition - _cam.GlobalTransform.Basis.Z*1000.0f;
             var hitBox  = new Godot.StaticBody3D();
             var rayOrig = XB.Utils.IntersectRayPlaneV3
@@ -382,11 +385,7 @@ public partial class PController : Godot.CharacterBody3D {
             var resultN = XB.Utils.Raycast(spaceSt, camHit-0.1f*gunDir, 
                                            _cam.GlobalPosition+0.1f*gunDir, XB.LayerMasks.AimMask);
             if (resultN.Count > 0) {
-                canShoot = false;
-            }
-
-            if (XB.AData.Input.SRBot && canShoot) {
-                //TODO[ALEX]: shooting/interacting
+                _canShoot = false;
             }
             _fov = XB.AData.FovAim;
         } else {
@@ -395,6 +394,30 @@ public partial class PController : Godot.CharacterBody3D {
 
         var cAP                    = (Godot.CameraAttributesPhysical)_cam.Attributes;
             cAP.FrustumFocalLength = XB.Utils.LerpF(cAP.FrustumFocalLength, _fov, _cSmooth*dt);
+
+
+        // SPHERE INTERACTIONS
+        if (!_thirdP || PlAiming) {
+            Godot.Vector3 rayOrigin = _cam.GlobalPosition;
+            if (PlAiming) {
+                rayOrigin  = XB.Utils.IntersectRayPlaneV3
+                                 (_cam.GlobalPosition,  _cam.GlobalTransform.Basis.Z,
+                                  CCtrH.GlobalPosition, _cam.GlobalTransform.Basis.Z);
+            }
+            float         rayDistance  = XB.WorldData.WorldDim.X+XB.WorldData.WorldDim.Y;
+                          rayDistance *= -1.0f;
+            Godot.Vector3 rayTarget    = rayOrigin + rayDistance*_cam.GlobalTransform.Basis.Z;
+            var resultCS = XB.Utils.Raycast(spaceSt, rayOrigin, rayTarget, XB.LayerMasks.SphereMask);
+            if (resultCS.Count > 0) {
+                // Godot.GD.Print((Godot.Vector3)resultCS["position"]);
+                XB.Sphere sphere = (XB.Sphere)resultCS["collider"];
+                XB.Manager.HLSphereID = sphere.ID;
+            } else {
+                XB.Manager.HLSphereID = XB.Manager.MaxSphereAmount;
+            }
+        } else {
+            XB.Manager.HLSphereID = XB.Manager.MaxSphereAmount;
+        }
 
 
         // ANIMATIONS
@@ -477,9 +500,10 @@ public partial class PController : Godot.CharacterBody3D {
             // FUp
             // FDown - jump (handled earlier)
             // FLeft
-            if (XB.AData.Input.FRight) { //
+            if (_canShoot && XB.AData.Input.FRight) { // link test
+                XB.Manager.Spheres[XB.Manager.HLSphereID].LinkSphere();
             }
-            if (XB.AData.Input.SLTop) { // place sphere
+            if (_canShoot && XB.AData.Input.SLTop) { // place sphere
                 var spawnPos =   CCtrH.GlobalPosition
                                + _cam.GlobalTransform.Basis.Z*-_sphereSpawnDist;
                 if (!XB.Manager.RequestSphere(spawnPos)) {
@@ -493,7 +517,9 @@ public partial class PController : Godot.CharacterBody3D {
             // if        (XB.AData.Input.Mode1 && WpnMode == XB.WpnMd.Impact) { //
             // } else if (XB.AData.Input.Mode2 && WpnMode == XB.WpnMd.Projectile) { //
             // }
-            // SRBot - shooting (handled earlier)
+            if (_canShoot && XB.AData.Input.SRBot) {
+                //TODO[ALEX]: shooting/interacting
+            }
         }
 
         // // DEBUG BUTTONS

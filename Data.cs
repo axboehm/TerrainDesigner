@@ -17,6 +17,8 @@ public struct LayerMasks {               //24--20--16--12--8---4---
     public static uint MovementLayer   = 0b000000000000000010000000;
     public static uint PlayerMask      = 0b000000000000000110001001;
     public static uint PlayerLayer     = 0b100000000000000000000000;
+    public static uint SphereLayer     = 0b000000000000010000000010;
+    public static uint SphereMask      = 0b000000000000010000000000;
                                          //24--20--16--12--8---4---
 }
 
