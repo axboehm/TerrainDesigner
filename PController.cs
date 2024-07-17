@@ -102,6 +102,8 @@ public partial class PController : Godot.CharacterBody3D {
     private float         _blMove   = 0.0f;     // animation move blend value
     private float         _blIdle   = 0.0f;     // animation moveIdle blend value
 
+    private Godot.Transform3D _camTransPrev = new Godot.Transform3D();
+
     public override void _Ready() {
         CollisionMask  = XB.LayerMasks.PlayerMask;
         CollisionLayer = XB.LayerMasks.PlayerLayer;
@@ -389,6 +391,7 @@ public partial class PController : Godot.CharacterBody3D {
             }
             _fov = XB.AData.FovAim;
         } else {
+            _canShoot = false;
             _fov = XB.AData.FovDef;
         }
 
@@ -411,12 +414,12 @@ public partial class PController : Godot.CharacterBody3D {
             if (resultCS.Count > 0) {
                 // Godot.GD.Print((Godot.Vector3)resultCS["position"]);
                 XB.Sphere sphere = (XB.Sphere)resultCS["collider"];
-                XB.Manager.HLSphereID = sphere.ID;
+                XB.Manager.ChangeHighlightSphere(sphere.ID);
             } else {
-                XB.Manager.HLSphereID = XB.Manager.MaxSphereAmount;
+                XB.Manager.ChangeHighlightSphere(XB.Manager.MaxSphereAmount);
             }
         } else {
-            XB.Manager.HLSphereID = XB.Manager.MaxSphereAmount;
+            XB.Manager.ChangeHighlightSphere(XB.Manager.MaxSphereAmount);
         }
 
 
@@ -497,11 +500,21 @@ public partial class PController : Godot.CharacterBody3D {
             // DDown
             // DLeft
             // DRight
-            // FUp
+            if (_canShoot && XB.AData.Input.FUp) { // link
+                if (XB.Manager.Linking && XB.Manager.HLSphereID < XB.Manager.MaxSphereAmount) {
+                    XB.Manager.LinkSpheres();
+                } else {
+                    XB.Manager.UnsetLinkingID();
+                }
+            }
             // FDown - jump (handled earlier)
-            // FLeft
-            if (_canShoot && XB.AData.Input.FRight) { // link test
-                XB.Manager.Spheres[XB.Manager.HLSphereID].LinkSphere();
+            if (XB.AData.Input.FLeft) { // unlink highlighted sphere
+                if (XB.Manager.Linking && XB.Manager.HLSphereID < XB.Manager.MaxSphereAmount) {
+                    XB.Manager.UnlinkSpheres();
+                }
+            }
+            if (XB.AData.Input.FRight) { // toggle linking
+                XB.Manager.ToggleLinking();
             }
             if (_canShoot && XB.AData.Input.SLTop) { // place sphere
                 var spawnPos =   CCtrH.GlobalPosition
@@ -518,7 +531,10 @@ public partial class PController : Godot.CharacterBody3D {
             // } else if (XB.AData.Input.Mode2 && WpnMode == XB.WpnMd.Projectile) { //
             // }
             if (_canShoot && XB.AData.Input.SRBot) {
-                //TODO[ALEX]: shooting/interacting
+                if (XB.Manager.HLSphereID < XB.Manager.MaxSphereAmount) {
+                    XB.Manager.Spheres[XB.Manager.HLSphereID].MoveSphere
+                        (_cam.GlobalTransform, _camTransPrev, spaceSt);
+                }
             }
         }
 
@@ -549,6 +565,7 @@ public partial class PController : Godot.CharacterBody3D {
         // to fix axes drifting apart due to imprecision:
         _cam.Transform  = _cam.Transform.Orthonormalized();
         CCtrH.Transform = CCtrH.Transform.Orthonormalized();
+        _camTransPrev   = _cam.GlobalTransform;
     }
 
     public void SpawnPlayer(Godot.Vector2 spawnXZ) {

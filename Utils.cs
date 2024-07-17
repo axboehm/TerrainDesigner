@@ -232,5 +232,14 @@ public class Utils {
         res[2] = new Godot.Rect2I(xStart,      yStart+step, D       , D-2*step);
         return res;
     }
+
+    public static Godot.Rect2I[] RectangleOutline(int xStart, int yStart, int D, int T) {
+        Godot.Rect2I[] res = new Godot.Rect2I[4];
+        res[0] = new Godot.Rect2I(xStart,     yStart,     D, T); // top
+        res[1] = new Godot.Rect2I(xStart,     yStart+D-T, D, T); // bottom
+        res[2] = new Godot.Rect2I(xStart,     yStart,     T, D); // left
+        res[3] = new Godot.Rect2I(xStart+D-T, yStart,     T, D); // right
+        return res;
+    }
 }
 } // namespace close

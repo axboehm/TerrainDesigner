@@ -142,12 +142,12 @@ public partial class Input : Godot.Node {
         if (Godot.Input.IsActionJustPressed("DLeft"))  DLeft   = true;    // unused
         if (Godot.Input.IsActionJustPressed("DRight")) DRight  = true;    // unused
         // face buttons
-        if (Godot.Input.IsActionJustPressed("FUp"))    FUp     = true;    // unused
+        if (Godot.Input.IsActionJustPressed("FUp"))    FUp     = true;    // link
         if (Godot.Input.IsActionJustPressed("FDown"))  FDown   = true;    // jump
-        if (Godot.Input.IsActionJustPressed("FLeft"))  FLeft   = true;    // unused
-        if (Godot.Input.IsActionJustPressed("FRight")) FRight  = true;    // unused
+        if (Godot.Input.IsActionJustPressed("FLeft"))  FLeft   = true;    // unlink highlighted
+        if (Godot.Input.IsActionJustPressed("FRight")) FRight  = true;    // toggle linking
         // left shoulder buttons
-        if (Godot.Input.IsActionJustPressed("SLTop"))  SLTop   = true;    // unused
+        if (Godot.Input.IsActionJustPressed("SLTop"))  SLTop   = true;    // place sphere
         if (Godot.Input.IsActionPressed    ("SLBot"))  SLBot   = true;    // aim
         // right shoulder buttons
         if (Godot.Input.IsActionJustPressed("SRTop"))  SRTop   = true;    // toggle 1st/3rd person
@@ -189,6 +189,12 @@ public partial class Input : Godot.Node {
             } else if (name == "SRBot") { // left mouse button
                 var iEvent = new Godot.InputEventMouseButton();
                 iEvent.ButtonIndex = Godot.MouseButton.Left;
+                Godot.InputMap.ActionAddEvent(name, iEvent);
+                key = iEvent.AsText();
+                InputActions[i] = new XB.InputAction(name, desc, key, iEvent);
+            } else if (name == "SLTop") { // middle mouse button
+                var iEvent = new Godot.InputEventMouseButton();
+                iEvent.ButtonIndex = Godot.MouseButton.Middle;
                 Godot.InputMap.ActionAddEvent(name, iEvent);
                 key = iEvent.AsText();
                 InputActions[i] = new XB.InputAction(name, desc, key, iEvent);
@@ -235,10 +241,10 @@ public partial class Input : Godot.Node {
                         iEvent.Keycode = Godot.Key.Right;
                     } break;
                     case "RIn": {
-                        iEvent.Keycode = Godot.Key.L;
+                        iEvent.Keycode = Godot.Key.E;
                     } break;
                     case "DUp": {
-                        iEvent.Keycode = Godot.Key.F;
+                        iEvent.Keycode = Godot.Key.Q;
                     } break;
                     case "DDown": {
                         iEvent.Keycode = Godot.Key.X;
@@ -250,19 +256,16 @@ public partial class Input : Godot.Node {
                         iEvent.Keycode = Godot.Key.C;
                     } break;
                     case "FUp": {
-                        iEvent.Keycode = Godot.Key.Q;
+                        iEvent.Keycode = Godot.Key.F;
                     } break;
                     case "FDown": {
                         iEvent.Keycode = Godot.Key.Space;
                     } break;
                     case "FLeft": {
-                        iEvent.Keycode = Godot.Key.H;
+                        iEvent.Keycode = Godot.Key.K;
                     } break;
                     case "FRight": {
-                        iEvent.Keycode = Godot.Key.E;
-                    } break;
-                    case "SLTop": {
-                        iEvent.Keycode = Godot.Key.P;
+                        iEvent.Keycode = Godot.Key.L;
                     } break;
                     case "SRTop": {
                         iEvent.Keycode = Godot.Key.Key3;
