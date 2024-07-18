@@ -228,20 +228,28 @@ public partial class PController : Godot.CharacterBody3D {
         }
 
         var v    = new Godot.Vector3(XB.AData.Input.MoveX, 0.0f, XB.AData.Input.MoveY);
+        // horizontal player movement for use when moving spheres
+        var spV  = new Godot.Vector3(0.0f,                 0.0f, XB.AData.Input.MoveY);
             v    = v.Normalized()*_moveSpd;
+            spV  = spV.Normalized()*_moveSpd;
             v.Y  = -_plYV;
             v    = v.Rotated(CCtrH.Transform.Basis.Y, CCtrH.Transform.Basis.GetEuler().Y);
+            spV  = spV.Rotated(CCtrH.Transform.Basis.Y, CCtrH.Transform.Basis.GetEuler().Y);
         var vRot = new Godot.Vector3(v.X, 0.0f, v.Z); // as reference when rotating the player
 
         if        (GlobalPosition.X < _respawnOff) { // limit x movement
-            v.X = XB.Utils.MaxF(v.X, 0.0f);
+            v.X   = XB.Utils.MaxF(v.X, 0.0f);
+            spV.X = XB.Utils.MaxF(spV.X, 0.0f);
         } else if (GlobalPosition.X > XB.WorldData.WorldDim.X-_respawnOff) {
-            v.X = XB.Utils.MinF(v.X, 0.0f);
+            v.X   = XB.Utils.MinF(v.X, 0.0f);
+            spV.X = XB.Utils.MinF(spV.X, 0.0f);
         } 
         if        (GlobalPosition.Z < _respawnOff) { // limit z movement
-            v.Z = XB.Utils.MaxF(v.Z, 0.0f);
+            v.Z   = XB.Utils.MaxF(v.Z, 0.0f);
+            spV.Z = XB.Utils.MaxF(spV.Z, 0.0f);
         } else if (GlobalPosition.Z > XB.WorldData.WorldDim.Y-_respawnOff) {
-            v.Z = XB.Utils.MinF(v.Z, 0.0f);
+            v.Z   = XB.Utils.MinF(v.Z, 0.0f);
+            spV.Z = XB.Utils.MinF(spV.Z, 0.0f);
         }
 
         // STEP 4: move using Godot's physics system
@@ -533,7 +541,7 @@ public partial class PController : Godot.CharacterBody3D {
             if (_canShoot && XB.AData.Input.SRBot) {
                 if (XB.Manager.HLSphereID < XB.Manager.MaxSphereAmount) {
                     XB.Manager.Spheres[XB.Manager.HLSphereID].MoveSphere
-                        (_cam.GlobalTransform, _camTransPrev, spaceSt);
+                        (_cam.GlobalTransform, _camTransPrev, spaceSt, spV*dt);
                 }
             }
         }

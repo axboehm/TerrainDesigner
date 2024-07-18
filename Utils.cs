@@ -1,6 +1,8 @@
 //#define XBDEBUG
 namespace XB { // namespace open
 public class Utils {
+    public static int MaxRectSize = 5;
+
     public static float ClampF(float a, float b, float c) {
         if (a < b) return b;
         if (a > c) return c;
@@ -108,138 +110,151 @@ public class Utils {
         return result;
     }
 
+    // reassign size and position of a Rect2I without any new allocations
+    public static void UpdateRect2I(int posX, int posY, int sizeX, int sizeY,
+                                    ref Godot.Rect2I rect, ref Godot.Vector2I vect) {
+        vect.X = posX;
+        vect.Y = posY;
+        rect.Position = vect;
+        vect.X = sizeX;
+        vect.Y = sizeY;
+        rect.Size = vect;
+    }
+
     // returns an array of rectangles that represent digits from 0-9 in a segment display style
     // representation of the display, each letter represents one pixel, origin in top left corner
     // X demarks the outer border, the texture starts "inside" the Xs
-    // A, B, C, D, E represent positions in the segment
-    // the thickness T of the letters and the border around them is the same
-    // the width W and height H describe the final size of the segment (inside the Xs)
+    // a, b, c, d, e represent positions in the segment
+    // the thickness t of the letters and the border around them is the same
+    // the width and height describe the final size of the segment (inside the Xs)
     // 
     // XXXXXXXXXXXXXX
-    // XA           X
+    // Xa           X
     // X            X
-    // X  B-----E-  X
+    // X  b-----e-  X
     // X  --------  X
     // X  --    --  X
     // X  --    --  X
-    // X  C-----F-  X
+    // X  c-----f-  X
     // X  --------  X
     // X  --    --  X
     // X  --    --  X
-    // X  D-------  X
+    // X  d-------  X
     // X  --------  X
     // X            X
     // X            X
     // XXXXXXXXXXXXXX
     //
-    public static Godot.Rect2I[] DigitRectangles(int digit, int aX, int aY, int W, int H, int T) {
-        Godot.Rect2I[] res = new Godot.Rect2I[0];
-        int xFull = W - 2*T;
-        int yFull = H - 2*T;
-        int yBot  = yFull - H/2;
-        int yTop  = yFull - yBot;
-        int bX    = aX + T;
-        int bY    = aY + T;
+    //NOTE[ALEX]: some of the coordinates are duplicates, they are kept to make debugging easier
+    public static void DigitRectangles(int digit, int aX, int aY, int width, int height, int t,
+                                       ref Godot.Rect2I[] rect,
+                                       ref int rectSize, ref Godot.Vector2I vect      ) {
+        rectSize  = 0; // failsafe
+        int xFull = width  - 2*t;
+        int yFull = height - 2*t;
+        int yBot  = yFull - height/2;
+        int yTop  = yFull - yBot; // avoid vertical gaps
+        int bX    = aX + t;
+        int bY    = aY + t;
         int cX    = bX;
-        int cY    = bY + yTop - T;
+        int cY    = bY + yTop - t;
         int dX    = bX;
-        int dY    = bY + yFull - T;
-        int eX    = bX + xFull - T;
+        int dY    = bY + yFull - t;
+        int eX    = bX + xFull - t;
         int eY    = bY;
         int fX    = eX;
         int fY    = cY;
         switch (digit) {
             case 0: 
-                res    = new Godot.Rect2I[4];
-                res[0] = new Godot.Rect2I(bX, bY, T, yFull); // left full
-                res[1] = new Godot.Rect2I(eX, eY, T, yFull); // right full
-                res[2] = new Godot.Rect2I(dX, dY, xFull, T); // bot
-                res[3] = new Godot.Rect2I(bX, bY, xFull, T); // top
+                rectSize = 4;
+                UpdateRect2I(bX, bY, t,     yFull, ref rect[0], ref vect); // left full
+                UpdateRect2I(eX, eY, t,     yFull, ref rect[1], ref vect); // right full
+                UpdateRect2I(dX, dY, xFull, t,     ref rect[2], ref vect); // bottom
+                UpdateRect2I(bX, bY, xFull, t,     ref rect[3], ref vect); // top
                 break;
             case 1:
-                res    = new Godot.Rect2I[1];
-                res[0] = new Godot.Rect2I(eX, eY, T, yFull); // right full
+                rectSize = 1;
+                UpdateRect2I(eX, eY, t,     yFull, ref rect[0], ref vect); // right full
                 break;
             case 2:
-                res    = new Godot.Rect2I[5];
-                res[0] = new Godot.Rect2I(cX, cY, xFull, T); // middle
-                res[1] = new Godot.Rect2I(cX, cY, T, yBot);  // left bot
-                res[2] = new Godot.Rect2I(eX, eY, T, yTop);  // right top
-                res[3] = new Godot.Rect2I(dX, dY, xFull, T); // bot
-                res[4] = new Godot.Rect2I(bX, bY, xFull, T); // top
+                rectSize = 5;
+                UpdateRect2I(cX, cY, xFull, t,     ref rect[0], ref vect); // middle
+                UpdateRect2I(cX, cY, t,     yBot,  ref rect[1], ref vect); // left bottom
+                UpdateRect2I(eX, eY, t,     yTop,  ref rect[2], ref vect); // right top
+                UpdateRect2I(dX, dY, xFull, t,     ref rect[3], ref vect); // bottom
+                UpdateRect2I(bX, bY, xFull, t,     ref rect[4], ref vect); // top
                 break;
             case 3:
-                res    = new Godot.Rect2I[4];
-                res[0] = new Godot.Rect2I(eX, eY, T, yFull); // right full
-                res[1] = new Godot.Rect2I(cX, cY, xFull, T); // middle
-                res[2] = new Godot.Rect2I(dX, dY, xFull, T); // bot
-                res[3] = new Godot.Rect2I(bX, bY, xFull, T); // top
+                rectSize = 4;
+                UpdateRect2I(eX, eY, t,     yFull, ref rect[0], ref vect); // right full
+                UpdateRect2I(cX, cY, xFull, t,     ref rect[1], ref vect); // middle
+                UpdateRect2I(dX, dY, xFull, t,     ref rect[2], ref vect); // bottom
+                UpdateRect2I(bX, bY, xFull, t,     ref rect[3], ref vect); // top
                 break;
             case 4:
-                res    = new Godot.Rect2I[3];
-                res[0] = new Godot.Rect2I(eX, eY, T, yFull); // right full
-                res[1] = new Godot.Rect2I(cX, cY, xFull, T); // middle
-                res[2] = new Godot.Rect2I(bX, bY, T, yTop);  // left top
+                rectSize = 3;
+                UpdateRect2I(eX, eY, t,     yFull, ref rect[0], ref vect); // right full
+                UpdateRect2I(cX, cY, xFull, t,     ref rect[1], ref vect); // middle
+                UpdateRect2I(bX, bY, t,     yTop,  ref rect[2], ref vect); // left top
                 break;
             case 5:
-                res    = new Godot.Rect2I[5];
-                res[0] = new Godot.Rect2I(dX, dY, xFull, T); // bot
-                res[1] = new Godot.Rect2I(cX, cY, xFull, T); // middle
-                res[2] = new Godot.Rect2I(bX, bY, xFull, T); // top
-                res[3] = new Godot.Rect2I(fX, fY, T, yBot);  // right bot
-                res[4] = new Godot.Rect2I(bX, bY, T, yTop);  // left top
+                rectSize = 5;
+                UpdateRect2I(dX, dY, xFull, t,     ref rect[0], ref vect); // bottom
+                UpdateRect2I(cX, cY, xFull, t,     ref rect[1], ref vect); // middle
+                UpdateRect2I(bX, bY, xFull, t,     ref rect[2], ref vect); // top
+                UpdateRect2I(fX, fY, t,     yBot,  ref rect[3], ref vect); // right bottom
+                UpdateRect2I(bX, bY, t,     yTop,  ref rect[4], ref vect); // left top
                 break;
             case 6:
-                res    = new Godot.Rect2I[5];
-                res[0] = new Godot.Rect2I(bX, bY, T, yFull); // left full
-                res[1] = new Godot.Rect2I(dX, dY, xFull, T); // bot
-                res[2] = new Godot.Rect2I(cX, cY, xFull, T); // middle
-                res[3] = new Godot.Rect2I(bX, bY, xFull, T); // top
-                res[4] = new Godot.Rect2I(fX, fY, T, yBot);  // right bot
+                rectSize = 5;
+                UpdateRect2I(bX, bY, t,     yFull, ref rect[0], ref vect); // left full
+                UpdateRect2I(dX, dY, xFull, t,     ref rect[1], ref vect); // bottom
+                UpdateRect2I(cX, cY, xFull, t,     ref rect[2], ref vect); // middle
+                UpdateRect2I(bX, bY, xFull, t,     ref rect[3], ref vect); // top
+                UpdateRect2I(fX, fY, t,     yBot,  ref rect[4], ref vect); // right bottom
                 break;
             case 7:
-                res    = new Godot.Rect2I[2];
-                res[0] = new Godot.Rect2I(eX, eY, T, yFull); // right full
-                res[1] = new Godot.Rect2I(bX, bY, xFull, T); // top
+                rectSize = 2;
+                UpdateRect2I(eX, eY, t,     yFull, ref rect[0], ref vect); // right full
+                UpdateRect2I(bX, bY, xFull, t,     ref rect[1], ref vect); // top
                 break;
             case 8:
-                res    = new Godot.Rect2I[5];
-                res[0] = new Godot.Rect2I(eX, eY, T, yFull); // right full
-                res[1] = new Godot.Rect2I(bX, bY, T, yFull); // left full
-                res[2] = new Godot.Rect2I(dX, dY, xFull, T); // bot
-                res[3] = new Godot.Rect2I(cX, cY, xFull, T); // middle
-                res[4] = new Godot.Rect2I(bX, bY, xFull, T); // top
+                rectSize = 5;
+                UpdateRect2I(eX, eY, t,     yFull, ref rect[0], ref vect); // right full
+                UpdateRect2I(bX, bY, t,     yFull, ref rect[1], ref vect); // left full
+                UpdateRect2I(dX, dY, xFull, t,     ref rect[2], ref vect); // bottm
+                UpdateRect2I(cX, cY, xFull, t,     ref rect[3], ref vect); // middle
+                UpdateRect2I(bX, bY, xFull, t,     ref rect[4], ref vect); // top
                 break;
             case 9:
-                res    = new Godot.Rect2I[5];
-                res[0] = new Godot.Rect2I(eX, eY, T, yFull); // right full
-                res[1] = new Godot.Rect2I(dX, dY, xFull, T); // bot
-                res[2] = new Godot.Rect2I(cX, cY, xFull, T); // middle
-                res[3] = new Godot.Rect2I(bX, bY, xFull, T); // top
-                res[4] = new Godot.Rect2I(bX, bY, T, yTop);  // left top
-                break;
-            default:
+                rectSize = 5;
+                UpdateRect2I(eX, eY, t,     yFull, ref rect[0], ref vect); // right full
+                UpdateRect2I(dX, dY, xFull, t,     ref rect[1], ref vect); // bottm
+                UpdateRect2I(cX, cY, xFull, t,     ref rect[2], ref vect); // middle
+                UpdateRect2I(bX, bY, xFull, t,     ref rect[3], ref vect); // top
+                UpdateRect2I(bX, bY, t,     yTop,  ref rect[4], ref vect); // left top
                 break;
         }
-        return res;
     }
 
-    public static Godot.Rect2I[] BeveledRectangle(int xStart, int yStart, int D) {
-        Godot.Rect2I[] res = new Godot.Rect2I[3];
-        int step = (int)(0.1f*(float)D);
-        res[0] = new Godot.Rect2I(xStart+step, yStart,      D-2*step, D       );
-        res[1] = new Godot.Rect2I(xStart+step, yStart+step, D-2*step, D-2*step);
-        res[2] = new Godot.Rect2I(xStart,      yStart+step, D       , D-2*step);
-        return res;
+    //NOTE[ALEX]: hardcoded step factor
+    public static void BeveledRectangle(int xStart, int yStart, int d, ref Godot.Rect2I[] rect,
+                                        ref int rectSize, ref Godot.Vector2I vect              ) {
+        rectSize = 3;
+        int step = (int)(0.1f*(float)d);
+        UpdateRect2I(xStart+step, yStart,      d-2*step, d,        ref rect[0], ref vect);
+        UpdateRect2I(xStart+step, yStart+step, d-2*step, d-2*step, ref rect[1], ref vect);
+        UpdateRect2I(xStart,      yStart+step, d       , d-2*step, ref rect[2], ref vect);
     }
 
-    public static Godot.Rect2I[] RectangleOutline(int xStart, int yStart, int D, int T) {
-        Godot.Rect2I[] res = new Godot.Rect2I[4];
-        res[0] = new Godot.Rect2I(xStart,     yStart,     D, T); // top
-        res[1] = new Godot.Rect2I(xStart,     yStart+D-T, D, T); // bottom
-        res[2] = new Godot.Rect2I(xStart,     yStart,     T, D); // left
-        res[3] = new Godot.Rect2I(xStart+D-T, yStart,     T, D); // right
-        return res;
+    public static void RectangleOutline(int xStart, int yStart, int d, int t,
+                                        ref Godot.Rect2I[] rect, 
+                                        ref int rectSize, ref Godot.Vector2I vect) {
+        rectSize = 4;
+        UpdateRect2I(xStart,     yStart,     d, t, ref rect[0], ref vect); // top
+        UpdateRect2I(xStart,     yStart+d-t, d, t, ref rect[1], ref vect); // bottom
+        UpdateRect2I(xStart,     yStart,     t, d, ref rect[2], ref vect); // left
+        UpdateRect2I(xStart+d-t, yStart,     t, d, ref rect[3], ref vect); // right
     }
 }
 } // namespace close

@@ -11,9 +11,12 @@ public class Manager {
     public static void InitializeSpheres() {
         var sphereScn = Godot.ResourceLoader.Load<Godot.PackedScene>(XB.ScenePaths.Sphere);
         XB.Sphere sphere;
+        var rects = new Godot.Rect2I[XB.Utils.MaxRectSize];
+        int rSize = 0;
+        var vect  = new Godot.Vector2I(0, 0);
         for (int i = 0; i < MaxSphereAmount; i++) {
             sphere = (XB.Sphere)sphereScn.Instantiate();
-            sphere.InitializeSphere(i);
+            sphere.InitializeSphere(i, ref rects, ref rSize, ref vect);
             XB.AData.MainRoot.AddChild(sphere);
             Spheres[i] = sphere;
         }
@@ -53,7 +56,7 @@ public class Manager {
     }
 
     public static void LinkSpheres() {
-        Godot.GD.Print("linking: " + LinkingID + " " + HLSphereID);
+        // Godot.GD.Print("linking: " + LinkingID + " with " + HLSphereID);
         if        (LinkingID == HLSphereID) {
             Spheres[LinkingID].SphereTextureRemoveLinked();
             LinkingID = MaxSphereAmount;
@@ -76,7 +79,7 @@ public class Manager {
     }
 
     public static void UnlinkSpheres() {
-        Godot.GD.Print("unlinking: " + HLSphereID);
+        // Godot.GD.Print("unlinking: " + HLSphereID);
         Spheres[HLSphereID].SphereTextureRemoveLinked();
         Spheres[HLSphereID].UnlinkFromAllSpheres();
         LinkingID = MaxSphereAmount;

@@ -273,7 +273,7 @@ public partial class Menu : Godot.Control {
             _lbMsg.Text = "";
             _crMsg.Hide();
         } else {
-            _crMsg.Color = XB.WorldData.MsgColor.Lerp(XB.WorldData.MsgFadeColor, _t/_msgDur);
+            _crMsg.Color = XB.Col.Msg.Lerp(XB.Col.MsgFade, _t/_msgDur);
         }
 
         // player input
@@ -458,7 +458,7 @@ public partial class Menu : Godot.Control {
         _crMsg.Show();
         _lbMsg.Text  = msg;
         _t           = 0.0f;
-        _crMsg.Color = XB.WorldData.MsgColor;
+        _crMsg.Color = XB.Col.Msg;
     }
 
     public void ButtonResumeOnPressed() {

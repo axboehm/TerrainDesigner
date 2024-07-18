@@ -1,7 +1,7 @@
 // #define XBDEBUG
 namespace XB { // namespace open
 public enum SphereTexSt {
-    Available,
+    Inactive,
     Active,
     ActiveLinking,
     ActiveLinked,
@@ -36,19 +36,24 @@ public partial class HUD : Godot.Control {
     private float       _fpsAlpha       = 0.0f;
     private float       _spheresAlpha   = 0.0f;
     private float       _linkingAlpha   = 0.0f;
+    // modulating colors
     private Godot.Color _colCross       = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
     private Godot.Color _colFps         = new Godot.Color(0.6f, 0.6f, 0.6f, 1.0f);
     private Godot.Color _colSpheres     = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
     private Godot.Color _colLinking     = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
-    private Godot.Color _colTrans       = new Godot.Color(0.0f, 0.0f, 0.0f, 0.0f);
-    private Godot.Color _colSpAct       = new Godot.Color(0.87f, 0.87f, 0.87f, 1.0f);
-    private Godot.Color _colSpAva       = new Godot.Color(0.2f, 0.2f, 0.2f, 0.3f);
-    private Godot.Color _colSpActLing   = new Godot.Color(1.0f, 0.88f, 0.0f, 1.0f);
-    private Godot.Color _colSpActLind   = new Godot.Color(0.8f, 0.66f, 0.0f, 1.0f);
-    private Godot.Color _colOutline     = new Godot.Color(0.0f, 0.0f, 0.0f, 0.6f);
-    private Godot.Color _colHighlight   = new Godot.Color(0.6f, 1.0f, 0.6f, 1.0f);
-    private Godot.Color _colWhite       = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
-    private Godot.Color _colBlack       = new Godot.Color(0.0f, 0.0f, 0.0f, 1.0f);
+
+    private Godot.Vector2I _vect  = new Godot.Vector2I(0, 0); // reusable vector for Rect2I
+    private Godot.Rect2I[] _rects = new Godot.Rect2I[XB.Utils.MaxRectSize];
+    private int            _rSize = 0; // how many entries in _rects were used by function
+
+    private Godot.Image        _imgLinking;
+    private Godot.ImageTexture _texLinking;
+    private const int          _dimLinkBorderX = 128;
+    private const int          _dimLinkBorderY = 96;
+    private const int          _dimLinkThick   = 16;
+    private const int          _dimLinkShadow  = 4; // part of thickness, does not add to total
+    private const float        _dimLinkCorX    = 0.18f;
+    private const float        _dimLinkCorY    = 0.12f;
 
     private Godot.Image        _imgSpheres;
     private Godot.ImageTexture _texSpheres;
@@ -75,6 +80,7 @@ public partial class HUD : Godot.Control {
         _lbMessage2   =                       GetNode<Godot.Label>      (_labelMessage2Node);
         _lbFps        =                       GetNode<Godot.Label>      (_labelFpsNode);
         _trLinking    =                       GetNode<Godot.TextureRect>(_textureRectLinkingNode);
+        _texLinking   = (Godot.ImageTexture)_trLinking.Texture;
         _trSpheres    =                       GetNode<Godot.TextureRect>(_textureRectSpheresNode);
         _texSpheres   = (Godot.ImageTexture)_trSpheres.Texture;
         _trCrosshairs =                       GetNode<Godot.TextureRect>(_textureRectCrosshairsNode);
@@ -85,6 +91,18 @@ public partial class HUD : Godot.Control {
         _lbMessage.Text  = "";
         _lbMessage2.Text = "";
 
+        for (int i = 0; i < _rects.Length; i++) { _rects[i] = new Godot.Rect2I(0, 0, 0, 0); }
+
+        int sizeLinkingX = XB.AData.BaseResX-2*_dimLinkBorderX;
+        int sizeLinkingY = XB.AData.BaseResY-2*_dimLinkBorderY;
+        _imgLinking = Godot.Image.Create(sizeLinkingX, sizeLinkingY,
+                                         false, Godot.Image.Format.Rgba8);
+        _texLinking.SetImage(_imgLinking);
+        _trLinking.Position = new Godot.Vector2(_dimLinkBorderX, _dimLinkBorderY);
+        _trLinking.Size     = new Godot.Vector2(sizeLinkingX, sizeLinkingY);
+        CreateLinkingTexture(_dimLinkThick, _dimLinkShadow, (int)((float)sizeLinkingX*_dimLinkCorX),
+                             (int)((float)sizeLinkingY*_dimLinkCorY), _imgLinking, _texLinking, _vect);
+
         float columns = (float)XB.Manager.MaxSphereAmount/((float)_texMaxY/(float)_dimSp);
         _columns = (int)columns;
         if (columns%1.0f > 0.0f) { _columns += 1; }
@@ -94,8 +112,8 @@ public partial class HUD : Godot.Control {
         _dimSpX  = _dimSp*_columns;
         _dimSpY  = _dimSp*_rows;
         _imgSpheres = Godot.Image.Create(_dimSpX, _dimSpY, false, Godot.Image.Format.Rgba8);
-        _imgSpheres.Fill(_colTrans);
-        _trSpheres.Position = new Godot.Vector2(1920-_rightOff-_dimSpX, _topOff);
+        _imgSpheres.Fill(XB.Col.Transp);
+        _trSpheres.Position = new Godot.Vector2(XB.AData.BaseResX-_rightOff-_dimSpX, _topOff);
         _trSpheres.Size     = new Godot.Vector2(_dimSpX, _dimSpY);
         _texSpheres.SetImage(_imgSpheres);
         CreateSphereTexture();
@@ -108,6 +126,29 @@ public partial class HUD : Godot.Control {
         _trLinking.Modulate    = _colLinking;
     }
 
+    // takes one Vector2* to re-use in updating Rect2I (vect)
+    //NOTE[ALEX]: colors are hardcoded because the texture is very specific
+    private void CreateLinkingTexture(int thickness, int shadow, int cornerWidth, int cornerHeight,
+                                      Godot.Image image, Godot.ImageTexture tex, Godot.Vector2I vect) {
+        int width  = image.GetWidth();
+        int height = image.GetHeight();
+
+        var rect = new Godot.Rect2I(0, 0, width, height);
+        image.FillRect(rect, XB.Col.LinkDim);
+        XB.Utils.UpdateRect2I(shadow, shadow, width-2*shadow, height-2*shadow, ref rect, ref vect);
+        image.FillRect(rect, XB.Col.LinkBri);
+        XB.Utils.UpdateRect2I(thickness, thickness, width-2*thickness,
+                              height-2*thickness, ref rect, ref vect  );
+        image.FillRect(rect, XB.Col.Transp);
+        XB.Utils.UpdateRect2I(0, cornerHeight, width, height-2*cornerHeight, ref rect, ref vect);
+        image.FillRect(rect, XB.Col.Transp);
+        XB.Utils.UpdateRect2I(cornerWidth, 0, width-2*cornerWidth, height, ref rect, ref vect);
+        image.FillRect(rect, XB.Col.Transp);
+
+        tex.Update(image);
+    }
+
+    //TODO[ALEX]: function parameters
     private void CreateSphereTexture() {
         int xStart  = 0;
         int yStart  = _dimSpY-_dimSp;
@@ -116,12 +157,17 @@ public partial class HUD : Godot.Control {
             xStart   = counter*_dimSp;
             counter += 1;
             counter %= _columns;
-            var outline = XB.Utils.BeveledRectangle(xStart, yStart, _dimSp-2*_dimThick);
-            var inner   = XB.Utils.BeveledRectangle(xStart+_dimBord, yStart+_dimBord,
-                                                    _dimSp-2*_dimBord-2*_dimThick     );
-            foreach (var sp in outline) { _imgSpheres.FillRect(sp, _colOutline  ); }
-            foreach (var sp in inner)   { _imgSpheres.FillRect(sp, _colSpAva); }
-            AddDigitTexture(i, xStart+2*_dimBord, yStart+2*_dimBord, _dimThick, _colWhite);
+
+            XB.Utils.BeveledRectangle(xStart, yStart, _dimSp-2*_dimThick, 
+                                      ref _rects, ref _rSize, ref _vect  );
+            for (int j = 0; j < _rSize; j++ ) { _imgSpheres.FillRect(_rects[j], XB.Col.Outline); }
+
+            XB.Utils.BeveledRectangle(xStart+_dimBord, yStart+_dimBord,
+                                      _dimSp-2*_dimBord-2*_dimThick, 
+                                      ref _rects, ref _rSize, ref _vect);
+            for (int j = 0; j < _rSize; j++ ) { _imgSpheres.FillRect(_rects[j], XB.Col.InAct); }
+
+            AddDigitTexture(i, xStart+2*_dimBord, yStart+2*_dimBord, _dimThick, ref XB.Col.White);
             if (counter == 0) {
                 yStart -= _dimSp;
             }
@@ -130,18 +176,18 @@ public partial class HUD : Godot.Control {
     }
 
     private void AddDigitTexture(int digit, int xStart, int yStart,
-                                 int thickness, Godot.Color digitColor) {
+                                 int thickness, ref Godot.Color digitColor) {
         int ySize = _dimSp -4*_dimBord -2*_dimThick;
         int xSize = ySize/2;
         if (digit > 9) { // decimal digit
-            var segmentsD = XB.Utils.DigitRectangles(digit/10, xStart, yStart,
-                                                     xSize, ySize, thickness  );
-            foreach (var segment in segmentsD) { _imgSpheres.FillRect(segment, digitColor); }
+            XB.Utils.DigitRectangles(digit/10, xStart, yStart, xSize, ySize, thickness,
+                                     ref _rects, ref _rSize, ref _vect                 );
+            for (int i = 0; i < _rSize; i++ ) { _imgSpheres.FillRect(_rects[i], digitColor); }
             xStart += xSize;
         }
-        var segments = XB.Utils.DigitRectangles(digit%10, xStart, yStart,
-                                                xSize, ySize, thickness  );
-        foreach (var segment in segments) { _imgSpheres.FillRect(segment, digitColor); }
+        XB.Utils.DigitRectangles(digit%10, xStart, yStart, xSize, ySize, thickness,
+                                 ref _rects, ref _rSize, ref _vect                 );
+        for (int i = 0; i < _rSize; i++ ) { _imgSpheres.FillRect(_rects[i], digitColor); }
     }
 
     public void UpdateSphereTexture(int id, XB.SphereTexSt state) {
@@ -151,15 +197,18 @@ public partial class HUD : Godot.Control {
         Godot.Color pColor = new Godot.Color(0.0f, 0.0f, 0.0f, 0.0f);
         Godot.Color dColor = new Godot.Color(0.0f, 0.0f, 0.0f, 0.0f);
         switch (state) {
-            case XB.SphereTexSt.Available:     { pColor = _colSpAva;     dColor = _colWhite; break; }
-            case XB.SphereTexSt.Active:        { pColor = _colSpAct;     dColor = _colBlack; break; }
-            case XB.SphereTexSt.ActiveLinking: { pColor = _colSpActLing; dColor = _colBlack; break; }
-            case XB.SphereTexSt.ActiveLinked:  { pColor = _colSpActLind; dColor = _colBlack; break; }
+            case XB.SphereTexSt.Inactive:      { pColor = XB.Col.InAct;   dColor = XB.Col.White; break; }
+            case XB.SphereTexSt.Active:        { pColor = XB.Col.Act;     dColor = XB.Col.Black; break; }
+            case XB.SphereTexSt.ActiveLinking: { pColor = XB.Col.LinkBri; dColor = XB.Col.Black; break; }
+            case XB.SphereTexSt.ActiveLinked:  { pColor = XB.Col.LinkDim; dColor = XB.Col.Black; break; }
         }
-        var inner  = XB.Utils.BeveledRectangle(xStart+_dimBord, yStart+_dimBord,
-                                               _dimSp-2*_dimBord-2*_dimThick    );
-        foreach (var sp in inner) { _imgSpheres.FillRect(sp, pColor); }
-        AddDigitTexture(id, xStart+2*_dimBord, yStart+2*_dimBord, _dimThick, dColor);
+
+        XB.Utils.BeveledRectangle(xStart+_dimBord, yStart+_dimBord,
+                                  _dimSp-2*_dimBord-2*_dimThick, 
+                                  ref _rects, ref _rSize, ref _vect);
+        for (int i = 0; i < _rSize; i++ ) { _imgSpheres.FillRect(_rects[i], pColor); }
+
+        AddDigitTexture(id, xStart+2*_dimBord, yStart+2*_dimBord, _dimThick, ref dColor);
         _texSpheres.Update(_imgSpheres);
     }
 
@@ -168,15 +217,19 @@ public partial class HUD : Godot.Control {
             int xStart = (from%_columns)*_dimSp;
             int yOff   = (from/_columns)*_dimSp;
             int yStart = _dimSpY-yOff-_dimSp;
-            var rect = XB.Utils.RectangleOutline(xStart, yStart, _dimSp, _dimThick);
-            foreach (var r in rect) { _imgSpheres.FillRect(r, _colTrans); }
+
+            XB.Utils.RectangleOutline(xStart, yStart, _dimSp, _dimThick, 
+                                      ref _rects, ref _rSize, ref _vect );
+            for (int i = 0; i < _rSize; i++ ) { _imgSpheres.FillRect(_rects[i], XB.Col.Transp); }
         }
         if (to < XB.Manager.MaxSphereAmount) {
             int xStart = (to%_columns)*_dimSp;
             int yOff   = (to/_columns)*_dimSp;
             int yStart = _dimSpY-yOff-_dimSp;
-            var rect = XB.Utils.RectangleOutline(xStart, yStart, _dimSp, _dimThick);
-            foreach (var r in rect) { _imgSpheres.FillRect(r, _colHighlight); }
+            
+            XB.Utils.RectangleOutline(xStart, yStart, _dimSp, _dimThick, 
+                                      ref _rects, ref _rSize, ref _vect );
+            for (int i = 0; i < _rSize; i++ ) { _imgSpheres.FillRect(_rects[i], XB.Col.Hl); }
         }
         _texSpheres.Update(_imgSpheres);
     }

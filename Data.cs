@@ -37,6 +37,25 @@ public struct Constants {
     public const string TimeFormat = "F6";
 }
 
+//NOTE[ALEX]: struct name intentionally kept short
+public struct Col {
+    public static Godot.Color Black   = new Godot.Color(0.0f, 0.0f, 0.0f, 1.0f);
+    public static Godot.Color White   = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
+    public static Godot.Color Transp  = new Godot.Color(0.0f, 0.0f, 0.0f, 0.0f);
+    // UI colors
+    public static Godot.Color Hl      = new Godot.Color(0.6f, 1.0f, 0.6f, 1.0f);
+    public static Godot.Color Outline = new Godot.Color(0.0f, 0.0f, 0.0f, 0.6f);
+    public static Godot.Color LinkBri = new Godot.Color(1.0f, 0.88f, 0.0f, 1.0f);
+    public static Godot.Color LinkDim = new Godot.Color(0.8f, 0.66f, 0.0f, 1.0f);
+    public static Godot.Color Act     = new Godot.Color(0.87f, 0.87f, 0.87f, 1.0f);
+    public static Godot.Color InAct   = new Godot.Color(0.2f, 0.2f, 0.2f, 0.3f);
+    public static Godot.Color Msg     = new Godot.Color(0.2f, 0.2f, 0.2f, 1.0f);
+    public static Godot.Color MsgFade = new Godot.Color(0.1f, 0.1f, 0.1f, 0.0f);
+    // sphere colors
+    public static Godot.Color SpLink = new Godot.Color(1.0f, 0.68f, 0.0f, 1.0f);
+    public static Godot.Color SpHl   = new Godot.Color(0.6f, 1.0f, 0.6f, 1.0f);
+}
+
 public struct ScenePaths {
     public static string Player      = "res://assets/player/playerController.tscn";
     public static string ButtonAudio = "res://assets/audio/soundButtonPress.tscn";
@@ -44,8 +63,6 @@ public struct ScenePaths {
 }
 
 public struct WorldData {
-    public static Godot.Color   MsgColor     = new Godot.Color(0.2f, 0.2f, 0.2f, 1.0f);
-    public static Godot.Color   MsgFadeColor = new Godot.Color(0.1f, 0.1f, 0.1f, 0.0f);
     public static float         LowestPoint  = -1.0f;  // lowest used point used in player falling off,
                                                          // gets updated with terrain updating
     public static float         HighestPoint = +1.0f;
@@ -107,6 +124,8 @@ public class AData {
     public static bool       SSILHalf       = false;
     public static bool       SSR            = false;
     public static string     BaseResolution = "1920x1080";
+    public static int        BaseResX       = 1920;
+    public static int        BaseResY       = 1080;
     public static string     Resolution     = BaseResolution;
     public static string[]   ResStrings     = new string[] {"3840x2160", "2560x1440", "2048x1152",
                                                             "1920x1080", "1280x720"};
