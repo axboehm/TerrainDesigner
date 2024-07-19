@@ -227,10 +227,9 @@ public partial class PController : Godot.CharacterBody3D {
         }
 
         var v    = new Godot.Vector3(XB.AData.Input.MoveX, 0.0f, XB.AData.Input.MoveY);
-        // horizontal player movement for use when moving spheres
-        var spV  = new Godot.Vector3(0.0f,                 0.0f, XB.AData.Input.MoveY);
             v    = v.Normalized()*_moveSpd;
-            spV  = spV.Normalized()*_moveSpd;
+        // horizontal player movement for use when moving spheres
+        var spV  = new Godot.Vector3(0.0f, 0.0f, v.Z);
             v.Y  = -_plYV;
             v    = v.Rotated(CCtrH.Transform.Basis.Y, CCtrH.Transform.Basis.GetEuler().Y);
             spV  = spV.Rotated(CCtrH.Transform.Basis.Y, CCtrH.Transform.Basis.GetEuler().Y);

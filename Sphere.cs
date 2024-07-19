@@ -173,8 +173,6 @@ public partial class Sphere : Godot.CharacterBody3D {
     // to the previous frame's, then calculating an offset vector and moving the sphere accordingly
     //NOTE[ALEX]: sphere movement gets slightly off when the player is moving into the terrain's
     //            edge aggressively, this limitation is acceptable for now
-    //TODO[ALEX]: when moving while holding a sphere, the sphere has some some small drift forwards
-    // or backwards, especially when moving diagonally
     public void MoveSphere(Godot.Transform3D camTrans, Godot.Transform3D camTransPrev,
                            Godot.PhysicsDirectSpaceState3D spaceState, Godot.Vector3 playerMovement) {
         var   move     = new Godot.Vector3(0.0f, 0.0f, 0.0f);
