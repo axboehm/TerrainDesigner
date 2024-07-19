@@ -8,18 +8,19 @@ public enum SettingsPreset {
 }
 
 // layer is which layers the object is in, mask is which layers an object scans for collisions
-public struct LayerMasks {               //24--20--16--12--8---4---  
-    public static uint EmptyMask       = 0b000000000000000000000000;
-    public static uint AimMask         = 0b000001001100001001001001;
-    public static uint CamMask         = 0b000000000000000000000011;
-    public static uint EnvironmentMask = 0b000000000000000000001001;
-    public static uint MovementMask    = 0b100000000000000100000000;
-    public static uint MovementLayer   = 0b000000000000000010000000;
-    public static uint PlayerMask      = 0b000000000000000110001001;
-    public static uint PlayerLayer     = 0b100000000000000000000000;
-    public static uint SphereLayer     = 0b000000000000010000000010;
-    public static uint SphereMask      = 0b000000000000010000000000;
-                                         //24--20--16--12--8---4---
+public struct LayerMasks {                //24--20--16--12--8---4---  
+    public static uint EmptyMask        = 0b000000000000000000000000;
+    public static uint AimMask          = 0b000000000000000001000001;
+    public static uint CamMask          = 0b000000000000000000000011;
+    public static uint EnvironmentLayer = 0b000000000000000000000001;
+    public static uint EnvironmentMask  = 0b000000000000000000000001;
+    public static uint MovementMask     = 0b100000000000000100000000;
+    public static uint MovementLayer    = 0b000000000000000010000000;
+    public static uint PlayerMask       = 0b000000000000000110000001;
+    public static uint PlayerLayer      = 0b100000000000000000000000;
+    public static uint SphereLayer      = 0b000000000000010000000010;
+    public static uint SphereMask       = 0b000000000000010000000000;
+                                          //24--20--16--12--8---4---
 }
 
 public struct Constants {
@@ -29,12 +30,6 @@ public struct Constants {
     public const float Sqrt2   = 1.41421356237f;
     public const float Deg2Rad = 0.01745329251f;
     public const float Rad2Deg = 57.2957795131f;
-    public static Godot.Transform3D OriginTransform 
-        = new Godot.Transform3D(new Godot.Vector3(1.0f, 0.0f, 0.0f),
-                                new Godot.Vector3(0.0f, 1.0f, 0.0f),
-                                new Godot.Vector3(0.0f, 0.0f, 1.0f),
-                                new Godot.Vector3(0.0f, 0.0f, 0.0f));
-    public const string TimeFormat = "F6";
 }
 
 //NOTE[ALEX]: struct name intentionally kept short
@@ -46,29 +41,82 @@ public struct Col {
     public static Godot.Color Hl      = new Godot.Color(0.6f, 1.0f, 0.6f, 1.0f);
     public static Godot.Color Outline = new Godot.Color(0.0f, 0.0f, 0.0f, 0.6f);
     public static Godot.Color LinkBri = new Godot.Color(1.0f, 0.88f, 0.0f, 1.0f);
-    public static Godot.Color LinkDim = new Godot.Color(0.8f, 0.66f, 0.0f, 1.0f);
+    public static Godot.Color LinkDim = new Godot.Color(1.0f, 0.63f, 0.0f, 1.0f);
     public static Godot.Color Act     = new Godot.Color(0.87f, 0.87f, 0.87f, 1.0f);
     public static Godot.Color InAct   = new Godot.Color(0.2f, 0.2f, 0.2f, 0.3f);
     public static Godot.Color Msg     = new Godot.Color(0.2f, 0.2f, 0.2f, 1.0f);
     public static Godot.Color MsgFade = new Godot.Color(0.1f, 0.1f, 0.1f, 0.0f);
     // sphere colors
-    public static Godot.Color SpLink = new Godot.Color(1.0f, 0.68f, 0.0f, 1.0f);
-    public static Godot.Color SpHl   = new Godot.Color(0.6f, 1.0f, 0.6f, 1.0f);
+    public static Godot.Color SpHl     = new Godot.Color(0.6f, 1.0f, 0.6f, 1.0f);
+    public static Godot.Color SpHlLink = new Godot.Color(1.0f, 0.68f, 0.0f, 1.0f);
+    public static Godot.Color SpLink   = new Godot.Color(1.0f, 0.43f, 0.0f, 1.0f);
 }
 
 public struct ScenePaths {
-    public static string Player      = "res://assets/player/playerController.tscn";
-    public static string ButtonAudio = "res://assets/audio/soundButtonPress.tscn";
-    public static string Sphere      = "res://assets/sphere/sphere.tscn";
+    public static string Player        = "res://assets/player/playerController.tscn";
+    public static string ButtonAudio   = "res://assets/audio/soundButtonPress.tscn";
+    public static string Sphere        = "res://assets/sphere/sphere.tscn";
+    public static string TerrainShader = "res://code/shaders/terrain.gdshader";
 }
 
-public struct WorldData {
-    public static float         LowestPoint  = -1.0f;  // lowest used point used in player falling off,
-                                                         // gets updated with terrain updating
-    public static float         HighestPoint = +1.0f;
-    public static float         KillPlane    = -4096.0f; // fallback for the player falling off
-    public static Godot.Vector2 WorldDim     = new Godot.Vector2(16.0f, 16.0f);
-    public static float         WorldRes     = 8.0f;     // subdivisions per meter
+public class WorldData {
+    public static float          LowestPoint  = -1.0f;  // lowest used point used in player falling off,
+                                                        // gets updated with terrain updating
+    public static float          HighestPoint = +1.0f;
+    public static float          LowHighExtra = 1.0f;   // additional amount for hidh/low updating
+    public static float          KillPlane    = -4096.0f; // fallback for the player falling off
+    public static Godot.Vector2  WorldDim;              // dimensions in meters
+    public static Godot.Vector2I WorldVerts;
+    public static int            VertAmount;            // total amount of terrain vertices
+    public static int            WorldRes     = 0;      // subdivisions per meter
+    public static float[,]       TerrainHeights;        // height value for each vertex
+
+    public static Godot.MeshInstance3D    TerrainMesh;
+    public static Godot.StaticBody3D      TerrainStaticBody;
+    public static Godot.CollisionShape3D  TerrainCollider;
+    public static Godot.ShaderMaterial    TerrainMat;
+    public static Godot.Collections.Array MeshData;
+    public static Godot.ArrayMesh         ArrMesh;
+    public static Godot.Vector3[]         Vertices;
+    public static Godot.Vector2[]         UVs;
+    public static Godot.Vector3[]         Normals;
+    public static int[]                   Triangles;
+
+    public static void InitializeTerrainMesh() {
+        TerrainMesh       = new Godot.MeshInstance3D();
+        XB.AData.MainRoot.AddChild(TerrainMesh);
+        TerrainStaticBody = new Godot.StaticBody3D();
+        TerrainMesh.AddChild(TerrainStaticBody);
+        TerrainCollider   = new Godot.CollisionShape3D();
+        TerrainStaticBody.AddChild(TerrainCollider);
+        TerrainStaticBody.CollisionLayer = XB.LayerMasks.EnvironmentLayer;
+        TerrainStaticBody.CollisionMask  = XB.LayerMasks.EnvironmentMask;
+        TerrainMat        = new Godot.ShaderMaterial();
+        TerrainMat.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ScenePaths.TerrainShader);
+
+        MeshData = new Godot.Collections.Array();
+        MeshData.Resize((int)Godot.Mesh.ArrayType.Max);
+        ArrMesh  = new Godot.ArrayMesh();
+    }
+
+    public static void GenerateTerrain(int sizeX, int sizeY, int res) {
+        WorldDim       = new Godot.Vector2((float)sizeX, (float)sizeY);
+        WorldVerts     = new Godot.Vector2I(sizeX*res +1, sizeY*res +1);
+        TerrainHeights = new float[WorldVerts.X, WorldVerts.Y];
+        VertAmount     = WorldVerts.X*WorldVerts.Y;
+        Vertices       = new Godot.Vector3[VertAmount];
+        UVs            = new Godot.Vector2[VertAmount];
+        Normals        = new Godot.Vector3[VertAmount];
+        Triangles      = new int[(WorldVerts.X-1)*(WorldVerts.Y-1)*6];
+
+        XB.Terrain.Flat(ref TerrainHeights, WorldVerts.X, WorldVerts.Y, 0);
+        // XB.Terrain.GradientX(ref TerrainHeights, WorldVerts.X, WorldVerts.Y, 1, 5);
+        XB.Terrain.HeightsToMesh(ref TerrainHeights, WorldVerts.X, WorldVerts.Y, res,
+                                 ref MeshData, ref ArrMesh, ref TerrainMesh, ref TerrainCollider,
+                                 ref Vertices, ref UVs, ref Normals, ref Triangles, true         );
+
+        TerrainMesh.Mesh.SurfaceSetMaterial(0, TerrainMat);
+    }
 }
 
 public class AData {

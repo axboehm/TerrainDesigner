@@ -81,7 +81,7 @@ public partial class Menu : Godot.Control {
 
     // controls tab
     [Godot.Export] private Godot.TabContainer _tabCtrl;
-    [Godot.Export] private Godot.Button[]     _bCK          = new Godot.Button[26];
+    [Godot.Export] private Godot.Button[]     _bCK          = new Godot.Button[XB.Input.Amount];
     [Godot.Export] private Godot.Button       _bDefaultsCK;
     [Godot.Export] private Godot.Control      _chngMsg;
                    private bool               _setKey       = false;
@@ -187,8 +187,6 @@ public partial class Menu : Godot.Control {
         _bCK[21].Pressed     += ButtonCK21OnPressed;
         _bCK[22].Pressed     += ButtonCK22OnPressed;
         _bCK[23].Pressed     += ButtonCK23OnPressed;
-        _bCK[24].Pressed     += ButtonCK24OnPressed;
-        _bCK[25].Pressed     += ButtonCK25OnPressed;
         _bDefaultsCK.Pressed += ButtonDefaultsCKOnPressed;
         _chngMsg.Visible      = false;
 
@@ -424,7 +422,7 @@ public partial class Menu : Godot.Control {
     }
 
     private void UpdateControlTab() {
-        for (int i = 0; i < _bCK.Length; i++) {
+        for (int i = 0; i < XB.Input.Amount; i++) {
             _bCK[i].Text = Tr(XB.AData.Input.InputActions[i].Description) + " - " + 
                            XB.AData.Input.InputActions[i].Key;
         }
@@ -608,8 +606,6 @@ public partial class Menu : Godot.Control {
     public void ButtonCK21OnPressed() {ControlsChange(21);}
     public void ButtonCK22OnPressed() {ControlsChange(22);}
     public void ButtonCK23OnPressed() {ControlsChange(23);}
-    public void ButtonCK24OnPressed() {ControlsChange(24);}
-    public void ButtonCK25OnPressed() {ControlsChange(25);}
 
     private void ControlsChange(int id) {
         XB.Utils.PlayUISound(XB.ScenePaths.ButtonAudio);

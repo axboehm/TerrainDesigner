@@ -18,10 +18,8 @@ public class InputAction {
 //            when the game or a level is initialized, the input node is attached to the root
 //            when the scene gets changed, it gets de-attached but not deleted
 public partial class Input : Godot.Node {
-    public const int Amount = 26;       // number of total input slots
+    public const int Amount = 24;       // number of total input slots
 
-    public bool  Mode1  = false;
-    public bool  Mode2  = false;
     public bool  Start  = false;
     public bool  Select = false;
     public float CamX   = 0.0f;     // holds x camera input (horizontal)
@@ -45,8 +43,6 @@ public partial class Input : Godot.Node {
 
     public XB.InputAction[] InputActions = new XB.InputAction[Amount];
     public string[]         InputNames   = new string[Amount] {
-            "Mode1",
-            "Mode2",
             "Start",
             "Select",
             "LUp",
@@ -73,8 +69,6 @@ public partial class Input : Godot.Node {
             "SRBot",
         };
     public string[] InputDescriptions = new string[Amount] {
-            "INP_MODE1",
-            "INP_MODE2",
             "INP_START",
             "INP_SELECT",
             "INP_LUP",
@@ -117,10 +111,6 @@ public partial class Input : Godot.Node {
         // IsActionPressed will continually trigger, IsActionJustPressed only on pushing down
         ConsumeAllInputs();
 
-        //NOTE[ALEX]: analog sticks are hacked to work with keyboard for now
-        // mouse and keyboard
-        if (Godot.Input.IsActionJustPressed("Mode1"))  Mode1   = true;    // unused
-        if (Godot.Input.IsActionJustPressed("Mode2"))  Mode2   = true;    // unused
         // menu buttons
         if (Godot.Input.IsActionJustPressed("Start"))  Start   = true;    // system menu
         if (Godot.Input.IsActionJustPressed("Select")) Select  = true;    // toggle HUD
@@ -138,7 +128,7 @@ public partial class Input : Godot.Node {
         if (Godot.Input.IsActionJustPressed("RIn"))    RIn     = true;    // unused
         // d pad
         if (Godot.Input.IsActionJustPressed("DUp"))    DUp     = true;    // unused
-        if (Godot.Input.IsActionJustPressed("DDown"))  DDown   = true;    // unused
+        if (Godot.Input.IsActionJustPressed("DDown"))  DDown   = true;    // toggle 1st/3rd person
         if (Godot.Input.IsActionJustPressed("DLeft"))  DLeft   = true;    // unused
         if (Godot.Input.IsActionJustPressed("DRight")) DRight  = true;    // unused
         // face buttons
@@ -150,7 +140,7 @@ public partial class Input : Godot.Node {
         if (Godot.Input.IsActionJustPressed("SLTop"))  SLTop   = true;    // place sphere
         if (Godot.Input.IsActionPressed    ("SLBot"))  SLBot   = true;    // aim
         // right shoulder buttons
-        if (Godot.Input.IsActionJustPressed("SRTop"))  SRTop   = true;    // toggle 1st/3rd person
+        if (Godot.Input.IsActionJustPressed("SRTop"))  SRTop   = true;    // remove sphere
         if (Godot.Input.IsActionPressed    ("SRBot"))  SRBot   = true;    // shoot / unused
 
 
@@ -201,12 +191,6 @@ public partial class Input : Godot.Node {
             } else { // keyboard keys
                 var iEvent = new Godot.InputEventKey();
                 switch (name) {
-                    case "Mode1": {
-                        iEvent.Keycode = Godot.Key.Key1;
-                    } break;
-                    case "Mode2": {
-                        iEvent.Keycode = Godot.Key.Key2;
-                    } break;
                     case "Start": {
                         iEvent.Keycode = Godot.Key.Escape;
                     } break;
@@ -244,10 +228,10 @@ public partial class Input : Godot.Node {
                         iEvent.Keycode = Godot.Key.E;
                     } break;
                     case "DUp": {
-                        iEvent.Keycode = Godot.Key.Q;
+                        iEvent.Keycode = Godot.Key.X;
                     } break;
                     case "DDown": {
-                        iEvent.Keycode = Godot.Key.X;
+                        iEvent.Keycode = Godot.Key.Q;
                     } break;
                     case "DLeft": {
                         iEvent.Keycode = Godot.Key.Z;
@@ -262,13 +246,13 @@ public partial class Input : Godot.Node {
                         iEvent.Keycode = Godot.Key.Space;
                     } break;
                     case "FLeft": {
-                        iEvent.Keycode = Godot.Key.K;
+                        iEvent.Keycode = Godot.Key.Key2;
                     } break;
                     case "FRight": {
-                        iEvent.Keycode = Godot.Key.L;
+                        iEvent.Keycode = Godot.Key.Key3;
                     } break;
                     case "SRTop": {
-                        iEvent.Keycode = Godot.Key.Key3;
+                        iEvent.Keycode = Godot.Key.Key4;
                     } break;
                 }
                 Godot.InputMap.ActionAddEvent(name, iEvent);
@@ -279,8 +263,6 @@ public partial class Input : Godot.Node {
     }
 
     public void ConsumeAllInputs() {
-        Mode1  = false;
-        Mode2  = false;
         Start  = false;
         Select = false;
         MoveY  = 0.0f;

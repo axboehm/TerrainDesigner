@@ -53,7 +53,6 @@ public partial class PController : Godot.CharacterBody3D {
     private       bool  _thirdP          = true;
     private       bool  _canShoot        = false;
     private const float _respawnOff      = 0.5f;
-    private const float _vertOff         = 50.0f;
     private const float _sphereSpawnDist = 2.0f; // distance to newly placed sphere in meter
 
     // audio
@@ -196,7 +195,7 @@ public partial class PController : Godot.CharacterBody3D {
 
         // STEP 2: check for player being outside of terrain area
         if        (GlobalPosition.Y < XB.WorldData.KillPlane || 
-                   GlobalPosition.Y < (XB.WorldData.LowestPoint - _vertOff)) {
+                   GlobalPosition.Y < (XB.WorldData.LowestPoint - XB.WorldData.LowHighExtra)) {
             SpawnPlayer(new Godot.Vector2(GlobalPosition.X, GlobalPosition.Z));
         } else if (GlobalPosition.X < 0.0f) {
             SpawnPlayer(new Godot.Vector2(_respawnOff, GlobalPosition.Z));
@@ -505,7 +504,9 @@ public partial class PController : Godot.CharacterBody3D {
             Hud.ToggleHUD();
         } else {
             // DUp
-            // DDown
+            if (XB.AData.Input.DDown) { // swap between first and third person view
+                _thirdP = !_thirdP;
+            }
             // DLeft
             // DRight
             if (_canShoot && XB.AData.Input.FUp) { // link
@@ -532,12 +533,11 @@ public partial class PController : Godot.CharacterBody3D {
                 }
             }
             // SLBot - aiming (handled earlier)
-            if (XB.AData.Input.SRTop) { // swap between first and third person view
-                _thirdP = !_thirdP;
+            if (_canShoot && XB.AData.Input.SRTop) { // remove sphere
+                if (XB.Manager.HLSphereID < XB.Manager.MaxSphereAmount) {
+                    XB.Manager.Spheres[XB.Manager.HLSphereID].RemoveSphere();
+                }
             }
-            // if        (XB.AData.Input.Mode1 && WpnMode == XB.WpnMd.Impact) { //
-            // } else if (XB.AData.Input.Mode2 && WpnMode == XB.WpnMd.Projectile) { //
-            // }
             if (_canShoot && XB.AData.Input.SRBot) {
                 if (XB.Manager.HLSphereID < XB.Manager.MaxSphereAmount) {
                     XB.Manager.Spheres[XB.Manager.HLSphereID].MoveSphere
@@ -577,13 +577,17 @@ public partial class PController : Godot.CharacterBody3D {
     }
 
     public void SpawnPlayer(Godot.Vector2 spawnXZ) {
-        var spawnPoint  = new Godot.Vector3(XB.WorldData.WorldDim.X/2.0f,
-                                            XB.WorldData.HighestPoint+_vertOff,
-                                            XB.WorldData.WorldDim.Y/2.0f); // fallback coordinates
-        var origin      = new Godot.Vector3(spawnXZ.X, XB.WorldData.HighestPoint+_vertOff, spawnXZ.Y);
-        var destination = new Godot.Vector3(spawnXZ.X, XB.WorldData.LowestPoint -_vertOff, spawnXZ.Y);
+        var spawnPoint  = new Godot.Vector3(XB.WorldData.WorldDim.X/2.0f, // fallback
+                                            XB.WorldData.HighestPoint+XB.WorldData.LowHighExtra,
+                                            XB.WorldData.WorldDim.Y/2.0f                        );
+        var origin      = new Godot.Vector3(spawnXZ.X,
+                                            XB.WorldData.HighestPoint+XB.WorldData.LowHighExtra,
+                                            spawnXZ.Y                                           );
+        var destination = new Godot.Vector3(spawnXZ.X, 
+                                            XB.WorldData.LowestPoint -XB.WorldData.LowHighExtra,
+                                            spawnXZ.Y                                           );
         var resultCD    = XB.Utils.Raycast(RequestSpaceState(), origin, destination,
-                                           XB.LayerMasks.EnvironmentMask);
+                                           XB.LayerMasks.EnvironmentMask            );
         if (resultCD.Count > 0) {
             spawnPoint    = (Godot.Vector3)resultCD["position"];
             spawnPoint.Y += _respawnOff;

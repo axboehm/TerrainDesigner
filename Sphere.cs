@@ -19,6 +19,7 @@ public partial class Sphere : Godot.CharacterBody3D {
     public bool  Active      = false;
     public float Highlighted = 0.0f;
     public bool  Linked      = false;
+    public bool  LinkedTo    = false;
     private SysCG.List<XB.Sphere> _linkedSpheres = new SysCG.List<XB.Sphere>();
 
     private Godot.Color _sphereColor    = new Godot.Color(0.0f, 0.0f, 0.0f, 1.0f); // modulating
@@ -75,13 +76,21 @@ public partial class Sphere : Godot.CharacterBody3D {
     }
 
     public void UpdateSphere(float dt) {
-        if (XB.Manager.Linking) { _sphereColor = _sphereColor.Lerp(XB.Col.SpLink, _hlSm*dt); }
-        else                    { _sphereColor = _sphereColor.Lerp(XB.Col.SpHl,   _hlSm*dt); }
+        if (XB.Manager.Linking) { 
+            if (LinkedTo) {
+                _sphereColor = _sphereColor.Lerp(XB.Col.SpLink,   _hlSm*dt);
+                Highlighted  = 1.0f;
+            } else {
+                _sphereColor = _sphereColor.Lerp(XB.Col.SpHlLink, _hlSm*dt);
+            }
+        } else {
+            _sphereColor = _sphereColor.Lerp(XB.Col.SpHl, _hlSm*dt);
+        }
 
         if (XB.Manager.LinkingID == ID) {
             _sphEmitStrTar = _sphEmitStrLink;
             _hlMult = XB.Utils.LerpF(_hlMult, 1.0f, _hlSm*dt);
-            foreach (XB.Sphere lS in _linkedSpheres) { lS.Highlighted = 1.0f; }
+            foreach (XB.Sphere lS in _linkedSpheres) { lS.LinkedTo = true; }
         } else {
             _sphEmitStrTar = _sphEmitStrDef;
         }
@@ -89,6 +98,7 @@ public partial class Sphere : Godot.CharacterBody3D {
         _sphEmitStr = XB.Utils.LerpF(_sphEmitStr, _sphEmitStrTar, _hlSm*dt);
         _hlMult     = XB.Utils.LerpF(_hlMult, Highlighted, _hlSm*dt);
         Highlighted = 0.0f;
+        LinkedTo    = false;
         _shellMat.SetShaderParameter ("emissionStr",   _sphEmitStr );
         _shellMat.SetShaderParameter ("highlightCol",  _sphereColor);
         _shellMat.SetShaderParameter ("highlightMult", _hlMult     );
@@ -149,11 +159,13 @@ public partial class Sphere : Godot.CharacterBody3D {
     public void RemoveSphere() {
         //TODO[ALEX]: remove sphere dam geometry
         UnlinkFromAllSpheres();
+        _animPl.Play("expand");
+        _animPl.Stop(); // stop animation at beginning of expand animation (contracted state)
         Hide();
         Active = false;
-        _animPl.Stop();
         XB.Manager.UpdateActiveSpheres();
         XB.PController.Hud.UpdateSphereTexture(ID, XB.SphereTexSt.Inactive);
+        if (ID == XB.Manager.LinkingID) { XB.Manager.LinkingID = XB.Manager.MaxSphereAmount; }
     }
 
     // when sphere gets moved

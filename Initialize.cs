@@ -3,9 +3,9 @@ namespace XB { // namespace open
 public partial class Initialize : Godot.Node3D {
     [Godot.Export] private Godot.WorldEnvironment   _environment;
     [Godot.Export] private Godot.DirectionalLight3D _mainLight;
+    [Godot.Export] private XB.PController           _player;
 
     public override void _EnterTree() { // the very first thing that happens in the game
-        // create input manager that will persist throughout the running of the game
         XB.AData.Input = new XB.Input();
         XB.AData.Input.ProcessMode = Godot.Node.ProcessModeEnum.Always;
         XB.AData.Input.DefaultInputActions();
@@ -26,6 +26,11 @@ public partial class Initialize : Godot.Node3D {
         XB.Manager.InitializeSpheres();
         XB.PController.Hud.InitializeHud();
         XB.PersistData.UpdateScreen();
+
+        XB.WorldData.InitializeTerrainMesh();
+        XB.WorldData.GenerateTerrain(16, 16, 8);
+        _player.SpawnPlayer(new Godot.Vector2(XB.WorldData.WorldDim.X/2.0f,
+                                              XB.WorldData.WorldDim.Y/2.0f));
     }
 }
 } // namespace close
