@@ -57,6 +57,7 @@ public struct ScenePaths {
     public static string ButtonAudio   = "res://assets/audio/soundButtonPress.tscn";
     public static string Sphere        = "res://assets/sphere/sphere.tscn";
     public static string TerrainShader = "res://code/shaders/terrain.gdshader";
+    public static string TSkirtShader  = "res://code/shaders/terrainSkirt.gdshader";
 }
 
 public class WorldData {
@@ -68,19 +69,37 @@ public class WorldData {
     public static Godot.Vector2  WorldDim;              // dimensions in meters
     public static Godot.Vector2I WorldVerts;
     public static int            VertAmount;            // total amount of terrain vertices
+    public static int            SkVertAmountX;         // total amount of vertices on X skirt side
+    public static int            SkVertAmountZ;
     public static int            WorldRes     = 0;      // subdivisions per meter
     public static float[,]       TerrainHeights;        // height value for each vertex
 
     public static Godot.MeshInstance3D    TerrainMesh;
-    public static Godot.StaticBody3D      TerrainStaticBody;
-    public static Godot.CollisionShape3D  TerrainCollider;
-    public static Godot.ShaderMaterial    TerrainMat;
-    public static Godot.Collections.Array MeshData;
-    public static Godot.ArrayMesh         ArrMesh;
     public static Godot.Vector3[]         Vertices;
     public static Godot.Vector2[]         UVs;
     public static Godot.Vector3[]         Normals;
     public static int[]                   Triangles;
+    public static Godot.MeshInstance3D[]  TerrainSkirtMesh; // black sides
+    public static Godot.Vector3[]         SkVerticesX0;
+    public static Godot.Vector3[]         SkVerticesX1;
+    public static Godot.Vector3[]         SkVerticesZ0;
+    public static Godot.Vector3[]         SkVerticesZ1;
+    public static Godot.Vector3[]         SkNormalsX0;
+    public static Godot.Vector3[]         SkNormalsX1;
+    public static Godot.Vector3[]         SkNormalsZ0;
+    public static Godot.Vector3[]         SkNormalsZ1;
+    public static int[]                   SkTrianglesX0;
+    public static int[]                   SkTrianglesX1;
+    public static int[]                   SkTrianglesZ0;
+    public static int[]                   SkTrianglesZ1;
+    public static Godot.StaticBody3D      TerrainStaticBody;
+    public static Godot.CollisionShape3D  TerrainCollider;
+    public static Godot.ShaderMaterial    TerrainMat;
+    public static Godot.ShaderMaterial    TerrainSkirtMat;
+    public static Godot.Collections.Array MeshData;
+    public static Godot.Collections.Array[] MeshDataSk;
+    public static Godot.ArrayMesh         ArrMesh;
+    public static Godot.ArrayMesh[]         ArrMeshSk;
 
     public static void InitializeTerrainMesh() {
         TerrainMesh       = new Godot.MeshInstance3D();
@@ -93,6 +112,19 @@ public class WorldData {
         TerrainStaticBody.CollisionMask  = XB.LayerMasks.EnvironmentMask;
         TerrainMat        = new Godot.ShaderMaterial();
         TerrainMat.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ScenePaths.TerrainShader);
+
+        TerrainSkirtMesh = new Godot.MeshInstance3D[4];
+        TerrainSkirtMat  = new Godot.ShaderMaterial();
+        TerrainSkirtMat.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ScenePaths.TSkirtShader);
+        MeshDataSk = new Godot.Collections.Array[4];
+        ArrMeshSk  = new Godot.ArrayMesh[4];
+        for (int i = 0; i < 4; i++) {
+            TerrainSkirtMesh[i] = new Godot.MeshInstance3D();
+            XB.AData.MainRoot.AddChild(TerrainSkirtMesh[i]);
+            MeshDataSk[i] = new Godot.Collections.Array();
+            MeshDataSk[i].Resize((int)Godot.Mesh.ArrayType.Max);
+            ArrMeshSk[i] = new Godot.ArrayMesh();
+        }
 
         MeshData = new Godot.Collections.Array();
         MeshData.Resize((int)Godot.Mesh.ArrayType.Max);
@@ -109,13 +141,37 @@ public class WorldData {
         Normals        = new Godot.Vector3[VertAmount];
         Triangles      = new int[(WorldVerts.X-1)*(WorldVerts.Y-1)*6];
 
-        XB.Terrain.Flat(ref TerrainHeights, WorldVerts.X, WorldVerts.Y, 0);
-        // XB.Terrain.GradientX(ref TerrainHeights, WorldVerts.X, WorldVerts.Y, 1, 5);
+        // XB.Terrain.Flat(ref TerrainHeights, WorldVerts.X, WorldVerts.Y, 0);
+        XB.Terrain.GradientX(ref TerrainHeights, WorldVerts.X, WorldVerts.Y, 1, 5);
         XB.Terrain.HeightsToMesh(ref TerrainHeights, WorldVerts.X, WorldVerts.Y, res,
                                  ref MeshData, ref ArrMesh, ref TerrainMesh, ref TerrainCollider,
                                  ref Vertices, ref UVs, ref Normals, ref Triangles, true         );
 
         TerrainMesh.Mesh.SurfaceSetMaterial(0, TerrainMat);
+
+        SkVertAmountX = WorldVerts.X*2;
+        SkVertAmountZ = WorldVerts.Y*2;
+        SkVerticesX0   = new Godot.Vector3[SkVertAmountX];
+        SkVerticesX1   = new Godot.Vector3[SkVertAmountX];
+        SkVerticesZ0   = new Godot.Vector3[SkVertAmountZ];
+        SkVerticesZ1   = new Godot.Vector3[SkVertAmountZ];
+        SkNormalsX0    = new Godot.Vector3[SkVertAmountX];
+        SkNormalsX1    = new Godot.Vector3[SkVertAmountX];
+        SkNormalsZ0    = new Godot.Vector3[SkVertAmountZ];
+        SkNormalsZ1    = new Godot.Vector3[SkVertAmountZ];
+        SkTrianglesX0  = new int[(WorldVerts.X-1)*6];
+        SkTrianglesX1  = new int[(WorldVerts.X-1)*6];
+        SkTrianglesZ0  = new int[(WorldVerts.Y-1)*6];
+        SkTrianglesZ1  = new int[(WorldVerts.Y-1)*6];
+
+        XB.Terrain.SkirtMesh(ref Vertices, WorldVerts.X, WorldVerts.Y, (int)KillPlane,
+                             ref MeshDataSk, ref ArrMeshSk, ref TerrainSkirtMesh, 
+                             ref SkVerticesX0, ref SkVerticesX1, ref SkVerticesZ0, ref SkVerticesZ1,
+                             ref SkNormalsX0, ref SkNormalsX1, ref SkNormalsZ0, ref SkNormalsZ1, 
+                             ref SkTrianglesX0, ref SkTrianglesX1, ref SkTrianglesZ0, ref SkTrianglesZ1,
+                             true                                                                       );
+
+        for (int i = 0; i < 4; i++) { TerrainSkirtMesh[i].Mesh.SurfaceSetMaterial(0, TerrainSkirtMat); }
     }
 }
 
