@@ -20,6 +20,7 @@ public partial class Sphere : Godot.CharacterBody3D {
     public float Highlighted = 0.0f;
     public bool  Linked      = false;
     public bool  LinkedTo    = false;
+    public XB.SphereTexSt TexSt = XB.SphereTexSt.Inactive;
     private SysCG.List<XB.Sphere> _linkedSpheres = new SysCG.List<XB.Sphere>();
 
     private Godot.Color _sphereColor    = new Godot.Color(0.0f, 0.0f, 0.0f, 1.0f); // modulating
@@ -110,20 +111,25 @@ public partial class Sphere : Godot.CharacterBody3D {
         GlobalPosition = pos;
         Active         = true;
         XB.Manager.UpdateActiveSpheres();
-        XB.PController.Hud.UpdateSphereTexture(ID, XB.SphereTexSt.Active);
+        TexSt = XB.SphereTexSt.Active;
+        XB.PController.Hud.UpdateSphereTexture(ID, TexSt);
     }
 
     public void SphereTextureAddLinked() {
-        XB.PController.Hud.UpdateSphereTexture(ID, XB.SphereTexSt.ActiveLinking);
+        TexSt = XB.SphereTexSt.ActiveLinking;
+        XB.PController.Hud.UpdateSphereTexture(ID, TexSt);
         foreach (XB.Sphere lS in _linkedSpheres) {
-            XB.PController.Hud.UpdateSphereTexture(lS.ID, XB.SphereTexSt.ActiveLinked);
+            lS.TexSt = XB.SphereTexSt.ActiveLinked;
+            XB.PController.Hud.UpdateSphereTexture(lS.ID, lS.TexSt);
         }    
     }
 
     public void SphereTextureRemoveLinked() {
-        XB.PController.Hud.UpdateSphereTexture(ID, XB.SphereTexSt.Active);
+        TexSt = XB.SphereTexSt.Active;
+        XB.PController.Hud.UpdateSphereTexture(ID, TexSt);
         foreach (XB.Sphere lS in _linkedSpheres) {
-            XB.PController.Hud.UpdateSphereTexture(lS.ID, XB.SphereTexSt.Active);
+            lS.TexSt = XB.SphereTexSt.Active;
+            XB.PController.Hud.UpdateSphereTexture(lS.ID, lS.TexSt);
         }    
     }
 
@@ -164,7 +170,8 @@ public partial class Sphere : Godot.CharacterBody3D {
         Hide();
         Active = false;
         XB.Manager.UpdateActiveSpheres();
-        XB.PController.Hud.UpdateSphereTexture(ID, XB.SphereTexSt.Inactive);
+        TexSt = XB.SphereTexSt.Inactive;
+        XB.PController.Hud.UpdateSphereTexture(ID, TexSt);
         if (ID == XB.Manager.LinkingID) { XB.Manager.LinkingID = XB.Manager.MaxSphereAmount; }
     }
 

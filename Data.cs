@@ -38,6 +38,8 @@ public struct Col {
     public static Godot.Color White   = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
     public static Godot.Color Transp  = new Godot.Color(0.0f, 0.0f, 0.0f, 0.0f);
     // UI colors
+    public static Godot.Color MPlayer = new Godot.Color(1.0f, 0.22f, 0.0f, 1.0f);
+    public static Godot.Color MSphere = new Godot.Color(0.0f, 0.22f, 1.0f, 1.0f);
     public static Godot.Color Hl      = new Godot.Color(0.6f, 1.0f, 0.6f, 1.0f);
     public static Godot.Color Outline = new Godot.Color(0.0f, 0.0f, 0.0f, 0.6f);
     public static Godot.Color LinkBri = new Godot.Color(1.0f, 0.88f, 0.0f, 1.0f);
@@ -73,6 +75,7 @@ public class WorldData {
     public static int            SkVertAmountZ;
     public static int            WorldRes     = 0;      // subdivisions per meter
     public static float[,]       TerrainHeights;        // height value for each vertex
+    public static float[,]       TerrainHeightsMod;
 
     public static Godot.MeshInstance3D    TerrainMesh;
     public static Godot.Vector3[]         Vertices;
@@ -132,20 +135,29 @@ public class WorldData {
     }
 
     public static void GenerateTerrain(int sizeX, int sizeY, int res) {
-        WorldDim       = new Godot.Vector2((float)sizeX, (float)sizeY);
-        WorldVerts     = new Godot.Vector2I(sizeX*res +1, sizeY*res +1);
-        TerrainHeights = new float[WorldVerts.X, WorldVerts.Y];
-        VertAmount     = WorldVerts.X*WorldVerts.Y;
-        Vertices       = new Godot.Vector3[VertAmount];
-        UVs            = new Godot.Vector2[VertAmount];
-        Normals        = new Godot.Vector3[VertAmount];
-        Triangles      = new int[(WorldVerts.X-1)*(WorldVerts.Y-1)*6];
+        WorldDim          = new Godot.Vector2((float)sizeX, (float)sizeY);
+        WorldVerts        = new Godot.Vector2I(sizeX*res +1, sizeY*res +1);
+        TerrainHeights    = new float[WorldVerts.X, WorldVerts.Y];
+        TerrainHeightsMod = new float[WorldVerts.X, WorldVerts.Y];
+        VertAmount        = WorldVerts.X*WorldVerts.Y;
+        Vertices          = new Godot.Vector3[VertAmount];
+        UVs               = new Godot.Vector2[VertAmount];
+        Normals           = new Godot.Vector3[VertAmount];
+        Triangles         = new int[(WorldVerts.X-1)*(WorldVerts.Y-1)*6];
 
         // XB.Terrain.Flat(ref TerrainHeights, WorldVerts.X, WorldVerts.Y, 0);
         XB.Terrain.GradientX(ref TerrainHeights, WorldVerts.X, WorldVerts.Y, 1, 5);
+        XB.Terrain.GradientY(ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y, 1, 5);
+        XB.Terrain.HeightMax(ref TerrainHeights, ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y);
         XB.Terrain.HeightsToMesh(ref TerrainHeights, WorldVerts.X, WorldVerts.Y, res,
                                  ref MeshData, ref ArrMesh, ref TerrainMesh, ref TerrainCollider,
                                  ref Vertices, ref UVs, ref Normals, ref Triangles, true         );
+
+        XB.PController.Hud.InitializeMiniMap(ref WorldVerts);
+        XB.Terrain.UpdateHeightMap(ref TerrainHeights, WorldVerts.X, WorldVerts.Y,
+                                   LowestPoint, HighestPoint,
+                                   ref XB.PController.Hud.ImgMiniMap              );
+        XB.PController.Hud.UpdateMiniMap();
 
         TerrainMesh.Mesh.SurfaceSetMaterial(0, TerrainMat);
 

@@ -6,7 +6,7 @@ public class Manager {
     public static int  HLSphereID      = MaxSphereAmount;
     public static int  LinkingID       = MaxSphereAmount; // id of sphere to link with
     public static bool Linking         = false;
-    public static XB.Sphere[] Spheres = new XB.Sphere[MaxSphereAmount];
+    public static XB.Sphere[]     Spheres   = new XB.Sphere[MaxSphereAmount];
 
     public static void InitializeSpheres() {
         var sphereScn = Godot.ResourceLoader.Load<Godot.PackedScene>(XB.ScenePaths.Sphere);

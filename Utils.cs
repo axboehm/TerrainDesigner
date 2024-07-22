@@ -256,5 +256,16 @@ public class Utils {
         UpdateRect2I(xStart,     yStart,     t, d, ref rect[2], ref vect); // left
         UpdateRect2I(xStart+d-t, yStart,     t, d, ref rect[3], ref vect); // right
     }
+
+    // draws three step point with center xPos | yPos
+    public static void PointRectangles(int xPos, int yPos, int d, ref Godot.Rect2I[] rect,
+                                       ref int rectSize, ref Godot.Vector2I vect   ) {
+        rectSize = 3;
+        int ws = (int)(0.4f*(float)d);
+        int wl = (int)(0.8f*(float)d);
+        UpdateRect2I(xPos - ws/2, yPos - d/2,  ws, d,  ref rect[0], ref vect);
+        UpdateRect2I(xPos - d/2,  yPos - ws/2, d , ws, ref rect[1], ref vect);
+        UpdateRect2I(xPos - wl/2, yPos - wl/2, wl, wl, ref rect[2], ref vect);
+    }
 }
 } // namespace close

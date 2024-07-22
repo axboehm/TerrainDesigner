@@ -2,8 +2,8 @@ namespace XB { // namespace open
 public class Terrain {
 
     public static void Flat(ref float[,] tHeights, int amountX, int amountY, int height) {
-        XB.WorldData.LowestPoint  = height-XB.WorldData.LowHighExtra;
-        XB.WorldData.HighestPoint = height+XB.WorldData.LowHighExtra;
+        XB.WorldData.LowestPoint  = height - XB.WorldData.LowHighExtra;
+        XB.WorldData.HighestPoint = height + XB.WorldData.LowHighExtra;
         for (int i = 0; i < amountX; i++) {
             for (int j = 0; j < amountY; j++) {
                 tHeights[i, j] = height;
@@ -12,8 +12,8 @@ public class Terrain {
     }
 
     public static void GradientX(ref float[,] tHeights, int amountX, int amountY, int low, int high) {
-        XB.WorldData.LowestPoint  = low -XB.WorldData.LowHighExtra;
-        XB.WorldData.HighestPoint = high+XB.WorldData.LowHighExtra;
+        XB.WorldData.LowestPoint  = low  - XB.WorldData.LowHighExtra;
+        XB.WorldData.HighestPoint = high + XB.WorldData.LowHighExtra;
         for (int i = 0; i < amountX; i++) {
             for (int j = 0; j < amountY; j++) {
                 tHeights[i, j] = low + ((float)i/(float)amountX)*high;
@@ -21,7 +21,26 @@ public class Terrain {
         }
     }
 
-    public static void HeightsToMesh(ref float[,] tHeights, int amountX, int amountZ, int res,
+    public static void GradientY(ref float[,] tHeights, int amountX, int amountY, int low, int high) {
+        XB.WorldData.LowestPoint  = low  - XB.WorldData.LowHighExtra;
+        XB.WorldData.HighestPoint = high + XB.WorldData.LowHighExtra;
+        for (int i = 0; i < amountY; i++) {
+            for (int j = 0; j < amountX; j++) {
+                tHeights[j, i] = low + ((float)i/(float)amountY)*high;
+            }
+        }
+    }
+
+    public static void HeightMax(ref float[,] tHeights, ref float[,] tHeightsM,
+                                 int amountX, int amountY                      ) {
+        for (int i = 0; i < amountX; i++) {
+            for (int j = 0; j < amountY; j++) {
+                tHeights[i, j] = XB.Utils.MaxF(tHeights[i, j], tHeightsM[i, j]);
+            }
+        }
+    }
+
+    public static void HeightsToMesh(ref float[,] tHeights, int amountX, int amountY, int res,
                                      ref Godot.Collections.Array mData, ref Godot.ArrayMesh arrMesh,
                                      ref Godot.MeshInstance3D mesh, ref Godot.CollisionShape3D col, 
                                      ref Godot.Vector3[] verts, ref Godot.Vector2[] uvs,
@@ -50,14 +69,14 @@ public class Terrain {
                 int x = i%amountX;
                 int z = i/amountX;
                 v2.X = (float)x/(float)(amountX-1);
-                v2.Y = (float)z/(float)(amountZ-1);
+                v2.Y = (float)z/(float)(amountY-1);
                 uvs[i] = v2;
             }
 
             int tri  = 0;
             int vert = 0;
             for (int i = 0; i < amountX-1; i++) {
-                for (int j = 0; j < amountZ-1; j++) {
+                for (int j = 0; j < amountY-1; j++) {
                     tris[tri + 0] = vert;
                     tris[tri + 1] = vert + 1;
                     tris[tri + 2] = vert + 1 + amountX;
@@ -81,7 +100,7 @@ public class Terrain {
         col.Shape = arrMesh.CreateTrimeshShape();
     }
 
-    public static void SkirtMesh(ref Godot.Vector3[] verts, int amountX, int amountZ, int heightLow,
+    public static void SkirtMesh(ref Godot.Vector3[] verts, int amountX, int amountY, int heightLow,
                                  ref Godot.Collections.Array[] mData, ref Godot.ArrayMesh[] arrMesh,
                                  ref Godot.MeshInstance3D[] meshes, 
                                  ref Godot.Vector3[] vertsX0, ref Godot.Vector3[] vertsX1,
@@ -93,9 +112,9 @@ public class Terrain {
                                  bool initialize = true         ) {
         // bottom, top, left, right - upper vertices
         for (int i = 0; i < amountX; i++) { vertsX0[2*i] = verts[i];                             }
-        for (int i = 0; i < amountX; i++) { vertsX1[2*i] = verts[i + amountX*amountZ - amountX]; }
-        for (int i = 0; i < amountZ; i++) { vertsZ0[2*i] = verts[i*amountX];                     }
-        for (int i = 0; i < amountZ; i++) { vertsZ1[2*i] = verts[i*amountX + amountX - 1];       }
+        for (int i = 0; i < amountX; i++) { vertsX1[2*i] = verts[i + amountX*amountY - amountX]; }
+        for (int i = 0; i < amountY; i++) { vertsZ0[2*i] = verts[i*amountX];                     }
+        for (int i = 0; i < amountY; i++) { vertsZ1[2*i] = verts[i*amountX + amountX - 1];       }
 
         //NOTE[ALEX[: UVs, triangles, normals and lower vertices will not change on terrain modification
         if (initialize) {
@@ -107,21 +126,21 @@ public class Terrain {
             }
             v3.Z = 1.0f;
             for (int i = 0; i < amountX; i++) { // top
-                int pos = i + amountX*amountZ - amountX;
+                int pos = i + amountX*amountY - amountX;
                 vertsX1[2*i +1] = new Godot.Vector3(verts[pos].X, heightLow, verts[pos].Z);
                 normsX1[2*i +0] = v3;
                 normsX1[2*i +1] = v3;
             }
             v3.Z = 0.0f;
             v3.X = -1.0f;
-            for (int i = 0; i < amountZ; i++) { // left
+            for (int i = 0; i < amountY; i++) { // left
                 int pos = i*amountX;
                 vertsZ0[2*i +1] = new Godot.Vector3(verts[pos].X, heightLow, verts[pos].Z);
                 normsZ0[2*i +0] = v3;
                 normsZ0[2*i +1] = v3;
             }
             v3.X = 1.0f;
-            for (int i = 0; i < amountZ; i++) { // right
+            for (int i = 0; i < amountY; i++) { // right
                 int pos = i*amountX + amountX - 1;
                 vertsZ1[2*i +1] = new Godot.Vector3(verts[pos].X, heightLow, verts[pos].Z);
                 normsZ1[2*i +0] = v3;
@@ -153,7 +172,7 @@ public class Terrain {
             }
             tri  = 0;
             vert = 0;
-            for (int i = 0; i < amountZ-1; i++) {
+            for (int i = 0; i < amountY-1; i++) {
                 trisZ0[tri + 0] = vert + 1;
                 trisZ0[tri + 1] = vert;
                 trisZ0[tri + 2] = vert + 3;
@@ -195,6 +214,20 @@ public class Terrain {
         mData[3][(int)Godot.Mesh.ArrayType.Index]  = trisZ1;
         arrMesh[3].AddSurfaceFromArrays(Godot.Mesh.PrimitiveType.Triangles, mData[3]);
         meshes[3].Mesh = arrMesh[3];
+    }
+
+    // expects img to be of type L8
+    public static void UpdateHeightMap(ref float[,] tHeights, int amountX, int amountY,
+                                       float lowest, float highest, ref Godot.Image img) {
+        var height = new Godot.Color(0.0f, 0.0f, 1.0f, 0.0f); // only the blue value will be used
+        for (int i = 0; i < amountX; i++) {
+            for (int j = 0; j < amountY; j++) {
+                //NOTE[ALEX]: invert the id order because 0|0 of image is in top left
+                //            (also see XB.HUD.UpdateMiniMapOverlayTexture)
+                height.B = (tHeights[amountX-1-i, amountY-1-j] - lowest) / (highest - lowest);
+                img.SetPixel(i, j, height);
+            }
+        }
     }
 }
 } // namespace close
