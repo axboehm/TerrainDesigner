@@ -7,7 +7,9 @@ public class Random {
     private static uint   _y            = 51251251;
     private static uint   _z            = 10241024;
     private static uint   _w            = 20482048;
-        
+    private static Godot.Image _blueNoise;      // square texture
+    private static int         _blueNoiseSize;  // pixels on one side (height = width)
+
     public static void InitializeRandom(uint start) {
         _x            = start;
         _y            = _x + (_x/2);
@@ -15,6 +17,9 @@ public class Random {
         _w            = _w/4;
         _randomValues = Xorshift();
         _rVPosition   = 0;
+
+        _blueNoise     = Godot.Image.LoadFromFile(XB.ScenePaths.BlueNoiseTex);
+        _blueNoiseSize = _blueNoise.GetWidth();
     }
 
     // returns 4 random bytes (uint 0-255)
@@ -45,6 +50,23 @@ public class Random {
         uint res          = _randomValues[_rVPosition];
              _rVPosition += 1;
         return res;
+    }
+
+    // return a deterministic value between -1.0f and 1.0f for any given 2 coordinates
+    //NOTE[ALEX]: easy to understand but produces noticeable sine wave patterns in the texture
+    public static float Random2D(float x, float y) {
+        float dot  = x*12.9898f + y*78.233f;
+        float res  = (float)System.Math.Sin(dot);
+              res *= 43758.5453f;
+              res %= 1.0f;
+
+        return res;
+    }
+
+    public static float RandomBlueNoise(int x, int y) {
+        x %= _blueNoiseSize;
+        y %= _blueNoiseSize;
+        return _blueNoise.GetPixel(x, y).R;
     }
 
     public static float RandomInRangeF(float a, float b) {

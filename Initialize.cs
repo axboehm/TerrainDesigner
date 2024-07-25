@@ -28,7 +28,7 @@ public partial class Initialize : Godot.Node3D {
         XB.PersistData.UpdateScreen();
 
         XB.WorldData.InitializeTerrainMesh();
-        XB.WorldData.GenerateTerrain(16, 16, 8);
+        XB.WorldData.GenerateTerrain(128, 128, 4);
         _player.SpawnPlayer(new Godot.Vector2(XB.WorldData.WorldDim.X/2.0f,
                                               XB.WorldData.WorldDim.Y/2.0f));
     }

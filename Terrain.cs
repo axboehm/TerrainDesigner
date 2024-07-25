@@ -1,7 +1,92 @@
 namespace XB { // namespace open
 public class Terrain {
 
-    public static void Flat(ref float[,] tHeights, int amountX, int amountY, int height) {
+    // FBM (fractal brownian motion) noise is an addition of multiple layers of perlin noise,
+    // each with increasing frequency (detail) but less amplitude (strength)
+    // octaves: number of layers of pwerlin noise
+    // persistence: change of amplitude of next octave's noise
+    // lacunarity: change of frequency of next octave's noise
+    // exponentation: exponent for final adjustment (1 for straight result)
+    //
+    //NOTE[ALEX]: if scale is a multiple of the blue noise size, the pattern will repeat visibly
+    public static void FBM(ref float[,] tHeights, int amountX, int amountY,
+                           float sizeX, float sizeY, float height, float scale,
+                           int octaves = 4, float persistence = 0.5f,
+                           float lacunarity = 2.0f, float exponentation = 4.5f,
+                           float offsetX = 0.0f, float offsetY = 0.0f          ) {
+        ResetLowestHighest();
+
+        float xStep   = scale * (sizeX / ((float)(amountX-1)) );
+        float yStep   = scale * (sizeY / ((float)(amountY-1)) );
+
+        float ampMult = (float)System.Math.Pow(2.0f, -persistence);
+        float amp     = 1.0f;
+        float norm    = 0.0f;
+        for (int o = 0; o < octaves; o++) {
+            norm  += amp;
+            amp   *= ampMult;
+        }
+        float freq    = 1.0f;
+        float total   = 0.0f;
+        float value   = 0.0f;
+        for (int i = 0; i < amountX; i++) {
+            //TODO[ALEX]: parallel for loop
+            for (int j = 0; j < amountY; j++) {
+                amp   = 1.0f;
+                freq  = 1.0f;
+                total = 0.0f;
+                value = 0.0f;
+
+                for (int o = 0; o < octaves; o++) {
+                    float x = i*xStep;
+                    float y = j*yStep;
+                    value  = Perlin2D(x*freq, y*freq);
+                    value *= 0.5f;
+                    value += 0.5f;
+                    total += value*amp;
+                    amp   *= ampMult;
+                    freq  *= lacunarity;
+                }
+
+                total /= norm;
+                tHeights[i, j] = (float)System.Math.Pow(total, exponentation) * height;
+                UpdateLowestHighest(tHeights[i, j]);
+            }
+        }
+    }
+
+    private static float Perlin2D(float x, float y) {
+        int   xI = (int)x;
+        int   yI = (int)y;
+        float xF = x - xI;
+        float yF = y - yI;
+
+        float a = XB.Random.RandomBlueNoise(xI + 0, yI + 0);
+        float b = XB.Random.RandomBlueNoise(xI + 1, yI + 0);
+        float c = XB.Random.RandomBlueNoise(xI + 0, yI + 1);
+        float d = XB.Random.RandomBlueNoise(xI + 1, yI + 1);
+        // Godot.GD.Print("x " + x + " y " + y + " a " + a + " b " + b + " c " + c + " d " + d);
+
+        var interpX = xF*xF*(3.0f - 2.0f*xF);
+        var interpY = yF*yF*(3.0f - 2.0f*yF);
+
+        float bot = XB.Utils.LerpF(a, b, interpX);
+        float top = XB.Utils.LerpF(c, d, interpX);
+
+        return XB.Utils.LerpF(bot, top, interpY);
+    }
+
+    private static void ResetLowestHighest() {
+        XB.WorldData.LowestPoint  = float.MaxValue;
+        XB.WorldData.HighestPoint = float.MinValue;
+    }
+
+    private static void UpdateLowestHighest(float value) {
+        XB.WorldData.LowestPoint  = XB.Utils.MinF(XB.WorldData.LowestPoint,  value);
+        XB.WorldData.HighestPoint = XB.Utils.MaxF(XB.WorldData.HighestPoint, value);
+    }
+
+    public static void Flat(ref float[,] tHeights, int amountX, int amountY, float height) {
         XB.WorldData.LowestPoint  = height - XB.WorldData.LowHighExtra;
         XB.WorldData.HighestPoint = height + XB.WorldData.LowHighExtra;
         for (int i = 0; i < amountX; i++) {
@@ -11,7 +96,8 @@ public class Terrain {
         }
     }
 
-    public static void GradientX(ref float[,] tHeights, int amountX, int amountY, int low, int high) {
+    public static void GradientX(ref float[,] tHeights, int amountX, int amountY,
+                                 float low, float high                           ) {
         XB.WorldData.LowestPoint  = low  - XB.WorldData.LowHighExtra;
         XB.WorldData.HighestPoint = high + XB.WorldData.LowHighExtra;
         for (int i = 0; i < amountX; i++) {
@@ -21,7 +107,8 @@ public class Terrain {
         }
     }
 
-    public static void GradientY(ref float[,] tHeights, int amountX, int amountY, int low, int high) {
+    public static void GradientY(ref float[,] tHeights, int amountX, int amountY, 
+                                float low, float high                            ) {
         XB.WorldData.LowestPoint  = low  - XB.WorldData.LowHighExtra;
         XB.WorldData.HighestPoint = high + XB.WorldData.LowHighExtra;
         for (int i = 0; i < amountY; i++) {
@@ -54,12 +141,6 @@ public class Terrain {
             v3.Y = tHeights[x, z];
             v3.Z = (float)z*step;
             verts[i] = v3;
-
-            //TODO[ALEX]: calculate normals properly
-            v3.X = 0.0f;
-            v3.Y = 1.0f;
-            v3.Z = 0.0f;
-            norms[i] = v3;
         }
 
         //NOTE[ALEX[: UVs and triangles will not change on terrain modification
@@ -68,8 +149,8 @@ public class Terrain {
             for (int i = 0; i < uvs.Length; i++) {
                 int x = i%amountX;
                 int z = i/amountX;
-                v2.X = (float)x/(float)(amountX-1);
-                v2.Y = (float)z/(float)(amountY-1);
+                v2.X = 1.0f - (float)x/(float)(amountX-1);
+                v2.Y = 1.0f - (float)z/(float)(amountY-1);
                 uvs[i] = v2;
             }
 
@@ -89,15 +170,44 @@ public class Terrain {
                 vert += 1;
             }
 
-            mData[(int)Godot.Mesh.ArrayType.TexUV]  = uvs;
-            mData[(int)Godot.Mesh.ArrayType.Index]  = tris;
+            mData[(int)Godot.Mesh.ArrayType.TexUV] = uvs;
+            mData[(int)Godot.Mesh.ArrayType.Index] = tris;
         }
+        
+        CalculateNormals(ref norms, ref verts, ref tris);
 
         mData[(int)Godot.Mesh.ArrayType.Vertex] = verts;
         mData[(int)Godot.Mesh.ArrayType.Normal] = norms;
+        arrMesh.ClearSurfaces(); // needs to be cleared for UV's to work properly on mesh update
         arrMesh.AddSurfaceFromArrays(Godot.Mesh.PrimitiveType.Triangles, mData);
         mesh.Mesh = arrMesh;
         col.Shape = arrMesh.CreateTrimeshShape();
+    }
+
+    private static void CalculateNormals(ref Godot.Vector3[] norms,
+                                         ref Godot.Vector3[] verts, ref int[] tris) {
+        //TODO[ALEX]: parallel?
+        // assign normals to vertices of each triangle
+        for (int i = 0; i < tris.Length/3; i++) {
+            int vIDA  = tris[i*3 +0];
+            int vIDB  = tris[i*3 +1];
+            int vIDC  = tris[i*3 +2];
+            var dirAB = verts[vIDB]-verts[vIDA];
+            var dirAC = verts[vIDC]-verts[vIDA];
+
+            var nrm = dirAC.Cross(dirAB);
+                nrm = nrm.Normalized();
+
+            // add the normal to each vertex, adding them up to consider all adjacent triangles
+            // this leaves the normals not normalized
+            norms[vIDA] += nrm;
+            norms[vIDB] += nrm;
+            norms[vIDC] += nrm;
+        }
+
+        for (int i = 0; i < norms.Length; i++) {
+            norms[i] = norms[i].Normalized();
+        }
     }
 
     public static void SkirtMesh(ref Godot.Vector3[] verts, int amountX, int amountY, int heightLow,
@@ -109,7 +219,7 @@ public class Terrain {
                                  ref Godot.Vector3[] normsZ0, ref Godot.Vector3[] normsZ1,
                                  ref int[] trisX0, ref int[] trisX1,
                                  ref int[] trisZ0, ref int[] trisZ1,
-                                 bool initialize = true         ) {
+                                 bool initialize = true                                             ) {
         // bottom, top, left, right - upper vertices
         for (int i = 0; i < amountX; i++) { vertsX0[2*i] = verts[i];                             }
         for (int i = 0; i < amountX; i++) { vertsX1[2*i] = verts[i + amountX*amountY - amountX]; }

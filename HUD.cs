@@ -31,21 +31,23 @@ public partial class HUD : Godot.Control {
     [Godot.Export] private        Godot.NodePath       _matHudEffectsNode;
                    private        Godot.ShaderMaterial _matHudEff;
 
-    private bool        _hudVisible     = true;
-    public  bool         CrossVisible   = true;
-    public  bool         FpsVisible     = false;
-    public  bool         SpheresVisible = true;
-    private float       _hudSm          = 16.0f;
-    private float       _crossAlpha     = 0.0f;
-    private Godot.Color _colCross       = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
-    private float       _fpsAlpha       = 0.0f;
-    private Godot.Color _colFps         = new Godot.Color(0.6f, 0.6f, 0.6f, 1.0f);
-    private float       _spheresAlpha   = 0.0f;
-    private Godot.Color _colSpheres     = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
-    private float       _linkingAlpha   = 0.0f;
-    private Godot.Color _colLinking     = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
-    private float       _miniMapAlpha   = 0.0f;
-    private Godot.Color _colMiniMap     = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
+    private bool        _hudVisible    = true;
+    public  bool        CrossVisible   = true;
+    public  bool        FpsVisible     = false;
+    public  bool        SpheresVisible = true;
+    private float       _hudSm         = 16.0f;
+    private float       _crossAlpha    = 0.0f;
+    private Godot.Color _colCross      = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
+    private float       _fpsAlpha      = 0.0f;
+    private Godot.Color _colFps        = new Godot.Color(0.6f, 0.6f, 0.6f, 1.0f);
+    private float       _spheresAlpha  = 0.0f;
+    private Godot.Color _colSpheres    = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
+    private float       _linkingAlpha  = 0.0f;
+    private Godot.Color _colLinking    = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
+    private float       _miniMapAlpha  = 0.0f;
+    private Godot.Color _colMiniMap    = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
+    private float       _blockMultCur  = 1.0f;
+    private float       _blockMult     = 0.0f;
 
     private Godot.Vector2I _vect  = new Godot.Vector2I(0, 0); // reusable vector for Rect2I
     private Godot.Rect2I[] _rects = new Godot.Rect2I[XB.Utils.MaxRectSize];
@@ -161,6 +163,7 @@ public partial class HUD : Godot.Control {
         _colMiniMap.A          = _miniMapAlpha;
         _trMiniMap.Modulate    = _colMiniMap;
         _trMiniMapO.Modulate   = _colMiniMap;
+        _blockMultCur          = _blockMult;
     }
 
     public void InitializeMiniMap(ref Godot.Vector2I size) {
@@ -336,12 +339,14 @@ public partial class HUD : Godot.Control {
             else                    { _linkingAlpha = 0.0f; }
             _spheresAlpha = 1.0f;
             _miniMapAlpha = 1.0f;
+            _blockMult    = 1.0f;
         } else {
             _crossAlpha   = 0.0f;
             _fpsAlpha     = 0.0f;
             _spheresAlpha = 0.0f;
             _linkingAlpha = 0.0f;
             _miniMapAlpha = 0.0f;
+            _blockMult    = 0.0f;
         }
 
         _colCross.A            = XB.Utils.LerpF(_colCross.A, _crossAlpha, _hudSm*dt);
@@ -355,6 +360,8 @@ public partial class HUD : Godot.Control {
         _colMiniMap.A          = XB.Utils.LerpF(_colMiniMap.A, _miniMapAlpha, _hudSm*dt);
         _trMiniMap.Modulate    = _colMiniMap;
         _trMiniMapO.Modulate   = _colMiniMap;
+        _blockMultCur          = XB.Utils.LerpF(_blockMultCur, _blockMult, _hudSm*dt); 
+        XB.WorldData.UpdateBlockStrength(_blockMultCur);
 
         UpdateMiniMapOverlayTexture();
 
