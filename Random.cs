@@ -40,6 +40,7 @@ public class Random {
         return false;
     }
 
+    //NOTE[ALEX]: not thread-safe
     public static uint RandomUInt() {
         if (_rVPosition > 3) {
             _rVPosition = 0;
@@ -50,23 +51,6 @@ public class Random {
         uint res          = _randomValues[_rVPosition];
              _rVPosition += 1;
         return res;
-    }
-
-    // return a deterministic value between -1.0f and 1.0f for any given 2 coordinates
-    //NOTE[ALEX]: easy to understand but produces noticeable sine wave patterns in the texture
-    public static float Random2D(float x, float y) {
-        float dot  = x*12.9898f + y*78.233f;
-        float res  = (float)System.Math.Sin(dot);
-              res *= 43758.5453f;
-              res %= 1.0f;
-
-        return res;
-    }
-
-    public static float RandomBlueNoise(int x, int y) {
-        x %= _blueNoiseSize;
-        y %= _blueNoiseSize;
-        return _blueNoise.GetPixel(x, y).R;
     }
 
     public static float RandomInRangeF(float a, float b) {
@@ -160,6 +144,43 @@ public class Random {
              result  = XB.Utils.ClampU(result, a, b);
 
         return result;
+    }
+
+    // return a deterministic value between -1.0f and 1.0f for any given 2 coordinates
+    //NOTE[ALEX]: easy to understand but produces noticeable sine wave patterns in the texture
+    public static float Random2D(float x, float y) {
+        float dot  = x*12.9898f + y*78.233f;
+        float res  = (float)System.Math.Sin(dot);
+              res *= 43758.5453f;
+              res %= 1.0f;
+
+        return res;
+    }
+
+    public static float RandomBlueNoise(int x, int y) {
+        x %= _blueNoiseSize;
+        y %= _blueNoiseSize;
+        return _blueNoise.GetPixel(x, y).R;
+    }
+
+    public static float ValueNoise2D(float x, float y) {
+        int   xI = (int)x;
+        int   yI = (int)y;
+        float xF = x - xI;
+        float yF = y - yI;
+
+        float a = RandomBlueNoise(xI + 0, yI + 0);
+        float b = RandomBlueNoise(xI + 1, yI + 0);
+        float c = RandomBlueNoise(xI + 0, yI + 1);
+        float d = RandomBlueNoise(xI + 1, yI + 1);
+
+        var interpX = xF*xF*(3.0f - 2.0f*xF);
+        var interpY = yF*yF*(3.0f - 2.0f*yF);
+
+        float bot = XB.Utils.LerpF(a, b, interpX);
+        float top = XB.Utils.LerpF(c, d, interpX);
+
+        return XB.Utils.LerpF(bot, top, interpY);
     }
 }
 } // namespace close

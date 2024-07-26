@@ -77,7 +77,7 @@ public partial class HUD : Godot.Control {
     private int                _columns  = 0;
 
     public  Godot.Image        ImgMiniMap;
-    private Godot.ImageTexture _texMiniMap;
+    public  Godot.ImageTexture TexMiniMap;
     private Godot.Image        _imgMiniMapO;
     private Godot.ImageTexture _texMiniMapO;
     private const int          _dimMMX  = 256;
@@ -104,8 +104,8 @@ public partial class HUD : Godot.Control {
         _trSpheres.Texture = _texSpheres;
         _trCrosshairs =                       GetNode<Godot.TextureRect>(_textureRectCrosshairsNode);
         _trMiniMap    =                       GetNode<Godot.TextureRect>(_textureRectMiniMapNode);
-        _texMiniMap   = new Godot.ImageTexture();
-        _trMiniMap.Texture = _texMiniMap;
+        TexMiniMap    = new Godot.ImageTexture();
+        _trMiniMap.Texture = TexMiniMap;
         _trMiniMapO   =                       GetNode<Godot.TextureRect>(_textureRectMiniMapOverlayNode);
         _texMiniMapO  = new Godot.ImageTexture();
         _trMiniMapO.Texture = _texMiniMapO;
@@ -169,11 +169,11 @@ public partial class HUD : Godot.Control {
     public void InitializeMiniMap(ref Godot.Vector2I size) {
         ImgMiniMap = Godot.Image.Create(size.X, size.Y, false, Godot.Image.Format.L8);
         ImgMiniMap.Fill (XB.Col.Black);
-        _texMiniMap.SetImage(ImgMiniMap);
+        TexMiniMap.SetImage(ImgMiniMap);
     }
 
     public void UpdateMiniMap() {
-        _texMiniMap.Update(ImgMiniMap);
+        TexMiniMap.Update(ImgMiniMap);
     }
 
     //NOTE[ALEX]: colors are hardcoded because the texture is very specific

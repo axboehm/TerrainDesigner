@@ -65,9 +65,11 @@ public struct ScenePaths {
     public static string Terrain1CATex = "res://materials/data/asteroidStone1_CA.png";
     public static string Terrain1RMTex = "res://materials/data/asteroidStone1_RM.png";
     public static string Terrain1NTex  = "res://materials/data/asteroidStone1_N.png";
-    public static string Terrain2CATex = "res://materials/data/stoneVeinsDirt_CA.png";
-    public static string Terrain2RMTex = "res://materials/data/stoneVeinsDirt_RM.png";
-    public static string Terrain2NTex  = "res://materials/data/stoneVeinsDirt_N.png";
+    public static string Terrain1HTex  = "res://materials/data/asteroidStone1_HEIGHT.png";
+    public static string Terrain2CATex = "res://materials/data/grdAsteroid1_C.png";
+    public static string Terrain2RMTex = "res://materials/data/grdAsteroid1_RM.png";
+    public static string Terrain2NTex  = "res://materials/data/grdAsteroid1_N.png";
+    public static string Terrain2HTex  = "res://materials/data/grdAsteroid1_HEIGHT.png";
 }
 
 public class WorldData {
@@ -83,34 +85,37 @@ public class WorldData {
     public static int            SkVertAmountZ;
     public static int            WorldRes     = 0;      // subdivisions per meter
     public static float[,]       TerrainHeights;        // height value for each vertex
-    public static float[,]       TerrainHeightsMod;
+    public static float[,]       TerrainHeightsMod;     // stores calculated values to add to terrain
 
-    public static Godot.MeshInstance3D    TerrainMesh;
-    public static Godot.Vector3[]         Vertices;
-    public static Godot.Vector2[]         UVs;
-    public static Godot.Vector3[]         Normals;
-    public static int[]                   Triangles;
-    public static Godot.MeshInstance3D[]  TerrainSkirtMesh; // black sides
-    public static Godot.Vector3[]         SkVerticesX0;
-    public static Godot.Vector3[]         SkVerticesX1;
-    public static Godot.Vector3[]         SkVerticesZ0;
-    public static Godot.Vector3[]         SkVerticesZ1;
-    public static Godot.Vector3[]         SkNormalsX0;
-    public static Godot.Vector3[]         SkNormalsX1;
-    public static Godot.Vector3[]         SkNormalsZ0;
-    public static Godot.Vector3[]         SkNormalsZ1;
-    public static int[]                   SkTrianglesX0;
-    public static int[]                   SkTrianglesX1;
-    public static int[]                   SkTrianglesZ0;
-    public static int[]                   SkTrianglesZ1;
-    public static Godot.StaticBody3D      TerrainStaticBody;
-    public static Godot.CollisionShape3D  TerrainCollider;
-    public static Godot.ShaderMaterial    TerrainMat;
-    public static Godot.ShaderMaterial    TerrainSkirtMat;
-    public static float                   BlockStrength = 0.6f;
-    public static Godot.Collections.Array MeshData;
+    public static Godot.MeshInstance3D      TerrainMesh;
+    public static Godot.Vector3[]           Vertices;
+    public static Godot.Vector2[]           UVs;
+    public static Godot.Vector3[]           Normals;
+    public static int[]                     Triangles;
+    public static Godot.MeshInstance3D[]    TerrainSkirtMesh; // black sides
+    public static Godot.Vector3[]           SkVerticesX0;
+    public static Godot.Vector3[]           SkVerticesX1;
+    public static Godot.Vector3[]           SkVerticesZ0;
+    public static Godot.Vector3[]           SkVerticesZ1;
+    public static Godot.Vector3[]           SkNormalsX0;
+    public static Godot.Vector3[]           SkNormalsX1;
+    public static Godot.Vector3[]           SkNormalsZ0;
+    public static Godot.Vector3[]           SkNormalsZ1;
+    public static int[]                     SkTrianglesX0;
+    public static int[]                     SkTrianglesX1;
+    public static int[]                     SkTrianglesZ0;
+    public static int[]                     SkTrianglesZ1;
+    public static Godot.StaticBody3D        TerrainStaticBody;
+    public static Godot.CollisionShape3D    TerrainCollider;
+    public static Godot.ShaderMaterial      TerrainMat;
+    public static Godot.ShaderMaterial      TerrainSkirtMat;
+    public static float                     BlockStrength = 0.6f;
+    public static int                       NoiseRes      = 256; // resolution of large scale noise
+                                                                 // texture for texture bombing
+    public static float                     AlbedoMult    = 0.8f;
+    public static Godot.Collections.Array   MeshData;
     public static Godot.Collections.Array[] MeshDataSk;
-    public static Godot.ArrayMesh         ArrMesh;
+    public static Godot.ArrayMesh           ArrMesh;
     public static Godot.ArrayMesh[]         ArrMeshSk;
 
     public static void InitializeTerrainMesh() {
@@ -126,21 +131,36 @@ public class WorldData {
         TerrainMat        = new Godot.ShaderMaterial();
         TerrainMat.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ScenePaths.TerrainShader);
 
+        TerrainMat.SetShaderParameter("albedoMult", AlbedoMult);
         var blockTex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.BlockTexture);
-        TerrainMat.SetShaderParameter("tBlock", blockTex);
+        TerrainMat.SetShaderParameter("tBlock",   blockTex);
         TerrainMat.SetShaderParameter("blockStr", BlockStrength);
+        var fastNoise = new Godot.FastNoiseLite();
+            fastNoise.NoiseType = Godot.FastNoiseLite.NoiseTypeEnum.Perlin;
+        var noiseTex = new Godot.NoiseTexture2D();
+            noiseTex.Height          = NoiseRes;
+            noiseTex.Width           = NoiseRes;
+            noiseTex.Normalize       = true;
+            noiseTex.Seamless        = true;
+            noiseTex.GenerateMipmaps = true;
+            noiseTex.Noise = fastNoise;
+        TerrainMat.SetShaderParameter("tNoise",     noiseTex);
         var terrain1CATex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain1CATex);
         var terrain1RMTex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain1RMTex);
         var terrain1NTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain1NTex);
+        var terrain1HTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain1HTex);
         TerrainMat.SetShaderParameter("tAlbedoM1", terrain1CATex);
         TerrainMat.SetShaderParameter("tRMM1",     terrain1RMTex);
         TerrainMat.SetShaderParameter("tNormalM1", terrain1NTex );
+        TerrainMat.SetShaderParameter("tHeightM1", terrain1HTex );
         var terrain2CATex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain2CATex);
         var terrain2RMTex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain2RMTex);
         var terrain2NTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain2NTex);
+        var terrain2HTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain2HTex);
         TerrainMat.SetShaderParameter("tAlbedoM2", terrain2CATex);
         TerrainMat.SetShaderParameter("tRMM2",     terrain2RMTex);
         TerrainMat.SetShaderParameter("tNormalM2", terrain2NTex );
+        TerrainMat.SetShaderParameter("tHeightM2", terrain2HTex );
 
         TerrainSkirtMesh = new Godot.MeshInstance3D[4];
         TerrainSkirtMat  = new Godot.ShaderMaterial();
@@ -165,13 +185,12 @@ public class WorldData {
     }
 
     private static void UpdateTerrainShader() {
-        TerrainMat.SetShaderParameter("scaleX",     XB.WorldData.WorldDim.X);
-        TerrainMat.SetShaderParameter("scaleY",     XB.WorldData.WorldDim.Y);
-        TerrainMat.SetShaderParameter("blockScale", 1.0f/10.0f);
-        TerrainMat.SetShaderParameter("uv!Scale",   1.0f/1.0f);
+        TerrainMat.SetShaderParameter("scaleX",     WorldDim.X);
+        TerrainMat.SetShaderParameter("scaleY",     WorldDim.Y);
+        TerrainMat.SetShaderParameter("blockScale", 1.0f/10.0f); // one cell in texture = 1m^2
+        TerrainMat.SetShaderParameter("uv1Scale",   1.0f/1.0f);
         TerrainMat.SetShaderParameter("uv2Scale",   1.0f/2.0f);
-        TerrainMat.SetShaderParameter("heightMin",  LowestPoint);
-        TerrainMat.SetShaderParameter("heightMax",  HighestPoint);
+        TerrainMat.SetShaderParameter("tHeight",    XB.PController.Hud.TexMiniMap);
     }
 
     public static void GenerateTerrain(int sizeX, int sizeY, int res) {
@@ -185,15 +204,11 @@ public class WorldData {
         Normals           = new Godot.Vector3[VertAmount];
         Triangles         = new int[(WorldVerts.X-1)*(WorldVerts.Y-1)*6];
 
-        // XB.Terrain.Flat(ref TerrainHeights, WorldVerts.X, WorldVerts.Y, 0.0f);
-        // XB.Terrain.HeightsToMesh(ref TerrainHeights, WorldVerts.X, WorldVerts.Y, res,
-        //                          ref MeshData, ref ArrMesh, ref TerrainMesh, ref TerrainCollider,
-        //                          ref Vertices, ref UVs, ref Normals, ref Triangles, true         );
-        XB.Terrain.FBM(ref TerrainHeights, WorldVerts.X, WorldVerts.Y, 
-                       WorldDim.X, WorldDim.Y, 18.0f, 0.0174f,
-                       8, 0.9f,
-                       2.2f, 7.5f,
-                       0.0f, 0.0f                                     );
+        XB.Terrain.Flat(ref TerrainHeights, WorldVerts.X, WorldVerts.Y, 0.0f); // initialize to flat
+
+        XB.Terrain.SetTerrainParameters(18.0f, 0.0174f, 0.0f, 0.0f, 8, 0.9f, 2.2f, 7.5f);
+        XB.Terrain.FBM(WorldVerts.X, WorldVerts.Y, WorldDim.X, WorldDim.Y);
+        XB.Terrain.HeightReplace(ref TerrainHeights, ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y);
         XB.Terrain.HeightsToMesh(ref TerrainHeights, WorldVerts.X, WorldVerts.Y, res,
                                  ref MeshData, ref ArrMesh, ref TerrainMesh, ref TerrainCollider,
                                  ref Vertices, ref UVs, ref Normals, ref Triangles, true         );

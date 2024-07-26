@@ -1,125 +1,117 @@
-// #define XBSINGLETHREADED
-// #define XBDEBUG
 namespace XB { // namespace open
 public class Terrain {
-    //NOTE[ALEX]: parallelization with function parameters is a headache, so all the relevant
-    //            factors get saved here instead of calculated in the FBM part
-    public static float Height        = 0.0f;
-    public static float NoiseScale    = 0.0f;   //NOTE[ALEX]: if scale is a multiple of the blue
-                                                //            noise texture's size, the pattern
-                                                //            will repeat visibly
-    public static float OffsetX       = 0.0f;
-    public static float OffsetY       = 0.0f;
-    public static int   Octaves       = 0;      // number of layers of noise
-    public static float AmpMult       = 0.0f;   // controls change of amplitude for next octave's noise
-    public static float Lacunarity    = 0.0f;   // change of frequency of next octave's noise
-    public static float Exponentation = 0.0f;   // exponent of power function of final result
-    public static float Normalization = 0.0f;   // maximum amount for added noise samples
-    public static float XStep         = 0.0f;
-    public static float YStep         = 0.0f;
-
-    public static void SetTerrainParameters(float height = 18.0f,    float scale = 0.0174f, 
-                                            float offsetX = 0.0f,    float offsetY = 0.0f, 
-                                            int   octaves = 4,       float persistence = 0.5f,
-                                            float lacunarity = 2.0f, float exponentation = 4.5f) {
-        if (scale % 1.0f == 0.0f) { NoiseScale = scale + 0.5f; }
-        else                      { NoiseScale = scale;        }
-        Height  = height;
-        OffsetX = offsetX;
-        OffsetY = offsetY;
-        Octaves = octaves;
-        AmpMult = (float)System.Math.Pow(2.0f, -persistence);
-        Lacunarity    = lacunarity;
-        Exponentation = exponentation;
-    }
 
     // FBM (fractal brownian motion) noise is an addition of multiple layers of perlin noise,
     // each with increasing frequency (detail) but less amplitude (strength)
-    //NOTE[ALEX]: parallel for loops do not work with ref parameters, so the height array is hard-coded
-    public static void FBM(int amountX, int amountY, float sizeX, float sizeY) {
-#if XBDEBUG
+    // octaves: number of layers of pwerlin noise
+    // persistence: change of amplitude of next octave's noise
+    // lacunarity: change of frequency of next octave's noise
+    // exponentation: exponent for final adjustment (1 for straight result)
+    //
+    //NOTE[ALEX]: if scale is a multiple of the blue noise size, the pattern will repeat visibly
+    public static void FBM(ref float[,] tHeights, int amountX, int amountY,
+                           float sizeX, float sizeY, float height, float scale,
+                           int octaves = 4, float persistence = 0.5f,
+                           float lacunarity = 2.0f, float exponentation = 4.5f,
+                           float offsetX = 0.0f, float offsetY = 0.0f          ) {
+        ResetLowestHighest();
+
         System.Diagnostics.Stopwatch StopWatch = new System.Diagnostics.Stopwatch();
         StopWatch.Start();
-#endif
 
-        XStep = NoiseScale * (sizeX / ((float)(amountX-1)) );
-        YStep = NoiseScale * (sizeY / ((float)(amountY-1)) );
+        float xStep   = scale * (sizeX / ((float)(amountX-1)) );
+        float yStep   = scale * (sizeY / ((float)(amountY-1)) );
 
-        float amplitude = 1.0f;
-        Normalization   = 0.0f;
-        for (int o = 0; o < Octaves; o++) {
-            Normalization += amplitude;
-            amplitude     *= AmpMult;
+        float ampMult = (float)System.Math.Pow(2.0f, -persistence);
+        float amp     = 1.0f;
+        float norm    = 0.0f;
+        for (int o = 0; o < octaves; o++) {
+            norm  += amp;
+            amp   *= ampMult;
+        }
+        for (int i = 0; i < amountX; i++) {
+            //TODO[ALEX]: parallel for loop
+            System.Action<int, int, float, float,
+                          float, float, float,
+                          float, float> act;
+            // act = Loop;
+            // System.Threading.Tasks.Parallel.For(0, amountY-1, act);
         }
 
-#if XBSINGLETHREADED
+
+        // non parallel way: 548.9749 ms / ~530 ms
+
+        /*
+        float xStep   = scale * (sizeX / ((float)(amountX-1)) );
+        float yStep   = scale * (sizeY / ((float)(amountY-1)) );
+
+        float ampMult = (float)System.Math.Pow(2.0f, -persistence);
         float amp     = 1.0f;
+        float norm    = 0.0f;
+        for (int o = 0; o < octaves; o++) {
+            norm  += amp;
+            amp   *= ampMult;
+        }
         float freq    = 1.0f;
         float total   = 0.0f;
         float value   = 0.0f;
         for (int i = 0; i < amountX; i++) {
+            //TODO[ALEX]: parallel for loop
             for (int j = 0; j < amountY; j++) {
                 amp   = 1.0f;
                 freq  = 1.0f;
                 total = 0.0f;
                 value = 0.0f;
 
-                for (int o = 0; o < Octaves; o++) {
-                    float x = i*XStep;
-                    float y = j*YStep;
-                    value  = XB.Random.ValueNoise2D(x*freq, y*freq);
+                for (int o = 0; o < octaves; o++) {
+                    float x = i*xStep;
+                    float y = j*yStep;
+                    value  = valueNoise2D(x*freq, y*freq);
                     value *= 0.5f;
                     value += 0.5f;
                     total += value*amp;
-                    amp   *= AmpMult;
-                    freq  *= Lacunarity;
+                    amp   *= ampMult;
+                    freq  *= lacunarity;
                 }
 
-                total /= Normalization;
-                total  = (float)System.Math.Pow(total, Exponentation) * Height;
-                XB.WorldData.TerrainHeightsMod[i, j] = total;
+                total /= norm;
+                tHeights[i, j] = (float)System.Math.Pow(total, exponentation) * height;
+                UpdateLowestHighest(tHeights[i, j]);
             }
         }
-#else
-        System.Threading.Tasks.Parallel.For(0, amountX, ParallelFBMLoop);
-#endif
-
-#if XBDEBUG
+        */
         StopWatch.Stop();
         Godot.GD.Print(StopWatch.Elapsed.TotalMilliseconds);
-        // non parallel way: 508.2472 - 535.7532
-        // parallel way: 164.9999 (first) 34.0475 - 42.4827 (subsequent)
-#endif
     }
 
-    //NOTE[ALEX]: the parallel loop body reads from shared, constant variables and writes to a 
-    //            shared array but in separate rows (different i each run)
-    private static void ParallelFBMLoop(int i) {
-        float amp   = 1.0f;
-        float freq  = 1.0f;
-        float total = 0.0f;
-        float value = 0.0f;
+    private static float valueNoise2D(float x, float y) {
+        int   xI = (int)x;
+        int   yI = (int)y;
+        float xF = x - xI;
+        float yF = y - yI;
 
-        for (int j = 0; j < XB.WorldData.WorldVerts.Y; j++) {
-            amp   = 1.0f;
-            freq  = 1.0f;
-            total = 0.0f;
-            value = 0.0f;
-            for (int o = 0; o < Octaves; o++) {
-                float x = i*XStep;
-                float y = j*YStep;
-                value  = XB.Random.ValueNoise2D(x*freq, y*freq);
-                value *= 0.5f;
-                value += 0.5f;
-                total += value*amp;
-                amp   *= AmpMult;
-                freq  *= Lacunarity;
-            }
+        float a = XB.Random.RandomBlueNoise(xI + 0, yI + 0);
+        float b = XB.Random.RandomBlueNoise(xI + 1, yI + 0);
+        float c = XB.Random.RandomBlueNoise(xI + 0, yI + 1);
+        float d = XB.Random.RandomBlueNoise(xI + 1, yI + 1);
 
-            total /= Normalization;
-            total  = (float)System.Math.Pow(total, Exponentation) * Height;
-            XB.WorldData.TerrainHeightsMod[i, j] = total;
-        }
+        var interpX = xF*xF*(3.0f - 2.0f*xF);
+        var interpY = yF*yF*(3.0f - 2.0f*yF);
+
+        float bot = XB.Utils.LerpF(a, b, interpX);
+        float top = XB.Utils.LerpF(c, d, interpX);
+
+        return XB.Utils.LerpF(bot, top, interpY);
+    }
+
+    private static void ResetLowestHighest() {
+        XB.WorldData.LowestPoint  = float.MaxValue;
+        XB.WorldData.HighestPoint = float.MinValue;
+    }
+
+    private static void UpdateLowestHighest(float value) {
+        XB.WorldData.LowestPoint  = XB.Utils.MinF(XB.WorldData.LowestPoint,  value);
+        XB.WorldData.HighestPoint = XB.Utils.MaxF(XB.WorldData.HighestPoint, value);
     }
 
     public static void Flat(ref float[,] tHeights, int amountX, int amountY, float height) {
@@ -154,26 +146,11 @@ public class Terrain {
         }
     }
 
-    //TODO[ALEX]: delegate with function type?
-
     public static void HeightMax(ref float[,] tHeights, ref float[,] tHeightsM,
                                  int amountX, int amountY                      ) {
-        ResetLowestHighest();
         for (int i = 0; i < amountX; i++) {
             for (int j = 0; j < amountY; j++) {
                 tHeights[i, j] = XB.Utils.MaxF(tHeights[i, j], tHeightsM[i, j]);
-                UpdateLowestHighest(tHeights[i, j]);
-            }
-        }
-    }
-
-    public static void HeightReplace(ref float[,] tHeights, ref float[,] tHeightsM,
-                                     int amountX, int amountY                      ) {
-        ResetLowestHighest();
-        for (int i = 0; i < amountX; i++) {
-            for (int j = 0; j < amountY; j++) {
-                tHeights[i, j] = tHeightsM[i, j];
-                UpdateLowestHighest(tHeights[i, j]);
             }
         }
     }
@@ -237,6 +214,7 @@ public class Terrain {
 
     private static void CalculateNormals(ref Godot.Vector3[] norms,
                                          ref Godot.Vector3[] verts, ref int[] tris) {
+        //TODO[ALEX]: parallel?
         // assign normals to vertices of each triangle
         for (int i = 0; i < tris.Length/3; i++) {
             int vIDA  = tris[i*3 +0];
@@ -390,14 +368,56 @@ public class Terrain {
         }
     }
 
-    private static void ResetLowestHighest() {
-        XB.WorldData.LowestPoint  = float.MaxValue;
-        XB.WorldData.HighestPoint = float.MinValue;
+
+    public static int   n    = 10;
+    public static int[] nums = new int[n];
+
+    public static void testFunction1(int input) {
+        int root;
+        for (int i = 0; i <= input; i++) {
+            root = (int)System.Math.Sqrt(input);
+        }
+        nums[input] = root; 
+        Godot.GD.Print("tF1: " + input);
     }
 
-    private static void UpdateLowestHighest(float value) {
-        XB.WorldData.LowestPoint  = XB.Utils.MinF(XB.WorldData.LowestPoint,  value);
-        XB.WorldData.HighestPoint = XB.Utils.MaxF(XB.WorldData.HighestPoint, value);
+    public static void testFunction2(int input) {
+        Godot.GD.Print("tF2: " + input);
     }
+
+    public static void ParallelTest() {
+        Godot.GD.Print("start parallel test");
+        System.Action<int> act;
+
+        act = testFunction1;
+        System.Threading.Tasks.Parallel.For(0, 10, act);
+        act = testFunction2;
+        System.Threading.Tasks.Parallel.For(0, 10, act);
+
+        Godot.GD.Print("end parallel test");
+    }
+    // public static void Loop(int input, int amountY, float xStep, float yStep,
+    //                         float ampMult, float lacunarity, float norm,
+    //                         float exponentation, float height) {
+    //         float amp   = 1.0f;
+    //         float freq  = 1.0f;
+    //         float total = 0.0f;
+    //         float value = 0.0f;
+    //
+    //         for (int o = 0; o < 8; o++) {
+    //             float x = input*xStep;
+    //             float y = j*yStep;
+    //             value  = valueNoise2D(x*freq, y*freq);
+    //             value *= 0.5f;
+    //             value += 0.5f;
+    //             total += value*amp;
+    //             amp   *= ampMult;
+    //             freq  *= lacunarity;
+    //         }
+    //
+    //         total /= norm;
+    //         XB.WorldData.TerrainHeights[input, j] = (float)System.Math.Pow(total, exponentation) * height;
+    //         UpdateLowestHighest(XB.WorldData.TerrainHeights[input, j]);
+    // }
 }
 } // namespace close
