@@ -78,7 +78,7 @@ public class WorldData {
     public static float          HighestPoint = +1.0f;
     public static float          LowHighExtra = 1.0f;   // additional amount for hidh/low updating
     public static float          KillPlane    = -4096.0f; // fallback for the player falling off
-    public static Godot.Vector2  WorldDim;              // dimensions in meters
+    public static Godot.Vector2  WorldDim;              // world dimensions in meters
     public static Godot.Vector2I WorldVerts;
     public static int            VertAmount;            // total amount of terrain vertices
     public static int            SkVertAmountX;         // total amount of vertices on X skirt side
@@ -113,6 +113,13 @@ public class WorldData {
     public static int                       NoiseRes      = 256; // resolution of large scale noise
                                                                  // texture for texture bombing
     public static float                     AlbedoMult    = 0.8f;
+    public static float                     Mat1UVScale   = 1.0f/4.0f; // empirical value
+    public static float                     Mat2UVScale   = 1.0f/4.0f; // empirical value
+    public static float                     NoisePScale   = 0.1f;  // perlin noise for bombing
+    public static float                     BlockUVScale  = 1.0f/(2.0f*10.0f); 
+                                                            // block texture has 2x2 large squares
+                                                            // with 10 subdivisions each per tile
+    public static float                     BlendDepth    = 0.2f; // height blending edge
     public static Godot.Collections.Array   MeshData;
     public static Godot.Collections.Array[] MeshDataSk;
     public static Godot.ArrayMesh           ArrMesh;
@@ -143,8 +150,8 @@ public class WorldData {
             noiseTex.Normalize       = true;
             noiseTex.Seamless        = true;
             noiseTex.GenerateMipmaps = true;
-            noiseTex.Noise = fastNoise;
-        TerrainMat.SetShaderParameter("tNoise",     noiseTex);
+            noiseTex.Noise           = fastNoise;
+        TerrainMat.SetShaderParameter("tNoiseP", noiseTex);
         var terrain1CATex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain1CATex);
         var terrain1RMTex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain1RMTex);
         var terrain1NTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain1NTex);
@@ -185,12 +192,14 @@ public class WorldData {
     }
 
     private static void UpdateTerrainShader() {
-        TerrainMat.SetShaderParameter("scaleX",     WorldDim.X);
-        TerrainMat.SetShaderParameter("scaleY",     WorldDim.Y);
-        TerrainMat.SetShaderParameter("blockScale", 1.0f/10.0f); // one cell in texture = 1m^2
-        TerrainMat.SetShaderParameter("uv1Scale",   1.0f/1.0f);
-        TerrainMat.SetShaderParameter("uv2Scale",   1.0f/2.0f);
-        TerrainMat.SetShaderParameter("tHeight",    XB.PController.Hud.TexMiniMap);
+        TerrainMat.SetShaderParameter("scaleX",      WorldDim.X);
+        TerrainMat.SetShaderParameter("scaleY",      WorldDim.Y);
+        TerrainMat.SetShaderParameter("blockScale",  BlockUVScale);
+        TerrainMat.SetShaderParameter("uv1Scale",    Mat1UVScale);
+        TerrainMat.SetShaderParameter("uv2Scale",    Mat2UVScale);
+        TerrainMat.SetShaderParameter("noisePScale", NoisePScale);
+        TerrainMat.SetShaderParameter("blendDepth",  BlendDepth);
+        TerrainMat.SetShaderParameter("tHeight",     XB.PController.Hud.TexMiniMap);
     }
 
     public static void GenerateTerrain(int sizeX, int sizeY, int res) {
@@ -209,6 +218,7 @@ public class WorldData {
         XB.Terrain.SetTerrainParameters(18.0f, 0.0174f, 0.0f, 0.0f, 8, 0.9f, 2.2f, 7.5f);
         XB.Terrain.FBM(WorldVerts.X, WorldVerts.Y, WorldDim.X, WorldDim.Y);
         XB.Terrain.HeightReplace(ref TerrainHeights, ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y);
+
         XB.Terrain.HeightsToMesh(ref TerrainHeights, WorldVerts.X, WorldVerts.Y, res,
                                  ref MeshData, ref ArrMesh, ref TerrainMesh, ref TerrainCollider,
                                  ref Vertices, ref UVs, ref Normals, ref Triangles, true         );
