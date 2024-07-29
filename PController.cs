@@ -1,4 +1,4 @@
-//#define XBDEBUG
+#define XBDEBUG
 namespace XB { // namespace open
 public enum AirSt {
     Grounded,   // player on the ground
@@ -102,8 +102,19 @@ public partial class PController : Godot.CharacterBody3D {
     private float         _blIdle   = 0.0f;     // animation moveIdle blend value
 
     private Godot.Transform3D _camTransPrev = new Godot.Transform3D();
+#if XBDEBUG
+    private XB.DebugHUD _debugHud;
+#endif
 
-    public override void _Ready() {
+    public void InitializePController() {
+#if XBDEBUG
+        _debugHud = new XB.DebugHUD();
+        AddChild(_debugHud);
+        _debugHud.InitializeDebugHUD();
+
+        var debug = new XB.DebugTimedBlock(XB.D.PControllerInitializePController);
+#endif
+
         CollisionMask  = XB.LayerMasks.PlayerMask;
         CollisionLayer = XB.LayerMasks.PlayerLayer;
 
@@ -138,26 +149,45 @@ public partial class PController : Godot.CharacterBody3D {
         _audFootStep[3] = _audFootStep3;
         _audFootStep[4] = _audFootStep4;
         _audFootStep[5] = _audFootStep5;
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     // get input using godot's system, used for mouse movement input, 
     // general input is handled at beginning of _PhysicsProcess below
     public override void _Input(Godot.InputEvent @event) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.PController_Input);
+#endif
+
         if (@event is not Godot.InputEventMouseMotion) return;
 
         var mouseM = (Godot.InputEventMouseMotion)@event;
         _mouse.X   = -0.015625f * mouseM.Relative.X; // multipliers = -30/1920|1080
         _mouse.Y   = -0.027777f * mouseM.Relative.Y;
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     // Called every frame at fixed time steps
     public override void _PhysicsProcess(double delta) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.PController_PhysicsProcess);
+#endif
+
         // UPDATE GENERAL
         float dt = (float)delta;
         XB.AData.Input.GetInputs();
         Hud.UpdateHUD(dt);
         XB.Manager.UpdateSpheres(dt);
         var spaceSt = RequestSpaceState(); // get spacestate for raycasting
+#if XBDEBUG
+        _debugHud.UpdateDebugHUD(dt);
+#endif
 
 
         // MOVEMENT
@@ -545,27 +575,25 @@ public partial class PController : Godot.CharacterBody3D {
             }
         }
 
-        // // DEBUG BUTTONS
-        // if (XB.AData.Input.Debug1) {
-        //     XB.Log.Msg("Debug 1 pressed", XB.D.PController_PhysicsProcess);
-        // }
-        // if (XB.AData.Input.Debug2) {
-        //     XB.Log.Msg("Debug 2 pressed", XB.D.PController_PhysicsProcess);
-        // }
-        // if (XB.AData.Input.Debug3) {
-        //     XB.Log.Msg("Debug 3 pressed", XB.D.PController_PhysicsProcess);
-        //     XB.Geometry.SpawnMesh(XB.Geometry.CreateRingMesh(64, 16, 1.0f, 0.5f),
-        //                           GlobalPosition + 1.0f*Godot.Vector3.Up        );
-        // }
-        // if (XB.AData.Input.Debug4) {
-        //     XB.Log.Msg("Debug 4 pressed", XB.D.PController_PhysicsProcess);
-        //     XB.Geometry.SpawnMesh(XB.Geometry.CreateCylinderMesh(16, 0.5f, 1.0f),
-        //                           GlobalPosition + 1.0f*Godot.Vector3.Up         );
-        // }
-        // if (XB.AData.Input.Debug5) {
-        //     XB.Log.Msg("Debug 5 pressed", XB.D.PController_PhysicsProcess);
-        //     Hit(100.0f);
-        // }
+#if XBDEBUG
+        // DEBUG BUTTONS
+        if (XB.AData.Input.Debug1) {
+            Godot.GD.Print("Debug1");
+            _debugHud.ToggleDebugHUD();
+        }
+        if (XB.AData.Input.Debug2) {
+            Godot.GD.Print("Debug2");
+        }
+        if (XB.AData.Input.Debug3) {
+            Godot.GD.Print("Debug3");
+        }
+        if (XB.AData.Input.Debug4) {
+            Godot.GD.Print("Debug4");
+        }
+        if (XB.AData.Input.Debug5) {
+            Godot.GD.Print("Debug5");
+        }
+#endif
 
 
         // CLEANUP
@@ -573,9 +601,17 @@ public partial class PController : Godot.CharacterBody3D {
         _cam.Transform  = _cam.Transform.Orthonormalized();
         CCtrH.Transform = CCtrH.Transform.Orthonormalized();
         _camTransPrev   = _cam.GlobalTransform;
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public void SpawnPlayer(Godot.Vector2 spawnXZ) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.PControllerSpawnPlayer);
+#endif
+
         var spawnPoint  = new Godot.Vector3(XB.WorldData.WorldDim.X/2.0f, // fallback
                                             XB.WorldData.HighestPoint+XB.WorldData.LowHighExtra,
                                             XB.WorldData.WorldDim.Y/2.0f                        );
@@ -593,6 +629,10 @@ public partial class PController : Godot.CharacterBody3D {
         }
 
         GlobalPosition = spawnPoint;
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public Godot.PhysicsDirectSpaceState3D RequestSpaceState() {

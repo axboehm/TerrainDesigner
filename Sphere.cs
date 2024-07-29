@@ -1,3 +1,4 @@
+#define XBDEBUG
 namespace XB { // namespace open
 using SysCG = System.Collections.Generic;
 public partial class Sphere : Godot.CharacterBody3D {
@@ -34,6 +35,10 @@ public partial class Sphere : Godot.CharacterBody3D {
 
     public void InitializeSphere(int id, ref Godot.Rect2I[] rects, 
                                  ref int rSize, ref Godot.Vector2I vect) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.SphereInitializeSphere);
+#endif
+
         ID             = id;
         CollisionLayer = XB.LayerMasks.SphereLayer;
 
@@ -74,9 +79,17 @@ public partial class Sphere : Godot.CharacterBody3D {
         _screenMat.SetShaderParameter("tWriting", _texScrolling);
 
         Hide();
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public void UpdateSphere(float dt) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.SphereUpdateSphere);
+#endif
+
         if (XB.Manager.Linking) { 
             if (LinkedTo) {
                 _sphereColor = _sphereColor.Lerp(XB.Col.SpLink,   _hlSm*dt);
@@ -103,55 +116,103 @@ public partial class Sphere : Godot.CharacterBody3D {
         _shellMat.SetShaderParameter ("emissionStr",   _sphEmitStr );
         _shellMat.SetShaderParameter ("highlightCol",  _sphereColor);
         _shellMat.SetShaderParameter ("highlightMult", _hlMult     );
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     // player places sphere in world
     public void PlaceSphere(Godot.Vector3 pos) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.SpherePlaceSphere);
+#endif
+
         Show();
         GlobalPosition = pos;
         Active         = true;
         XB.Manager.UpdateActiveSpheres();
         TexSt = XB.SphereTexSt.Active;
         XB.PController.Hud.UpdateSphereTexture(ID, TexSt);
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public void SphereTextureAddLinked() {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.SphereSphereTextureAddLinked);
+#endif
+
         TexSt = XB.SphereTexSt.ActiveLinking;
         XB.PController.Hud.UpdateSphereTexture(ID, TexSt);
         foreach (XB.Sphere lS in _linkedSpheres) {
             lS.TexSt = XB.SphereTexSt.ActiveLinked;
             XB.PController.Hud.UpdateSphereTexture(lS.ID, lS.TexSt);
         }    
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public void SphereTextureRemoveLinked() {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.SphereSphereTextureRemoveLinked);
+#endif
+
         TexSt = XB.SphereTexSt.Active;
         XB.PController.Hud.UpdateSphereTexture(ID, TexSt);
         foreach (XB.Sphere lS in _linkedSpheres) {
             lS.TexSt = XB.SphereTexSt.Active;
             XB.PController.Hud.UpdateSphereTexture(lS.ID, lS.TexSt);
         }    
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public void LinkSphere(int idLinkFrom) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.SphereLinkSphere);
+#endif
+
         foreach (XB.Sphere lS in _linkedSpheres) {
             if (lS.ID == idLinkFrom) { return; }
         }
         _linkedSpheres.Add(XB.Manager.Spheres[idLinkFrom]);
         if (!Linked && _animPl.CurrentAnimation != "expand") { _animPl.Play("expand"); }
         Linked = true;
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public void UnlinkSphere(XB.Sphere sphereUnlinkFrom) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.SphereUnlinkSphere);
+#endif
+
         _linkedSpheres.Remove(sphereUnlinkFrom);
 
         if (_linkedSpheres.Count == 0) {
             if (Linked && _animPl.CurrentAnimation != "contract") { _animPl.Play("contract"); }
             Linked = false;
         }
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public void UnlinkFromAllSpheres() {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.SphereUnlinkFromAllSpheres);
+#endif
+
         if (!Linked) { return; }
 
         foreach (XB.Sphere lS in _linkedSpheres) { lS.UnlinkSphere(this); }
@@ -159,10 +220,18 @@ public partial class Sphere : Godot.CharacterBody3D {
 
         if (_animPl.CurrentAnimation != "contract") { _animPl.Play("contract"); }
         Linked = false;
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     // remove sphere from world (does not remove from Manager Spheres array)
     public void RemoveSphere() {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.SphereRemoveSphere);
+#endif
+
         //TODO[ALEX]: remove sphere dam geometry
         UnlinkFromAllSpheres();
         _animPl.Play("expand");
@@ -173,6 +242,10 @@ public partial class Sphere : Godot.CharacterBody3D {
         TexSt = XB.SphereTexSt.Inactive;
         XB.PController.Hud.UpdateSphereTexture(ID, TexSt);
         if (ID == XB.Manager.LinkingID) { XB.Manager.LinkingID = XB.Manager.MaxSphereAmount; }
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     // when sphere gets moved
@@ -182,6 +255,10 @@ public partial class Sphere : Godot.CharacterBody3D {
     //            edge aggressively, this limitation is acceptable for now
     public void MoveSphere(Godot.Transform3D camTrans, Godot.Transform3D camTransPrev,
                            Godot.PhysicsDirectSpaceState3D spaceState, Godot.Vector3 playerMovement) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.SphereMoveSphere);
+#endif
+
         var   move     = new Godot.Vector3(0.0f, 0.0f, 0.0f);
         var   rayOrigT = camTrans.Origin; 
         var   rayOrigP = camTransPrev.Origin; 
@@ -225,6 +302,10 @@ public partial class Sphere : Godot.CharacterBody3D {
         if (Linked) {
             //TODO[ALEX]: update dam geometry
         }
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 }
 } // namespace close

@@ -1,5 +1,5 @@
 // #define XBSINGLETHREADED
-// #define XBDEBUG
+#define XBDEBUG
 namespace XB { // namespace open
 public class Terrain {
     //NOTE[ALEX]: parallelization with function parameters is a headache, so all the relevant
@@ -22,6 +22,10 @@ public class Terrain {
                                             float offsetX = 0.0f,    float offsetY = 0.0f, 
                                             int   octaves = 4,       float persistence = 0.5f,
                                             float lacunarity = 2.0f, float exponentation = 4.5f) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.TerrainSetTerrainParameters);
+#endif
+
         if (scale % 1.0f == 0.0f) { NoiseScale = scale + 0.5f; }
         else                      { NoiseScale = scale;        }
         Height  = height;
@@ -31,6 +35,10 @@ public class Terrain {
         AmpMult = (float)System.Math.Pow(2.0f, -persistence);
         Lacunarity    = lacunarity;
         Exponentation = exponentation;
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     // FBM (fractal brownian motion) noise is an addition of multiple layers of perlin noise,
@@ -38,8 +46,7 @@ public class Terrain {
     //NOTE[ALEX]: parallel for loops do not work with ref parameters, so the height array is hard-coded
     public static void FBM(int amountX, int amountY, float sizeX, float sizeY) {
 #if XBDEBUG
-        System.Diagnostics.Stopwatch StopWatch = new System.Diagnostics.Stopwatch();
-        StopWatch.Start();
+        var debug = new XB.DebugTimedBlock(XB.D.TerrainFBM);
 #endif
 
         XStep = NoiseScale * (sizeX / ((float)(amountX-1)) );
@@ -52,6 +59,8 @@ public class Terrain {
             amplitude     *= AmpMult;
         }
 
+        // non parallel way: 508.2472 - 535.7532
+        // parallel way: 164.9999 (first) 34.0475 - 42.4827 (subsequent)
 #if XBSINGLETHREADED
         float amp     = 1.0f;
         float freq    = 1.0f;
@@ -85,11 +94,8 @@ public class Terrain {
 #endif
 
 #if XBDEBUG
-        StopWatch.Stop();
-        Godot.GD.Print(StopWatch.Elapsed.TotalMilliseconds);
-        // non parallel way: 508.2472 - 535.7532
-        // parallel way: 164.9999 (first) 34.0475 - 42.4827 (subsequent)
-#endif
+        debug.End();
+#endif 
     }
 
     //NOTE[ALEX]: the parallel loop body reads from shared, constant variables and writes to a 
@@ -123,6 +129,10 @@ public class Terrain {
     }
 
     public static void Flat(ref float[,] tHeights, int amountX, int amountY, float height) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.TerrainFlat);
+#endif
+
         XB.WorldData.LowestPoint  = height - XB.WorldData.LowHighExtra;
         XB.WorldData.HighestPoint = height + XB.WorldData.LowHighExtra;
         for (int i = 0; i < amountX; i++) {
@@ -130,10 +140,18 @@ public class Terrain {
                 tHeights[i, j] = height;
             }
         }
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public static void GradientX(ref float[,] tHeights, int amountX, int amountY,
                                  float low, float high                           ) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.TerrainGradientX);
+#endif
+
         XB.WorldData.LowestPoint  = low  - XB.WorldData.LowHighExtra;
         XB.WorldData.HighestPoint = high + XB.WorldData.LowHighExtra;
         for (int i = 0; i < amountX; i++) {
@@ -141,10 +159,18 @@ public class Terrain {
                 tHeights[i, j] = low + ((float)i/(float)amountX)*high;
             }
         }
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public static void GradientY(ref float[,] tHeights, int amountX, int amountY, 
                                 float low, float high                            ) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.TerrainGradientY);
+#endif
+
         XB.WorldData.LowestPoint  = low  - XB.WorldData.LowHighExtra;
         XB.WorldData.HighestPoint = high + XB.WorldData.LowHighExtra;
         for (int i = 0; i < amountY; i++) {
@@ -152,12 +178,20 @@ public class Terrain {
                 tHeights[j, i] = low + ((float)i/(float)amountY)*high;
             }
         }
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     //TODO[ALEX]: delegate with function type?
 
     public static void HeightMax(ref float[,] tHeights, ref float[,] tHeightsM,
                                  int amountX, int amountY                      ) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.TerrainHeightMax);
+#endif
+
         ResetLowestHighest();
         for (int i = 0; i < amountX; i++) {
             for (int j = 0; j < amountY; j++) {
@@ -165,10 +199,18 @@ public class Terrain {
                 UpdateLowestHighest(tHeights[i, j]);
             }
         }
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public static void HeightReplace(ref float[,] tHeights, ref float[,] tHeightsM,
                                      int amountX, int amountY                      ) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.TerrainHeightReplace);
+#endif
+
         ResetLowestHighest();
         for (int i = 0; i < amountX; i++) {
             for (int j = 0; j < amountY; j++) {
@@ -176,6 +218,10 @@ public class Terrain {
                 UpdateLowestHighest(tHeights[i, j]);
             }
         }
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public static void HeightsToMesh(ref float[,] tHeights, int amountX, int amountY, int res,
@@ -183,6 +229,10 @@ public class Terrain {
                                      ref Godot.MeshInstance3D mesh, ref Godot.CollisionShape3D col, 
                                      ref Godot.Vector3[] verts, ref Godot.Vector2[] uvs,
                                      ref Godot.Vector3[] norms, ref int[] tris, bool initialize = true) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.TerrainHeightsToMesh);
+#endif
+
         Godot.Vector3 v3 = new Godot.Vector3(0.0f, 0.0f, 0.0f);
         float step = 1.0f/(float)res;
         for (int i = 0; i < verts.Length; i++) {
@@ -233,10 +283,18 @@ public class Terrain {
         arrMesh.AddSurfaceFromArrays(Godot.Mesh.PrimitiveType.Triangles, mData);
         mesh.Mesh = arrMesh;
         col.Shape = arrMesh.CreateTrimeshShape();
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     private static void CalculateNormals(ref Godot.Vector3[] norms,
                                          ref Godot.Vector3[] verts, ref int[] tris) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.TerrainCalculateNormals);
+#endif
+
         // assign normals to vertices of each triangle
         for (int i = 0; i < tris.Length/3; i++) {
             int vIDA  = tris[i*3 +0];
@@ -258,6 +316,10 @@ public class Terrain {
         for (int i = 0; i < norms.Length; i++) {
             norms[i] = norms[i].Normalized();
         }
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public static void SkirtMesh(ref Godot.Vector3[] verts, int amountX, int amountY, int heightLow,
@@ -270,6 +332,10 @@ public class Terrain {
                                  ref int[] trisX0, ref int[] trisX1,
                                  ref int[] trisZ0, ref int[] trisZ1,
                                  bool initialize = true                                             ) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.TerrainSkirtMesh);
+#endif
+
         // bottom, top, left, right - upper vertices
         for (int i = 0; i < amountX; i++) { vertsX0[2*i] = verts[i];                             }
         for (int i = 0; i < amountX; i++) { vertsX1[2*i] = verts[i + amountX*amountY - amountX]; }
@@ -307,10 +373,6 @@ public class Terrain {
                 normsZ1[2*i +1] = v3;
             }
 
-            // for (int i = 0; i < vertsZ1.Length; i++) {
-            //     Godot.GD.Print(vertsZ1[i]);
-            // }
-
             int tri  = 0;
             int vert = 0;
             for (int i = 0; i < amountX-1; i++) {
@@ -346,8 +408,6 @@ public class Terrain {
                 trisZ1[tri + 3] = vert;
                 trisZ1[tri + 4] = vert + 3;
                 trisZ1[tri + 5] = vert + 2;
-                // Godot.GD.Print(trisZ1[tri+0] + " " + trisZ1[tri+1] + " " + trisZ1[tri+2]);
-                // Godot.GD.Print(trisZ1[tri+3] + " " + trisZ1[tri+4] + " " + trisZ1[tri+5]);
                 tri  += 6;
                 vert += 2;
 
@@ -374,11 +434,19 @@ public class Terrain {
         mData[3][(int)Godot.Mesh.ArrayType.Index]  = trisZ1;
         arrMesh[3].AddSurfaceFromArrays(Godot.Mesh.PrimitiveType.Triangles, mData[3]);
         meshes[3].Mesh = arrMesh[3];
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     // expects img to be of type L8
     public static void UpdateHeightMap(ref float[,] tHeights, int amountX, int amountY,
                                        float lowest, float highest, ref Godot.Image img) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.TerrainUpdateHeightMap);
+#endif
+
         var height = new Godot.Color(0.0f, 0.0f, 1.0f, 0.0f); // only the blue value will be used
         for (int i = 0; i < amountX; i++) {
             for (int j = 0; j < amountY; j++) {
@@ -388,16 +456,36 @@ public class Terrain {
                 img.SetPixel(i, j, height);
             }
         }
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     private static void ResetLowestHighest() {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.TerrainResetLowestHighest);
+#endif
+
         XB.WorldData.LowestPoint  = float.MaxValue;
         XB.WorldData.HighestPoint = float.MinValue;
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     private static void UpdateLowestHighest(float value) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.TerrainUpdateLowestHighest);
+#endif
+
         XB.WorldData.LowestPoint  = XB.Utils.MinF(XB.WorldData.LowestPoint,  value);
         XB.WorldData.HighestPoint = XB.Utils.MaxF(XB.WorldData.HighestPoint, value);
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 }
 } // namespace close

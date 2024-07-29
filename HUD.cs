@@ -1,4 +1,4 @@
-// #define XBDEBUG
+#define XBDEBUG
 namespace XB { // namespace open
 public enum SphereTexSt {
     Inactive,
@@ -91,6 +91,10 @@ public partial class HUD : Godot.Control {
     private static string[]    _messages     = new string[2];
 
     public void InitializeHud() {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.HUDInitializeHud);
+#endif
+
         LbInterAct    =                       GetNode<Godot.Label>      (_labelInteractPromptNode);
         LbInterKey    =                       GetNode<Godot.Label>      (_labelInteractKeyNode);
         _lbMessage    =                       GetNode<Godot.Label>      (_labelMessageNode);
@@ -123,8 +127,8 @@ public partial class HUD : Godot.Control {
         _imgLinking = Godot.Image.Create(sizeLinkingX, sizeLinkingY,
                                          false, Godot.Image.Format.Rgba8);
         _texLinking.SetImage(_imgLinking);
-        _trLinking.Position = new Godot.Vector2(_dimLinkBorderX, _dimLinkBorderY);
-        _trLinking.Size     = new Godot.Vector2(sizeLinkingX, sizeLinkingY);
+        _trLinking.Position = new Godot.Vector2I(_dimLinkBorderX, _dimLinkBorderY);
+        _trLinking.Size     = new Godot.Vector2I(sizeLinkingX, sizeLinkingY);
         CreateLinkingTexture(_dimLinkThick, _dimLinkShadow,
                              (int)((float)sizeLinkingX*_dimLinkCorX),
                              (int)((float)sizeLinkingY*_dimLinkCorY), 
@@ -140,18 +144,18 @@ public partial class HUD : Godot.Control {
         _dimSpY  = _dimSp*_rows;
         _imgSpheres = Godot.Image.Create(_dimSpX, _dimSpY, false, Godot.Image.Format.Rgba8);
         _imgSpheres.Fill(XB.Col.Transp);
-        _trSpheres.Position = new Godot.Vector2(XB.AData.BaseResX-_offsetH-_dimSpX, _offsetT);
-        _trSpheres.Size     = new Godot.Vector2(_dimSpX, _dimSpY);
+        _trSpheres.Position = new Godot.Vector2I(XB.AData.BaseResX-_offsetH-_dimSpX, _offsetT);
+        _trSpheres.Size     = new Godot.Vector2I(_dimSpX, _dimSpY);
         _texSpheres.SetImage(_imgSpheres);
         CreateSphereTexture(_dimSpY, _dimSp, _columns, _dimBord, _dimThick,
                             ref _imgSpheres, ref _texSpheres, ref _vect, ref _rects, ref _rSize);
 
         _imgMiniMapO = Godot.Image.Create(_dimMMX, _dimMMY, false, Godot.Image.Format.Rgba8);
         _imgMiniMapO.Fill(XB.Col.Transp);
-        _trMiniMap.Position  = new Godot.Vector2(_offsetH, _offsetT);
-        _trMiniMapO.Position = new Godot.Vector2(_offsetH, _offsetT);
-        _trMiniMap.Size      = new Godot.Vector2(_dimMMX, _dimMMY);
-        _trMiniMapO.Size     = new Godot.Vector2(_dimMMX, _dimMMY);
+        _trMiniMap.Position  = new Godot.Vector2I(_offsetH, _offsetT);
+        _trMiniMapO.Position = new Godot.Vector2I(_offsetH, _offsetT);
+        _trMiniMap.Size      = new Godot.Vector2I(_dimMMX, _dimMMY);
+        _trMiniMapO.Size     = new Godot.Vector2I(_dimMMX, _dimMMY);
         _texMiniMapO.SetImage(_imgMiniMapO);
 
         _colCross.A            = _crossAlpha;
@@ -164,22 +168,46 @@ public partial class HUD : Godot.Control {
         _trMiniMap.Modulate    = _colMiniMap;
         _trMiniMapO.Modulate   = _colMiniMap;
         _blockMultCur          = _blockMult;
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public void InitializeMiniMap(ref Godot.Vector2I size) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.HUDInitializeMiniMap);
+#endif
+
         ImgMiniMap = Godot.Image.Create(size.X, size.Y, false, Godot.Image.Format.L8);
         ImgMiniMap.Fill (XB.Col.Black);
         TexMiniMap.SetImage(ImgMiniMap);
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public void UpdateMiniMap() {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.HUDUpdateMiniMap);
+#endif
+
         TexMiniMap.Update(ImgMiniMap);
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     //NOTE[ALEX]: colors are hardcoded because the texture is very specific
     private void CreateLinkingTexture(int thickness, int shadow, int cornerWidth, int cornerHeight,
                                       ref Godot.Image image, ref Godot.ImageTexture tex,
                                       ref Godot.Vector2I vect                                      ) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.HUDCreateLinkingTexture);
+#endif
+
         int width  = image.GetWidth();
         int height = image.GetHeight();
 
@@ -196,11 +224,19 @@ public partial class HUD : Godot.Control {
         image.FillRect(rect, XB.Col.Transp);
 
         tex.Update(image);
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     private void CreateSphereTexture(int dimSpY, int dimSp, int columns, int dimBord, int dimThick,
                                      ref Godot.Image image, ref Godot.ImageTexture tex, 
                                      ref Godot.Vector2I vect, ref Godot.Rect2I[] rects, ref int rSize) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.HUDCreateSphereTexture);
+#endif
+
         int xStart  = 0;
         int yStart  = dimSpY-dimSp;
         int counter = 0;
@@ -224,10 +260,18 @@ public partial class HUD : Godot.Control {
             }
         }
         tex.Update(image);
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     private void AddDigitTexture(int digit, int xStart, int yStart,
                                  int thickness, ref Godot.Color digitColor) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.HUDAddDigitTexture);
+#endif
+
         int ySize = _dimSp -4*_dimBord -2*_dimThick;
         int xSize = ySize/2;
         if (digit > 9) { // decimal digit
@@ -239,9 +283,17 @@ public partial class HUD : Godot.Control {
         XB.Utils.DigitRectangles(digit%10, xStart, yStart, xSize, ySize, thickness,
                                  ref _rects, ref _rSize, ref _vect                 );
         for (int i = 0; i < _rSize; i++ ) { _imgSpheres.FillRect(_rects[i], digitColor); }
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public void UpdateSphereTexture(int id, XB.SphereTexSt state) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.HUDUpdateSphereTexture);
+#endif
+
         int xStart = (id%_columns)*_dimSp;
         int yOff   = (id/_columns)*_dimSp;
         int yStart = _dimSpY-yOff-_dimSp;
@@ -261,9 +313,17 @@ public partial class HUD : Godot.Control {
 
         AddDigitTexture(id, xStart+2*_dimBord, yStart+2*_dimBord, _dimThick, ref dColor);
         _texSpheres.Update(_imgSpheres);
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public void UpdateSphereTextureHighlight(int from, int to) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.HUDUpdateSphereTextureHighlight);
+#endif
+
         if (from < XB.Manager.MaxSphereAmount) {
             int xStart = (from%_columns)*_dimSp;
             int yOff   = (from/_columns)*_dimSp;
@@ -283,9 +343,17 @@ public partial class HUD : Godot.Control {
             for (int i = 0; i < _rSize; i++ ) { _imgSpheres.FillRect(_rects[i], XB.Col.Hl); }
         }
         _texSpheres.Update(_imgSpheres);
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     private void UpdateMiniMapOverlayTexture() {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.HUDUpdateMiniMapOverlayTexture);
+#endif
+
         _imgMiniMapO.Fill(XB.Col.Transp);
 
         //NOTE[ALEX]: world corner is at 0|0, calculate % offset from corner
@@ -319,6 +387,10 @@ public partial class HUD : Godot.Control {
         }
 
         _texMiniMapO.Update(_imgMiniMapO);
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public void ToggleHUD() {
@@ -330,6 +402,10 @@ public partial class HUD : Godot.Control {
     }
 
     public void UpdateHUD(float dt) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.HUDUpdateHUD);
+#endif
+
         if (_hudVisible) {
             if (CrossVisible) { _crossAlpha = 1.0f; }
             else              { _crossAlpha = 0.0f; }
@@ -392,6 +468,10 @@ public partial class HUD : Godot.Control {
         //     LbInterAct.Hide();
         //     LbInterKey.Hide();
         // }
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public void AddMessage(string message) {

@@ -1,4 +1,4 @@
-//#define XBDEBUG
+#define XBDEBUG
 namespace XB { // namespace open
 public class InputAction {
     public string           Name;
@@ -95,15 +95,14 @@ public partial class Input : Godot.Node {
             "INP_SLBOT",
         };
 
+#if XBDEBUG
     // debug inputs
-    public bool DebugMenu  = false;
-    public bool DebugHud   = false;
-    public bool DebugPause = false;
     public bool Debug1     = false;
     public bool Debug2     = false;
     public bool Debug3     = false;
     public bool Debug4     = false;
     public bool Debug5     = false;
+#endif
 
 
     public void GetInputs() {
@@ -112,56 +111,52 @@ public partial class Input : Godot.Node {
         ConsumeAllInputs();
 
         // menu buttons
-        if (Godot.Input.IsActionJustPressed("Start"))  Start   = true;    // system menu
-        if (Godot.Input.IsActionJustPressed("Select")) Select  = true;    // toggle HUD
+        if (Godot.Input.IsActionJustPressed("Start"))  { Start   = true; }  // system menu
+        if (Godot.Input.IsActionJustPressed("Select")) { Select  = true; }  // toggle HUD
         // left analog stick
-        if (Godot.Input.IsActionPressed    ("LUp"))    MoveY  += 1.0f;    // movement
-        if (Godot.Input.IsActionPressed    ("LDown"))  MoveY  -= 1.0f;
-        if (Godot.Input.IsActionPressed    ("LLeft"))  MoveX  += 1.0f;
-        if (Godot.Input.IsActionPressed    ("LRight")) MoveX  -= 1.0f;
-        if (Godot.Input.IsActionJustPressed("LIn"))    LIn     = true;    // toggle walk/run
+        if (Godot.Input.IsActionPressed    ("LUp"))    { MoveY  += 1.0f; }  // movement
+        if (Godot.Input.IsActionPressed    ("LDown"))  { MoveY  -= 1.0f; }
+        if (Godot.Input.IsActionPressed    ("LLeft"))  { MoveX  += 1.0f; }
+        if (Godot.Input.IsActionPressed    ("LRight")) { MoveX  -= 1.0f; }
+        if (Godot.Input.IsActionJustPressed("LIn"))    { LIn     = true; }  // toggle walk/run
         // right analog stick
-        if (Godot.Input.IsActionPressed    ("RUp"))    CamY   += 1.0f;    // camera
-        if (Godot.Input.IsActionPressed    ("RDown"))  CamY   -= 1.0f;
-        if (Godot.Input.IsActionPressed    ("RLeft"))  CamX   += 1.0f;
-        if (Godot.Input.IsActionPressed    ("RRight")) CamX   -= 1.0f;
-        if (Godot.Input.IsActionJustPressed("RIn"))    RIn     = true;    // unused
+        if (Godot.Input.IsActionPressed    ("RUp"))    { CamY   += 1.0f; }  // camera
+        if (Godot.Input.IsActionPressed    ("RDown"))  { CamY   -= 1.0f; }
+        if (Godot.Input.IsActionPressed    ("RLeft"))  { CamX   += 1.0f; }
+        if (Godot.Input.IsActionPressed    ("RRight")) { CamX   -= 1.0f; }
+        if (Godot.Input.IsActionJustPressed("RIn"))    { RIn     = true; }  // unused
         // d pad
-        if (Godot.Input.IsActionJustPressed("DUp"))    DUp     = true;    // unused
-        if (Godot.Input.IsActionJustPressed("DDown"))  DDown   = true;    // toggle 1st/3rd person
-        if (Godot.Input.IsActionJustPressed("DLeft"))  DLeft   = true;    // unused
-        if (Godot.Input.IsActionJustPressed("DRight")) DRight  = true;    // unused
+        if (Godot.Input.IsActionJustPressed("DUp"))    { DUp     = true; }  // unused
+        if (Godot.Input.IsActionJustPressed("DDown"))  { DDown   = true; }  // toggle 1st/3rd person
+        if (Godot.Input.IsActionJustPressed("DLeft"))  { DLeft   = true; }  // unused
+        if (Godot.Input.IsActionJustPressed("DRight")) { DRight  = true; }  // unused
         // face buttons
-        if (Godot.Input.IsActionJustPressed("FUp"))    FUp     = true;    // link
-        if (Godot.Input.IsActionJustPressed("FDown"))  FDown   = true;    // jump
-        if (Godot.Input.IsActionJustPressed("FLeft"))  FLeft   = true;    // unlink highlighted
-        if (Godot.Input.IsActionJustPressed("FRight")) FRight  = true;    // toggle linking
+        if (Godot.Input.IsActionJustPressed("FUp"))    { FUp     = true; }  // link
+        if (Godot.Input.IsActionJustPressed("FDown"))  { FDown   = true; }  // jump
+        if (Godot.Input.IsActionJustPressed("FLeft"))  { FLeft   = true; }  // unlink highlighted
+        if (Godot.Input.IsActionJustPressed("FRight")) { FRight  = true; }  // toggle linking
         // left shoulder buttons
-        if (Godot.Input.IsActionJustPressed("SLTop"))  SLTop   = true;    // place sphere
-        if (Godot.Input.IsActionPressed    ("SLBot"))  SLBot   = true;    // aim
+        if (Godot.Input.IsActionJustPressed("SLTop"))  { SLTop   = true; }  // place sphere
+        if (Godot.Input.IsActionPressed    ("SLBot"))  { SLBot   = true; }  // aim
         // right shoulder buttons
-        if (Godot.Input.IsActionJustPressed("SRTop"))  SRTop   = true;    // remove sphere
-        if (Godot.Input.IsActionPressed    ("SRBot"))  SRBot   = true;    // shoot / unused
+        if (Godot.Input.IsActionJustPressed("SRTop"))  { SRTop   = true; }  // remove sphere
+        if (Godot.Input.IsActionPressed    ("SRBot"))  { SRBot   = true; }  // shoot / unused
 
 
+#if XBDEBUG
         // DEBUG INPUTS
-        DebugMenu  = false;
-        DebugHud   = false;
-        DebugPause = false;
-        Debug1     = false;
-        Debug2     = false;
-        Debug3     = false;
-        Debug4     = false;
-        Debug5     = false;
+        Debug1 = false;
+        Debug2 = false;
+        Debug3 = false;
+        Debug4 = false;
+        Debug5 = false;
 
-        if (Godot.Input.IsActionJustPressed("DebugMenu"))  DebugMenu  = true;
-        if (Godot.Input.IsActionJustPressed("DebugHud"))   DebugHud   = true;
-        if (Godot.Input.IsActionJustPressed("DebugPause")) DebugPause = true;
-        if (Godot.Input.IsActionJustPressed("Debug1"))     Debug1     = true;
-        if (Godot.Input.IsActionJustPressed("Debug2"))     Debug2     = true;
-        if (Godot.Input.IsActionJustPressed("Debug3"))     Debug3     = true;
-        if (Godot.Input.IsActionJustPressed("Debug4"))     Debug4     = true;
-        if (Godot.Input.IsActionJustPressed("Debug5"))     Debug5     = true;
+        if (Godot.Input.IsActionJustPressed("Debug1")) { Debug1 = true; }
+        if (Godot.Input.IsActionJustPressed("Debug2")) { Debug2 = true; }
+        if (Godot.Input.IsActionJustPressed("Debug3")) { Debug3 = true; }
+        if (Godot.Input.IsActionJustPressed("Debug4")) { Debug4 = true; }
+        if (Godot.Input.IsActionJustPressed("Debug5")) { Debug5 = true; }
+#endif
     }
 
     public void DefaultInputActions() {
@@ -260,7 +255,32 @@ public partial class Input : Godot.Node {
                 InputActions[i] = new XB.InputAction(name, desc, key, iEvent);
             }
         }
+
+#if XBDEBUG
+        var iEventD = new Godot.InputEventKey();
+        iEventD.Keycode = Godot.Key.Key5;
+        AddDebugKeyBinding("Debug1", iEventD);
+        iEventD = new Godot.InputEventKey();
+        iEventD.Keycode = Godot.Key.Key6;
+        AddDebugKeyBinding("Debug2", iEventD);
+        iEventD = new Godot.InputEventKey();
+        iEventD.Keycode = Godot.Key.Key7;
+        AddDebugKeyBinding("Debug3", iEventD);
+        iEventD = new Godot.InputEventKey();
+        iEventD.Keycode = Godot.Key.Key8;
+        AddDebugKeyBinding("Debug4", iEventD);
+        iEventD = new Godot.InputEventKey();
+        iEventD.Keycode = Godot.Key.Key9;
+        AddDebugKeyBinding("Debug5", iEventD);
+#endif
     }
+
+#if XBDEBUG
+    private void AddDebugKeyBinding(string name, Godot.InputEventKey iEvent) {
+        Godot.InputMap.ActionEraseEvents(name);
+        Godot.InputMap.ActionAddEvent(name, iEvent);
+    }
+#endif
 
     public void ConsumeAllInputs() {
         Start  = false;
@@ -283,6 +303,14 @@ public partial class Input : Godot.Node {
         SLBot  = false;
         SRTop  = false;
         SRBot  = false;
+
+#if XBDEBUG
+        Debug1 = false;
+        Debug2 = false;
+        Debug3 = false;
+        Debug4 = false;
+        Debug5 = false;
+#endif 
     }
 
     public void ConsumeInputStart() {
@@ -291,18 +319,6 @@ public partial class Input : Godot.Node {
 
     public void ConsumeInputFRight() {
         FRight = false;
-    }
-
-    public void ConsumeInputDebugMenu() {
-        DebugMenu = false;
-    }
-
-    public void ConsumeInputDebugHud() {
-        DebugHud = false;
-    }
-
-    public void ConsumeInputDebugPause() {
-        DebugPause = false;
     }
 }
 } // namespace close

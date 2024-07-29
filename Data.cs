@@ -1,4 +1,4 @@
-//#define XBDEBUG
+#define XBDEBUG
 namespace XB { // namespace open
 using SysCG = System.Collections.Generic;
 public enum SettingsPreset {
@@ -126,6 +126,10 @@ public class WorldData {
     public static Godot.ArrayMesh[]         ArrMeshSk;
 
     public static void InitializeTerrainMesh() {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.WorldDataInitializeTerrainMesh);
+#endif
+
         TerrainMesh       = new Godot.MeshInstance3D();
         XB.AData.MainRoot.AddChild(TerrainMesh);
         TerrainStaticBody = new Godot.StaticBody3D();
@@ -185,13 +189,29 @@ public class WorldData {
         MeshData = new Godot.Collections.Array();
         MeshData.Resize((int)Godot.Mesh.ArrayType.Max);
         ArrMesh  = new Godot.ArrayMesh();
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public static void UpdateBlockStrength(float multiplier) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.WorldDataUpdateBlockStrength);
+#endif
+
         TerrainMat.SetShaderParameter("blockStr", multiplier*BlockStrength);
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     private static void UpdateTerrainShader() {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.WorldDataUpdateTerrainShader);
+#endif
+
         TerrainMat.SetShaderParameter("scaleX",      WorldDim.X);
         TerrainMat.SetShaderParameter("scaleY",      WorldDim.Y);
         TerrainMat.SetShaderParameter("blockScale",  BlockUVScale);
@@ -200,9 +220,17 @@ public class WorldData {
         TerrainMat.SetShaderParameter("noisePScale", NoisePScale);
         TerrainMat.SetShaderParameter("blendDepth",  BlendDepth);
         TerrainMat.SetShaderParameter("tHeight",     XB.PController.Hud.TexMiniMap);
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public static void GenerateTerrain(int sizeX, int sizeY, int res) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.WorldDataGenerateTerrain);
+#endif
+
         WorldDim          = new Godot.Vector2((float)sizeX, (float)sizeY);
         WorldVerts        = new Godot.Vector2I(sizeX*res +1, sizeY*res +1);
         TerrainHeights    = new float[WorldVerts.X, WorldVerts.Y];
@@ -255,6 +283,10 @@ public class WorldData {
                              true                                                                       );
 
         for (int i = 0; i < 4; i++) { TerrainSkirtMesh[i].Mesh.SurfaceSetMaterial(0, TerrainSkirtMat); }
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 }
 

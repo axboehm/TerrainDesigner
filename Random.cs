@@ -1,4 +1,5 @@
 #define XBDEBUG
+//#define BLUENOISETEXTURE
 namespace XB { // namespace open
 public class Random {
     private static uint[] _randomValues = new uint[4] {1, 1, 1, 1};
@@ -7,10 +8,14 @@ public class Random {
     private static uint   _y            = 51251251;
     private static uint   _z            = 10241024;
     private static uint   _w            = 20482048;
-    private static Godot.Image _blueNoise;      // square texture
-    private static int         _blueNoiseSize;  // pixels on one side (height = width)
+    public  static Godot.Image BlueNoise;            // square noise texture
+    private static int         _blueNoiseSize = 64;  // pixels on one side (height = width), mult of 4
 
     public static void InitializeRandom(uint start) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.RandomInitializeRandom);
+#endif
+
         _x            = start;
         _y            = _x + (_x/2);
         _z            = _y/2;
@@ -18,18 +23,34 @@ public class Random {
         _randomValues = Xorshift();
         _rVPosition   = 0;
 
-        _blueNoise     = Godot.Image.LoadFromFile(XB.ScenePaths.BlueNoiseTex);
-        _blueNoiseSize = _blueNoise.GetWidth();
+#if BLUENOISETEXTURE
+        BlueNoise      = Godot.Image.LoadFromFile(XB.ScenePaths.BlueNoiseTex);
+        _blueNoiseSize = BlueNoise.GetWidth();
+#else
+        BlueNoise = Godot.Image.Create(_blueNoiseSize, _blueNoiseSize,
+                                        false, Godot.Image.Format.L8   );
+        var  randomColor = new Godot.Color(0.0f, 0.0f, 0.0f, 0.0f);
+        for (int i = 0; i < _blueNoiseSize; i ++) {
+            for (int j = 0; j < _blueNoiseSize; j ++) {
+                randomColor.B = ((float)RandomUInt()) / ((float)255);
+                BlueNoise.SetPixel(i, j, randomColor);
+            }
+        }
+#endif
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     // returns 4 random bytes (uint 0-255)
     private static uint[] Xorshift() {
-        uint t  = _x ^ (_x<<11);
+        uint t  = _x ^ (_x << 11);
              _x = _y;
              _y = _z;
              _z = _w;
-             _w = _w ^ (_w>>19) ^ (t ^ (t>>8));
-        return new uint[4] {_w & 0xFF, (_w>>8) & 0xFF, (_w>>16) & 0xFF, (_w>>24) & 0xFF};
+             _w = _w ^ (_w >> 19) ^ (t ^ (t >> 8));
+        return new uint[4] {_w & 0xFF, (_w >> 8) & 0xFF, (_w >> 16) & 0xFF, (_w >> 24) & 0xFF};
     }
 
     // input from 0 to 100
@@ -146,21 +167,11 @@ public class Random {
         return result;
     }
 
-    // return a deterministic value between -1.0f and 1.0f for any given 2 coordinates
-    //NOTE[ALEX]: easy to understand but produces noticeable sine wave patterns in the texture
-    public static float Random2D(float x, float y) {
-        float dot  = x*12.9898f + y*78.233f;
-        float res  = (float)System.Math.Sin(dot);
-              res *= 43758.5453f;
-              res %= 1.0f;
-
-        return res;
-    }
-
     public static float RandomBlueNoise(int x, int y) {
         x %= _blueNoiseSize;
         y %= _blueNoiseSize;
-        return _blueNoise.GetPixel(x, y).R;
+
+        return BlueNoise.GetPixel(x, y).R;
     }
 
     public static float ValueNoise2D(float x, float y) {
