@@ -76,7 +76,7 @@ public partial class HUD : Godot.Control {
     private int                _rows     = 0;
     private int                _columns  = 0;
 
-    public  Godot.Image        ImgMiniMap;
+    public  static Godot.Image ImgMiniMap;
     public  Godot.ImageTexture TexMiniMap;
     private Godot.Image        _imgMiniMapO;
     private Godot.ImageTexture _texMiniMapO;
@@ -152,8 +152,10 @@ public partial class HUD : Godot.Control {
 
         _imgMiniMapO = Godot.Image.Create(_dimMMX, _dimMMY, false, Godot.Image.Format.Rgba8);
         _imgMiniMapO.Fill(XB.Col.Transp);
-        _trMiniMap.Position  = new Godot.Vector2I(_offsetH, _offsetT);
-        _trMiniMapO.Position = new Godot.Vector2I(_offsetH, _offsetT);
+        var miniMapPosition  = new Godot.Vector2I(_offsetH,
+                                                  XB.AData.BaseResY/2 - _imgMiniMapO.GetHeight()/2);
+        _trMiniMap.Position  = miniMapPosition;
+        _trMiniMapO.Position = miniMapPosition;
         _trMiniMap.Size      = new Godot.Vector2I(_dimMMX, _dimMMY);
         _trMiniMapO.Size     = new Godot.Vector2I(_dimMMX, _dimMMY);
         _texMiniMapO.SetImage(_imgMiniMapO);
@@ -180,7 +182,7 @@ public partial class HUD : Godot.Control {
 #endif
 
         ImgMiniMap = Godot.Image.Create(size.X, size.Y, false, Godot.Image.Format.L8);
-        ImgMiniMap.Fill (XB.Col.Black);
+        ImgMiniMap.Fill(XB.Col.Black);
         TexMiniMap.SetImage(ImgMiniMap);
 
 #if XBDEBUG

@@ -83,7 +83,7 @@ void fragment() {
 
     vec2  uv1          = UVscaled*uv1Scale;
     vec3  albedoM1     = textureBomb(tAlbedoM1, uv1, noiseP);
-          albedoM1    *= albedoMult;
+    vec3  albedoM1Dark = albedoM1*albedoMult;
           //albedoM1     = vec3(1.0, 0.0, 0.0); // for visualization
     float roughnessM1  = textureBomb(tRMM1,     uv1, noiseP).r;
     vec3  normalM1     = textureBomb(tNormalM1, uv1, noiseP);
@@ -91,7 +91,7 @@ void fragment() {
 
     vec2  uv2          = UVscaled*uv2Scale;
     vec3  albedoM2     = textureBomb(tAlbedoM2, uv2, noiseP);
-          albedoM2    *= albedoMult;
+    vec3  albedoM2Dark = albedoM2*albedoMult;
           //albedoM2     = vec3(0.0, 0.0, 1.0); // for visualization
     float roughnessM2  = textureBomb(tRMM2,     uv2, noiseP).r;
     vec3  normalM2     = textureBomb(tNormalM2, uv2, noiseP);
@@ -99,14 +99,20 @@ void fragment() {
 
     float block = texture(tBlock, UVscaled*blockScale).r;
     float mask1 = texture(tHeight, UV).r;
+
+    float mask2 = pow(mask1, 0.5);
+          mask2 = clamp(mask2, 0.0, 1.0);
+
           mask1 = 2.0*mask1;
           mask1 = pow(mask1, 2.4);
           mask1 = clamp(mask1, 0.0, 1.0);
 
+          albedoM1 = mix(albedoM1Dark, albedoM1, mask2);
+          albedoM2 = mix(albedoM2Dark, albedoM2, mask2);
+
     vec3  albedo = heightBlendV3(albedoM1, albedoM2, heightM1, heightM2,
                                  mask1, 1.0-mask1, blendDepth           );
           albedo = mix(albedo, albedo*block, blockStr);;
-
 
     float roughness = heightBlendF(roughnessM1, roughnessM2, heightM1, heightM2,
                                    mask1, 1.0-mask1, blendDepth                 );

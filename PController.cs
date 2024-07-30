@@ -108,13 +108,10 @@ public partial class PController : Godot.CharacterBody3D {
 
     public void InitializePController() {
 #if XBDEBUG
-        _debugHud = new XB.DebugHUD();
-        AddChild(_debugHud);
-        _debugHud.InitializeDebugHUD();
-
         var debug = new XB.DebugTimedBlock(XB.D.PControllerInitializePController);
 #endif
 
+        ProcessMode    = ProcessModeEnum.Always;
         CollisionMask  = XB.LayerMasks.PlayerMask;
         CollisionLayer = XB.LayerMasks.PlayerLayer;
 
@@ -155,6 +152,18 @@ public partial class PController : Godot.CharacterBody3D {
 #endif 
     }
 
+    public void InitializeHud() {
+        Hud.InitializeHud();
+    }
+
+#if XBDEBUG
+    public void InitializeDebugHud() {
+        _debugHud = new XB.DebugHUD();
+        AddChild(_debugHud);
+        _debugHud.InitializeDebugHUD();
+    }
+#endif 
+
     // get input using godot's system, used for mouse movement input, 
     // general input is handled at beginning of _PhysicsProcess below
     public override void _Input(Godot.InputEvent @event) {
@@ -186,8 +195,14 @@ public partial class PController : Godot.CharacterBody3D {
         XB.Manager.UpdateSpheres(dt);
         var spaceSt = RequestSpaceState(); // get spacestate for raycasting
 #if XBDEBUG
-        _debugHud.UpdateDebugHUD(dt);
+         _debugHud.UpdateDebugHUD(dt);
 #endif
+        if (GetTree().Paused) {
+#if XBDEBUG
+             debug.End();
+#endif
+            return;
+        }
 
 
         // MOVEMENT
@@ -578,11 +593,12 @@ public partial class PController : Godot.CharacterBody3D {
 #if XBDEBUG
         // DEBUG BUTTONS
         if (XB.AData.Input.Debug1) {
-            Godot.GD.Print("Debug1");
+            Godot.GD.Print("Debug1 - Toggle DebugHUD");
             _debugHud.ToggleDebugHUD();
         }
         if (XB.AData.Input.Debug2) {
-            Godot.GD.Print("Debug2");
+            Godot.GD.Print("Debug2 - Toggle PauseDebug");
+            _debugHud.TogglePauseDebug();
         }
         if (XB.AData.Input.Debug3) {
             Godot.GD.Print("Debug3");
@@ -624,6 +640,8 @@ public partial class PController : Godot.CharacterBody3D {
         var resultCD    = XB.Utils.Raycast(RequestSpaceState(), origin, destination,
                                            XB.LayerMasks.EnvironmentMask            );
         if (resultCD.Count > 0) {
+            //TODO[ALEX]: the raycast does not hit the generated terrain for some reason
+            Godot.GD.Print("hit");
             spawnPoint    = (Godot.Vector3)resultCD["position"];
             spawnPoint.Y += _respawnOff;
         }

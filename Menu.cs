@@ -1,3 +1,4 @@
+#define XBDEBUG
 namespace XB { // namespace opegn
 public enum MenuType {
     None,
@@ -5,6 +6,7 @@ public enum MenuType {
     Save,
 }
 public partial class Menu : Godot.Control {
+    [Godot.Export] private XB.PController     _player;
     [Godot.Export] private XB.HUD             _hud;
     [Godot.Export] private Godot.Label        _lbTab;
     [Godot.Export] private Godot.Label        _lbMsg;
@@ -31,7 +33,9 @@ public partial class Menu : Godot.Control {
     private const int _tConCon = 1;
 
     // pause tab
-    [Godot.Export] private Godot.Button _bQuit;
+    [Godot.Export] private Godot.Button   _bQuit;
+    [Godot.Export] private Godot.Button   _bGenerate;
+    [Godot.Export] private Godot.LineEdit _leGenSeed;
 
     // system tab
     [Godot.Export] private Godot.TabContainer _tabSys;
@@ -96,6 +100,8 @@ public partial class Menu : Godot.Control {
     [Godot.Export] private Godot.Button  _bPopQuit;
 
     public override void _Ready() {
+        ProcessMode = ProcessModeEnum.WhenPaused;
+
         _tabCont.CurrentTab = _tPau;
         _tabSys.CurrentTab  = _tSysCam;
         _tabCtrl.CurrentTab = _tConKey;
@@ -104,7 +110,10 @@ public partial class Menu : Godot.Control {
         _bResume.Pressed   += ButtonResumeOnPressed;
 
         // pause tab
-        _bQuit.Pressed += ButtonPopupQuitOnPressed;
+        _bQuit.Pressed         += ButtonPopupQuitOnPressed;
+        _bGenerate.Pressed     += ButtonGenerateTerrainOnPressed;
+        _leGenSeed.TextChanged += LineEditGenerateSeedOnTextChanged;
+        _leGenSeed.MaxLength    = 8;
 
         // system tab
         _bApplyCode.Pressed    += ButtonApplyCodeOnPressed;
@@ -387,7 +396,7 @@ public partial class Menu : Godot.Control {
     }
 
     private void UpdatePauseTab() {
-        Godot.GD.Print("UpdatePauseTab currently does nothing.");
+        _leGenSeed.Text = ((uint)System.DateTime.Now.GetHashCode()).ToString();
     }
 
     private void UpdateTabNames() {
@@ -682,6 +691,29 @@ public partial class Menu : Godot.Control {
         XB.Settings.SettingsFromSettingsCode(code);
         ApplySettings();
         ShowMessage(Tr("SETCODE_APPLIED"));
+    }
+
+    private void ButtonGenerateTerrainOnPressed() {
+        uint seed = 0;
+        if (System.UInt32.TryParse(_leGenSeed.Text, out seed)) {
+        } else {
+            seed = (uint)System.DateTime.Now.GetHashCode();
+        }
+        XB.Random.InitializeRandom(seed);
+        XB.WorldData.GenerateRandomTerrain(false);
+        _player.SpawnPlayer(new Godot.Vector2(XB.WorldData.WorldDim.X/2.0f,
+                                              XB.WorldData.WorldDim.Y/2.0f));
+        ShowMessage(Tr("GENERATED_TERRAIN"));
+    }
+
+    private void LineEditGenerateSeedOnTextChanged(string text) {
+        uint seed = 0;
+        if (System.UInt32.TryParse(_leGenSeed.Text, out seed)) {
+            ShowMessage(Tr("SEED_VALID"));
+        } else {
+            ShowMessage(Tr("SEED_INVALID"));
+            _leGenSeed.Text = ((uint)System.DateTime.Now.GetHashCode()).ToString();
+        }
     }
 }
 } // namespace close 

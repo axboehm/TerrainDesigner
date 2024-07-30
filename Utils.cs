@@ -49,6 +49,16 @@ public class Utils {
         return res;
     }
 
+    public static Godot.Vector2I MinV2I(Godot.Vector2I a, Godot.Vector2I b) {
+        Godot.Vector2I res = new Godot.Vector2I(0, 0);
+        if (a.X > b.X) { res.X = b.X; }
+        else           { res.X = a.X; }
+        if (a.Y > b.Y) { res.Y = b.Y; }
+        else           { res.Y = a.Y; }
+
+        return res;
+    }
+
     public static float LerpF(float a, float b, float t) {
         t = XB.Utils.ClampF(t, 0.0f, 1.0f);
         return (a + (b-a)*t);

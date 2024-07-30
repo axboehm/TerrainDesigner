@@ -17,7 +17,7 @@ public partial class Initialize : Godot.Node3D {
         XB.AData.MainRoot    = this;
         XB.AData.Environment = _environment.Environment;
         XB.AData.MainLight   = _mainLight;
-        XB.Random.InitializeRandom((uint)System.DateTime.Now.GetHashCode());
+        XB.Random.InitializeRandom(XB.AData.InitialSeed); // fixed startup seed for reproducable runs
 
         Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Captured;
         GetTree().Paused = false;
@@ -33,15 +33,17 @@ public partial class Initialize : Godot.Node3D {
         XB.PersistData.SetApplicationDefaults();
         XB.Manager.InitializeSpheres();
         _player.InitializePController();
-        XB.PController.Hud.InitializeHud();
+        _player.InitializeHud();
         XB.PersistData.UpdateScreen();
 
-        XB.WorldData.InitializeTerrainMesh();
-        XB.WorldData.GenerateTerrain(128, 128, 4);
+        XB.WorldData.InitializeTerrainMesh(128, 128, 4);
+        XB.WorldData.GenerateRandomTerrain(true);
         _player.SpawnPlayer(new Godot.Vector2(XB.WorldData.WorldDim.X/2.0f,
                                               XB.WorldData.WorldDim.Y/2.0f));
 
 #if XBDEBUG
+        _player.InitializeDebugHud();
+
         debug.End();
 #endif 
     }

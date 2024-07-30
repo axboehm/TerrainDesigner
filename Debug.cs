@@ -1,12 +1,15 @@
 namespace XB { // namespace open
 using SysCG = System.Collections.Generic;
 public partial class DebugHUD : Godot.Control {
-    private bool _visible = false;
+    private bool _visible    = false;
+    private bool _pauseDebug = false;
 
+    private const int    _sizeMMMax             = 512;
     private const int    _dimSpacer             = 16;
-    private const int    _debugLabelSpacing     = 14;
-    private const int    _debugLabelLineSpacing = -6;
+    private const int    _debugLabelSpacing     = 18; // between each line of text
     private const int    _debugLabelFontSize    = 18;
+    private const int    _debugLabelOutlineSize = 4;
+    private Godot.Color  _debugLabelFontOutline = new Godot.Color(0.0f, 0.0f, 0.0f, 1.0f);
     private const string _timeFormat            = "F6";
 
     private SysCG.Dictionary<XB.D, Godot.Color> _debugColors
@@ -14,6 +17,11 @@ public partial class DebugHUD : Godot.Control {
 
     private Godot.TextureRect  _trBlueNoise;
     private Godot.ImageTexture _texBlueNoise;
+    private Godot.TextureRect  _trMiniMap;
+    private Godot.ImageTexture _texMiniMap;
+    private Godot.TextureRect  _trMiniMapO;
+    private Godot.Image        _imgMiniMapO;
+    private Godot.ImageTexture _texMiniMapO;
     private Godot.Label[]      _lbDebugStats;
 
     public void InitializeDebugHUD() {
@@ -25,6 +33,34 @@ public partial class DebugHUD : Godot.Control {
         _texBlueNoise.SetImage(XB.Random.BlueNoise);
         _trBlueNoise.Texture  = _texBlueNoise;
         AddChild(_trBlueNoise);
+
+        var sizeMM   = new Godot.Vector2I(XB.HUD.ImgMiniMap.GetWidth(), XB.HUD.ImgMiniMap.GetHeight());
+            sizeMM   = XB.Utils.MinV2I(sizeMM, new Godot.Vector2I(_sizeMMMax, _sizeMMMax));
+            Godot.GD.Print(sizeMM);
+        _imgMiniMapO = Godot.Image.Create(sizeMM.X, sizeMM.Y, false, Godot.Image.Format.Rgba8);
+        var posMM    = new Godot.Vector2I(XB.AData.BaseResX -_dimSpacer - _imgMiniMapO.GetWidth(),
+                                          _dimSpacer                                              );
+
+        _texMiniMap          = new Godot.ImageTexture();
+        _texMiniMap.SetImage(XB.HUD.ImgMiniMap);
+        _trMiniMap           = new Godot.TextureRect();
+        _trMiniMap.Position  = posMM;
+        _trMiniMap.Size      = sizeMM;
+        _trMiniMap.Texture   = _texMiniMap;
+        _trMiniMap.ExpandMode = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
+        _trMiniMap.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
+        AddChild(_trMiniMap);
+
+        _texMiniMapO         = new Godot.ImageTexture();
+        _imgMiniMapO.Fill(XB.Col.Transp);
+        _texMiniMapO.SetImage(_imgMiniMapO);
+        _trMiniMapO          = new Godot.TextureRect();
+        _trMiniMapO.Position = posMM;
+        _trMiniMapO.Size     = sizeMM;
+        _trMiniMapO.Texture  = _texMiniMapO;
+        _trMiniMapO.ExpandMode = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
+        _trMiniMapO.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
+        AddChild(_trMiniMapO);
 
         int colCounter = 1;
         foreach (XB.D d in System.Enum.GetValues(typeof(XB.D))) {
@@ -48,19 +84,22 @@ public partial class DebugHUD : Godot.Control {
             _lbDebugStats[i].Text = "";
             var tPos = new Godot.Vector2I(_dimSpacer, 2*_dimSpacer+sizeBN.Y + _debugLabelSpacing*i);
             _lbDebugStats[i].Position = tPos;
-            _lbDebugStats[i].AddThemeConstantOverride("line_spacing", _debugLabelLineSpacing);
-            _lbDebugStats[i].AddThemeFontSizeOverride("font_size",    _debugLabelFontSize   );
+            var font = Godot.ResourceLoader.Load<Godot.Font>(XB.ScenePaths.FontLibMono);
+            _lbDebugStats[i].AddThemeFontOverride    ("font",               font                  );
+            _lbDebugStats[i].AddThemeFontSizeOverride("font_size",          _debugLabelFontSize   );
+            _lbDebugStats[i].AddThemeConstantOverride("outline_size",       _debugLabelOutlineSize);
+            _lbDebugStats[i].AddThemeColorOverride   ("font_outline_color", _debugLabelFontOutline);
             AddChild(_lbDebugStats[i]);
         }
 
-        _visible = false;
+        ProcessMode = ProcessModeEnum.Always;
+        _visible    = false;
         Hide();
     }
 
-    //TODO[ALEX]: debug label is empty and in the wrong colors
-
     public void UpdateDebugHUD(float dt) {
-        if (!_visible) { return; }
+        if (!_pauseDebug) { XB.DebugProfiling.ProcessCollectedTimes(dt); }
+        if (!_visible)    { return; }
 
         // debug stats text
         for (int i = 0; i < _lbDebugStats.Length; i++) {
@@ -89,6 +128,9 @@ public partial class DebugHUD : Godot.Control {
                     " ms";
             }
         }
+
+        // minimap
+        _texMiniMap.Update(XB.HUD.ImgMiniMap);
     }
 
     public void ToggleDebugHUD() {
@@ -98,6 +140,10 @@ public partial class DebugHUD : Godot.Control {
         } else {
             Hide();
         }
+    }
+
+    public void TogglePauseDebug() {
+        _pauseDebug = !_pauseDebug;
     }
 }
 
@@ -172,7 +218,7 @@ public enum D { // unique debug identifier, naming scheme: "ClassFunction"
     UtilsRectangleOutline,
     UtilsUpdateRect2I,
     WorldDataInitializeTerrainMesh,
-    WorldDataGenerateTerrain,
+    WorldDataGenerateRandomTerrain,
     WorldDataUpdateBlockStrength,
     WorldDataUpdateTerrainShader,
 }
@@ -234,7 +280,7 @@ public class DebugStatisticEntry {
 
 public class DebugProfiling {
     public static System.Diagnostics.Stopwatch   StopWatch;
-    public const  int                            FramesToStore = 120;
+    public const  int                            FramesToStore = 480;
     public const  int                            DebugEntryMax = 65536;
     public static int                            DebugFunctionNameMax = 0;
     public static int                            EntryCounter = 0; // position of highest used index
@@ -244,7 +290,6 @@ public class DebugProfiling {
     public static XB.DebugStatistic[]            DebugStats; // one statistic per frame
 
     public static void StartProfiling() {
-        Godot.GD.Print("start");
         StopWatch = new System.Diagnostics.Stopwatch();
         StopWatch.Start();
 
@@ -278,7 +323,7 @@ public class DebugProfiling {
             XB.D   d    = DebugEntries[i].D;
             double time = DebugEntries[i].TimeEnd - DebugEntries[i].TimeStart;
 
-            DebugStats[DebugPos].IncreaseValues(d, d, time); //TODO[ALEX]: nested parent
+            DebugStats[DebugPos].IncreaseValues(d, d, time);
         }
 
         foreach (XB.D d in System.Enum.GetValues(typeof(XB.D))) {
