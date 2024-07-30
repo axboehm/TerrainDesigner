@@ -36,7 +36,6 @@ public partial class DebugHUD : Godot.Control {
 
         var sizeMM   = new Godot.Vector2I(XB.HUD.ImgMiniMap.GetWidth(), XB.HUD.ImgMiniMap.GetHeight());
             sizeMM   = XB.Utils.MinV2I(sizeMM, new Godot.Vector2I(_sizeMMMax, _sizeMMMax));
-            Godot.GD.Print(sizeMM);
         _imgMiniMapO = Godot.Image.Create(sizeMM.X, sizeMM.Y, false, Godot.Image.Format.Rgba8);
         var posMM    = new Godot.Vector2I(XB.AData.BaseResX -_dimSpacer - _imgMiniMapO.GetWidth(),
                                           _dimSpacer                                              );
@@ -130,6 +129,8 @@ public partial class DebugHUD : Godot.Control {
         }
 
         // minimap
+        XB.ManagerTerrain.UpdateQTreeTexture(ref _imgMiniMapO, XB.WorldData.WorldRes);
+        _texMiniMapO.Update(_imgMiniMapO);
         _texMiniMap.Update(XB.HUD.ImgMiniMap);
     }
 

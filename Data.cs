@@ -34,6 +34,9 @@ public struct Constants {
 
 //NOTE[ALEX]: struct name intentionally kept short
 public struct Col {
+    public static Godot.Color Red     = new Godot.Color(1.0f, 0.0f, 0.0f, 1.0f);
+    public static Godot.Color Green   = new Godot.Color(0.0f, 1.0f, 0.0f, 1.0f);
+    public static Godot.Color Blue    = new Godot.Color(0.0f, 0.0f, 1.0f, 1.0f);
     public static Godot.Color Black   = new Godot.Color(0.0f, 0.0f, 0.0f, 1.0f);
     public static Godot.Color White   = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
     public static Godot.Color Transp  = new Godot.Color(0.0f, 0.0f, 0.0f, 0.0f);
@@ -174,6 +177,8 @@ public class WorldData {
         TerrainMat.SetShaderParameter("tNormalM2", terrain2NTex );
         TerrainMat.SetShaderParameter("tHeightM2", terrain2HTex );
 
+        TerrainMat.SetShaderParameter("albVis", new Godot.Vector3(1.0f, 1.0f, 1.0f));
+
         TerrainSkirtMesh = new Godot.MeshInstance3D[4];
         TerrainSkirtMat  = new Godot.ShaderMaterial();
         TerrainSkirtMat.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ScenePaths.TSkirtShader);
@@ -218,6 +223,10 @@ public class WorldData {
         SkTrianglesX1 = new int[(WorldVerts.X-1)*6];
         SkTrianglesZ0 = new int[(WorldVerts.Y-1)*6];
         SkTrianglesZ1 = new int[(WorldVerts.Y-1)*6];
+
+
+        // quadtree test
+        XB.ManagerTerrain.InitializeQuadTree((int)WorldDim.X, (int)WorldDim.Y, WorldRes, 2);
 
 #if XBDEBUG
         debug.End();

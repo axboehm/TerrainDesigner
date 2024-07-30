@@ -31,7 +31,7 @@ public partial class Initialize : Godot.Node3D {
         XB.AData.MainRoot.AddChild(XB.AData.Input);
         XB.PersistData.SetPresetSettings(XB.SettingsPreset.Default);
         XB.PersistData.SetApplicationDefaults();
-        XB.Manager.InitializeSpheres();
+        XB.ManagerSphere.InitializeSpheres();
         _player.InitializePController();
         _player.InitializeHud();
         XB.PersistData.UpdateScreen();

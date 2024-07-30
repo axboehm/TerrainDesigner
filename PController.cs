@@ -192,7 +192,10 @@ public partial class PController : Godot.CharacterBody3D {
         float dt = (float)delta;
         XB.AData.Input.GetInputs();
         Hud.UpdateHUD(dt);
-        XB.Manager.UpdateSpheres(dt);
+        XB.ManagerSphere.UpdateSpheres(dt);
+        XB.ManagerTerrain.UpdateQTreeMeshes
+            (new Godot.Vector2(XB.WorldData.WorldDim.X-_cam.GlobalPosition.X, 
+                               XB.WorldData.WorldDim.Y-_cam.GlobalPosition.Z));
         var spaceSt = RequestSpaceState(); // get spacestate for raycasting
 #if XBDEBUG
          _debugHud.UpdateDebugHUD(dt);
@@ -465,12 +468,12 @@ public partial class PController : Godot.CharacterBody3D {
             if (resultCS.Count > 0) {
                 // Godot.GD.Print((Godot.Vector3)resultCS["position"]);
                 XB.Sphere sphere = (XB.Sphere)resultCS["collider"];
-                XB.Manager.ChangeHighlightSphere(sphere.ID);
+                XB.ManagerSphere.ChangeHighlightSphere(sphere.ID);
             } else {
-                XB.Manager.ChangeHighlightSphere(XB.Manager.MaxSphereAmount);
+                XB.ManagerSphere.ChangeHighlightSphere(XB.ManagerSphere.MaxSphereAmount);
             }
         } else {
-            XB.Manager.ChangeHighlightSphere(XB.Manager.MaxSphereAmount);
+            XB.ManagerSphere.ChangeHighlightSphere(XB.ManagerSphere.MaxSphereAmount);
         }
 
 
@@ -554,37 +557,39 @@ public partial class PController : Godot.CharacterBody3D {
             // DLeft
             // DRight
             if (_canShoot && XB.AData.Input.FUp) { // link
-                if (XB.Manager.Linking && XB.Manager.HLSphereID < XB.Manager.MaxSphereAmount) {
-                    XB.Manager.LinkSpheres();
+                if (   XB.ManagerSphere.Linking
+                    && XB.ManagerSphere.HLSphereID < XB.ManagerSphere.MaxSphereAmount) {
+                    XB.ManagerSphere.LinkSpheres();
                 } else {
-                    XB.Manager.UnsetLinkingID();
+                    XB.ManagerSphere.UnsetLinkingID();
                 }
             }
             // FDown - jump (handled earlier)
             if (XB.AData.Input.FLeft) { // unlink highlighted sphere
-                if (XB.Manager.Linking && XB.Manager.HLSphereID < XB.Manager.MaxSphereAmount) {
-                    XB.Manager.UnlinkSpheres();
+                if (   XB.ManagerSphere.Linking 
+                    && XB.ManagerSphere.HLSphereID < XB.ManagerSphere.MaxSphereAmount) {
+                    XB.ManagerSphere.UnlinkSpheres();
                 }
             }
             if (XB.AData.Input.FRight) { // toggle linking
-                XB.Manager.ToggleLinking();
+                XB.ManagerSphere.ToggleLinking();
             }
             if (_canShoot && XB.AData.Input.SLTop) { // place sphere
                 var spawnPos =   CCtrH.GlobalPosition
                                + _cam.GlobalTransform.Basis.Z*-_sphereSpawnDist;
-                if (!XB.Manager.RequestSphere(spawnPos)) {
+                if (!XB.ManagerSphere.RequestSphere(spawnPos)) {
                     Godot.GD.Print("all spheres used");
                 }
             }
             // SLBot - aiming (handled earlier)
             if (_canShoot && XB.AData.Input.SRTop) { // remove sphere
-                if (XB.Manager.HLSphereID < XB.Manager.MaxSphereAmount) {
-                    XB.Manager.Spheres[XB.Manager.HLSphereID].RemoveSphere();
+                if (XB.ManagerSphere.HLSphereID < XB.ManagerSphere.MaxSphereAmount) {
+                    XB.ManagerSphere.Spheres[XB.ManagerSphere.HLSphereID].RemoveSphere();
                 }
             }
             if (_canShoot && XB.AData.Input.SRBot) {
-                if (XB.Manager.HLSphereID < XB.Manager.MaxSphereAmount) {
-                    XB.Manager.Spheres[XB.Manager.HLSphereID].MoveSphere
+                if (XB.ManagerSphere.HLSphereID < XB.ManagerSphere.MaxSphereAmount) {
+                    XB.ManagerSphere.Spheres[XB.ManagerSphere.HLSphereID].MoveSphere
                         (_cam.GlobalTransform, _camTransPrev, spaceSt, spV*dt);
                 }
             }

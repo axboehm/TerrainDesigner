@@ -134,14 +134,14 @@ public partial class HUD : Godot.Control {
                              (int)((float)sizeLinkingY*_dimLinkCorY), 
                              ref _imgLinking, ref _texLinking, ref _vect);
 
-        float columns = (float)XB.Manager.MaxSphereAmount/((float)_texMaxY/(float)_dimSp);
-        _columns = (int)columns;
+        float columns = (float)XB.ManagerSphere.MaxSphereAmount/((float)_texMaxY/(float)_dimSp);
+             _columns = (int)columns;
         if (columns%1.0f > 0.0f) { _columns += 1; }
-        float rows = (float)XB.Manager.MaxSphereAmount/(float)_columns;
-        _rows    = (int)rows;
+        float rows = (float)XB.ManagerSphere.MaxSphereAmount/(float)_columns;
+             _rows = (int)rows;
         if (rows%1.0f > 0.0f) { _rows += 1; }
-        _dimSpX  = _dimSp*_columns;
-        _dimSpY  = _dimSp*_rows;
+        _dimSpX = _dimSp*_columns;
+        _dimSpY = _dimSp*_rows;
         _imgSpheres = Godot.Image.Create(_dimSpX, _dimSpY, false, Godot.Image.Format.Rgba8);
         _imgSpheres.Fill(XB.Col.Transp);
         _trSpheres.Position = new Godot.Vector2I(XB.AData.BaseResX-_offsetH-_dimSpX, _offsetT);
@@ -242,7 +242,7 @@ public partial class HUD : Godot.Control {
         int xStart  = 0;
         int yStart  = dimSpY-dimSp;
         int counter = 0;
-        for (int i = 0; i < XB.Manager.MaxSphereAmount; i++ ) {
+        for (int i = 0; i < XB.ManagerSphere.MaxSphereAmount; i++ ) {
             xStart   = counter*dimSp;
             counter += 1;
             counter %= columns;
@@ -326,7 +326,7 @@ public partial class HUD : Godot.Control {
         var debug = new XB.DebugTimedBlock(XB.D.HUDUpdateSphereTextureHighlight);
 #endif
 
-        if (from < XB.Manager.MaxSphereAmount) {
+        if (from < XB.ManagerSphere.MaxSphereAmount) {
             int xStart = (from%_columns)*_dimSp;
             int yOff   = (from/_columns)*_dimSp;
             int yStart = _dimSpY-yOff-_dimSp;
@@ -335,7 +335,7 @@ public partial class HUD : Godot.Control {
                                       ref _rects, ref _rSize, ref _vect );
             for (int i = 0; i < _rSize; i++ ) { _imgSpheres.FillRect(_rects[i], XB.Col.Transp); }
         }
-        if (to < XB.Manager.MaxSphereAmount) {
+        if (to < XB.ManagerSphere.MaxSphereAmount) {
             int xStart = (to%_columns)*_dimSp;
             int yOff   = (to/_columns)*_dimSp;
             int yStart = _dimSpY-yOff-_dimSp;
@@ -369,17 +369,17 @@ public partial class HUD : Godot.Control {
         XB.Utils.PointRectangles(x, z, _dimMMPl, ref _rects, ref _rSize, ref _vect);
         for (int i = 0; i < _rSize; i++) { _imgMiniMapO.FillRect(_rects[i], XB.Col.MPlayer); }
 
-        for (int i = 0; i < XB.Manager.Spheres.Length; i++) {
-            if (!XB.Manager.Spheres[i].Active) { continue; }
+        for (int i = 0; i < XB.ManagerSphere.Spheres.Length; i++) {
+            if (!XB.ManagerSphere.Spheres[i].Active) { continue; }
 
-            posX = XB.Manager.Spheres[i].GlobalPosition.X/XB.WorldData.WorldDim.X;
-            posZ = XB.Manager.Spheres[i].GlobalPosition.Z/XB.WorldData.WorldDim.Y;
+            posX = XB.ManagerSphere.Spheres[i].GlobalPosition.X/XB.WorldData.WorldDim.X;
+            posZ = XB.ManagerSphere.Spheres[i].GlobalPosition.Z/XB.WorldData.WorldDim.Y;
             x    = (int)((1.0f-posX)*(float)_dimMMX);
             z    = (int)((1.0f-posZ)*(float)_dimMMY);
             XB.Utils.PointRectangles(x, z, _dimMMSp, ref _rects, ref _rSize, ref _vect);
 
             Godot.Color spColor = new Godot.Color(0.0f, 0.0f, 0.0f, 0.0f);
-            switch (XB.Manager.Spheres[i].TexSt) {
+            switch (XB.ManagerSphere.Spheres[i].TexSt) {
                 case XB.SphereTexSt.Inactive:      { spColor = XB.Col.InAct;   break; }
                 case XB.SphereTexSt.Active:        { spColor = XB.Col.Act;     break; }
                 case XB.SphereTexSt.ActiveLinking: { spColor = XB.Col.LinkBri; break; }
@@ -413,8 +413,8 @@ public partial class HUD : Godot.Control {
             else              { _crossAlpha = 0.0f; }
             if (FpsVisible)   { _fpsAlpha   = 1.0f; }
             else              { _fpsAlpha   = 0.0f; }
-            if (XB.Manager.Linking) { _linkingAlpha = 1.0f; }
-            else                    { _linkingAlpha = 0.0f; }
+            if (XB.ManagerSphere.Linking) { _linkingAlpha = 1.0f; }
+            else                          { _linkingAlpha = 0.0f; }
             _spheresAlpha = 1.0f;
             _miniMapAlpha = 1.0f;
             _blockMult    = 1.0f;
@@ -466,7 +466,7 @@ public partial class HUD : Godot.Control {
         // LbInterAct.Show();
         // LbInterKey.Show();
 
-        // if (!XB.AData.Prompts) {
+        // if (!B.AData.Prompts) {
         //     LbInterAct.Hide();
         //     LbInterKey.Hide();
         // }

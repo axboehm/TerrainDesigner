@@ -17,6 +17,8 @@ uniform sampler2D tBlock  : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D tHeight : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D tNoiseP : source_color, filter_linear,        repeat_enable;
 
+uniform vec3 albVis : source_color;
+
 uniform float     scaleX      = 1.0;
 uniform float     scaleY      = 1.0;
 uniform float     blockScale  = 1.0;
@@ -110,9 +112,10 @@ void fragment() {
           albedoM1 = mix(albedoM1Dark, albedoM1, mask2);
           albedoM2 = mix(albedoM2Dark, albedoM2, mask2);
 
-    vec3  albedo = heightBlendV3(albedoM1, albedoM2, heightM1, heightM2,
-                                 mask1, 1.0-mask1, blendDepth           );
-          albedo = mix(albedo, albedo*block, blockStr);;
+    vec3  albedo  = heightBlendV3(albedoM1, albedoM2, heightM1, heightM2,
+                                  mask1, 1.0-mask1, blendDepth           );
+          albedo *= albVis;
+          albedo  = mix(albedo, albedo*block, blockStr);;
 
     float roughness = heightBlendF(roughnessM1, roughnessM2, heightM1, heightM2,
                                    mask1, 1.0-mask1, blendDepth                 );

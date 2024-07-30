@@ -90,7 +90,7 @@ public partial class Sphere : Godot.CharacterBody3D {
         var debug = new XB.DebugTimedBlock(XB.D.SphereUpdateSphere);
 #endif
 
-        if (XB.Manager.Linking) { 
+        if (XB.ManagerSphere.Linking) { 
             if (LinkedTo) {
                 _sphereColor = _sphereColor.Lerp(XB.Col.SpLink,   _hlSm*dt);
                 Highlighted  = 1.0f;
@@ -101,7 +101,7 @@ public partial class Sphere : Godot.CharacterBody3D {
             _sphereColor = _sphereColor.Lerp(XB.Col.SpHl, _hlSm*dt);
         }
 
-        if (XB.Manager.LinkingID == ID) {
+        if (XB.ManagerSphere.LinkingID == ID) {
             _sphEmitStrTar = _sphEmitStrLink;
             _hlMult = XB.Utils.LerpF(_hlMult, 1.0f, _hlSm*dt);
             foreach (XB.Sphere lS in _linkedSpheres) { lS.LinkedTo = true; }
@@ -131,7 +131,7 @@ public partial class Sphere : Godot.CharacterBody3D {
         Show();
         GlobalPosition = pos;
         Active         = true;
-        XB.Manager.UpdateActiveSpheres();
+        XB.ManagerSphere.UpdateActiveSpheres();
         TexSt = XB.SphereTexSt.Active;
         XB.PController.Hud.UpdateSphereTexture(ID, TexSt);
 
@@ -182,7 +182,7 @@ public partial class Sphere : Godot.CharacterBody3D {
         foreach (XB.Sphere lS in _linkedSpheres) {
             if (lS.ID == idLinkFrom) { return; }
         }
-        _linkedSpheres.Add(XB.Manager.Spheres[idLinkFrom]);
+        _linkedSpheres.Add(XB.ManagerSphere.Spheres[idLinkFrom]);
         if (!Linked && _animPl.CurrentAnimation != "expand") { _animPl.Play("expand"); }
         Linked = true;
 
@@ -238,10 +238,12 @@ public partial class Sphere : Godot.CharacterBody3D {
         _animPl.Stop(); // stop animation at beginning of expand animation (contracted state)
         Hide();
         Active = false;
-        XB.Manager.UpdateActiveSpheres();
+        XB.ManagerSphere.UpdateActiveSpheres();
         TexSt = XB.SphereTexSt.Inactive;
         XB.PController.Hud.UpdateSphereTexture(ID, TexSt);
-        if (ID == XB.Manager.LinkingID) { XB.Manager.LinkingID = XB.Manager.MaxSphereAmount; }
+        if (ID == XB.ManagerSphere.LinkingID) { 
+            XB.ManagerSphere.LinkingID = XB.ManagerSphere.MaxSphereAmount; 
+        }
 
 #if XBDEBUG
         debug.End();
