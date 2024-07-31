@@ -193,9 +193,10 @@ public partial class PController : Godot.CharacterBody3D {
         XB.AData.Input.GetInputs();
         Hud.UpdateHUD(dt);
         XB.ManagerSphere.UpdateSpheres(dt);
-        XB.ManagerTerrain.UpdateQTreeMeshes
-            (new Godot.Vector2(XB.WorldData.WorldDim.X-_cam.GlobalPosition.X, 
-                               XB.WorldData.WorldDim.Y-_cam.GlobalPosition.Z));
+        // prioritize high detail terrain around player, not camera
+        XB.ManagerTerrain.UpdateQTreeMeshes(new Godot.Vector2(PModel.GlobalPosition.X,
+                                                              PModel.GlobalPosition.Z),
+                                            ref XB.HUD.ImgMiniMap                      );
         var spaceSt = RequestSpaceState(); // get spacestate for raycasting
 #if XBDEBUG
          _debugHud.UpdateDebugHUD(dt);

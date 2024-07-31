@@ -129,10 +129,13 @@ public class WorldData {
     public static Godot.ArrayMesh           ArrMesh;
     public static Godot.ArrayMesh[]         ArrMeshSk;
 
-    public static void InitializeTerrainMesh(int sizeX, int sizeY, int res) {
+    public static void InitializeTerrainMesh(int expX, int expZ, int res) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.WorldDataInitializeTerrainMesh);
 #endif
+
+        float sizeX = (float)System.Math.Pow(2, expX);
+        float sizeZ = (float)System.Math.Pow(2, expZ);
 
         TerrainMesh       = new Godot.MeshInstance3D();
         XB.AData.MainRoot.AddChild(TerrainMesh);
@@ -176,7 +179,6 @@ public class WorldData {
         TerrainMat.SetShaderParameter("tRMM2",     terrain2RMTex);
         TerrainMat.SetShaderParameter("tNormalM2", terrain2NTex );
         TerrainMat.SetShaderParameter("tHeightM2", terrain2HTex );
-
         TerrainMat.SetShaderParameter("albVis", new Godot.Vector3(1.0f, 1.0f, 1.0f));
 
         TerrainSkirtMesh = new Godot.MeshInstance3D[4];
@@ -197,8 +199,8 @@ public class WorldData {
         ArrMesh  = new Godot.ArrayMesh();
 
         WorldRes          = res;
-        WorldDim          = new Godot.Vector2((float)sizeX, (float)sizeY);
-        WorldVerts        = new Godot.Vector2I(sizeX*WorldRes +1, sizeY*WorldRes +1);
+        WorldDim          = new Godot.Vector2(sizeX, sizeZ);
+        WorldVerts        = new Godot.Vector2I((int)(sizeX*WorldRes) +1, (int)(sizeZ*WorldRes) +1);
         TerrainHeights    = new float[WorldVerts.X, WorldVerts.Y];
         TerrainHeightsMod = new float[WorldVerts.X, WorldVerts.Y];
         VertAmount        = WorldVerts.X*WorldVerts.Y;
@@ -226,7 +228,9 @@ public class WorldData {
 
 
         // quadtree test
-        XB.ManagerTerrain.InitializeQuadTree((int)WorldDim.X, (int)WorldDim.Y, WorldRes, 2);
+        int divisions = XB.Utils.MaxI(expX, expZ);
+        float height = 0.5f;
+        XB.ManagerTerrain.InitializeQuadTree(WorldDim.X, WorldDim.Y, height, res, divisions);
 
 #if XBDEBUG
         debug.End();
@@ -248,6 +252,7 @@ public class WorldData {
                                  ref MeshData, ref ArrMesh, ref TerrainMesh, ref TerrainCollider,
                                  ref Vertices, ref UVs, ref Normals, ref Triangles, initializeArrays);
         UpdateTerrainShader();
+        TerrainMesh.Hide(); ///
 
         XB.Terrain.SkirtMesh(ref Vertices, WorldVerts.X, WorldVerts.Y, (int)KillPlane,
                              ref MeshDataSk, ref ArrMeshSk, ref TerrainSkirtMesh, 
@@ -257,7 +262,10 @@ public class WorldData {
                              initializeArrays                                                           );
 
         TerrainMesh.Mesh.SurfaceSetMaterial(0, TerrainMat);
-        for (int i = 0; i < 4; i++) { TerrainSkirtMesh[i].Mesh.SurfaceSetMaterial(0, TerrainSkirtMat); }
+        for (int i = 0; i < 4; i++) { 
+            TerrainSkirtMesh[i].Mesh.SurfaceSetMaterial(0, TerrainSkirtMat); 
+            TerrainSkirtMesh[i].Hide(); ///
+        }
 
         XB.Terrain.UpdateHeightMap(ref TerrainHeights, WorldVerts.X, WorldVerts.Y,
                                    LowestPoint, HighestPoint, ref XB.HUD.ImgMiniMap);

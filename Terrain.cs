@@ -233,7 +233,7 @@ public class Terrain {
         var debug = new XB.DebugTimedBlock(XB.D.TerrainHeightsToMesh);
 #endif
 
-        Godot.Vector3 v3 = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+        var v3 = new Godot.Vector3(0.0f, 0.0f, 0.0f);
         float step = 1.0f/(float)res;
         for (int i = 0; i < verts.Length; i++) {
             int x = i%amountX;
@@ -246,7 +246,7 @@ public class Terrain {
 
         //NOTE[ALEX[: UVs and triangles will not change on terrain modification
         if (initialize) {
-            Godot.Vector2 v2 = new Godot.Vector2(0.0f, 0.0f);
+            var v2 = new Godot.Vector2(0.0f, 0.0f);
             for (int i = 0; i < uvs.Length; i++) {
                 int x = i%amountX;
                 int z = i/amountX;
@@ -289,7 +289,7 @@ public class Terrain {
 #endif 
     }
 
-    private static void CalculateNormals(ref Godot.Vector3[] norms,
+    public static void CalculateNormals(ref Godot.Vector3[] norms,
                                          ref Godot.Vector3[] verts, ref int[] tris) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainCalculateNormals);
@@ -410,7 +410,6 @@ public class Terrain {
                 trisZ1[tri + 5] = vert + 2;
                 tri  += 6;
                 vert += 2;
-
             }
         }
 
@@ -462,6 +461,42 @@ public class Terrain {
 #endif 
     }
 
+    public static float HeightMapSample(float sampleX, float sampleZ,
+                                        float worldXSize, float worldZSize, ref Godot.Image img) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.TerrainHeightMapSample);
+#endif
+
+        float x  = (1.0f - (sampleX/worldXSize) ) * (img.GetWidth() -1);
+        float z  = (1.0f - (sampleZ/worldZSize) ) * (img.GetHeight()-1);
+        int   xI0 = (int)x;
+        int   zI0 = (int)z;
+        int   xI1 = XB.Utils.MinI(xI0+1, img.GetWidth() -1);
+        int   zI1 = XB.Utils.MinI(zI0+1, img.GetHeight()-1);
+
+        // 0    0|0 in top left, in world: 0|0 in "bottom right"
+        //  AB  samples surrounding the sampled coordinates
+        //  CD  sample coordinates are inside these points (including)
+
+        float sampleA = img.GetPixel(xI0, zI0).B;
+        float sampleB = img.GetPixel(xI1, zI0).B;
+        float sampleC = img.GetPixel(xI0, zI1).B;
+        float sampleD = img.GetPixel(xI1, zI1).B;
+        float upper   = XB.Utils.LerpF(sampleA, sampleB, x-xI0);
+        float lower   = XB.Utils.LerpF(sampleC, sampleD, x-xI0);
+        float result  = XB.Utils.LerpF(lower,   upper,   z-zI0);
+
+        // Godot.GD.Print(" world: " + sampleX + " / " + worldXSize + ", " + sampleZ + " / " + worldZSize);
+        // Godot.GD.Print(x + " " + z + " of " + img.GetSize() + " " + xI0 + " " + zI0);
+        // Godot.GD.Print(result);
+
+#if XBDEBUG
+        debug.End();
+#endif 
+
+        return result;
+    }
+
     private static void ResetLowestHighest() {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainResetLowestHighest);
@@ -475,13 +510,13 @@ public class Terrain {
 #endif 
     }
 
-    private static void UpdateLowestHighest(float value) {
+    public static void UpdateLowestHighest(float low, float high) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainUpdateLowestHighest);
 #endif
 
-        XB.WorldData.LowestPoint  = XB.Utils.MinF(XB.WorldData.LowestPoint,  value);
-        XB.WorldData.HighestPoint = XB.Utils.MaxF(XB.WorldData.HighestPoint, value);
+        XB.WorldData.LowestPoint  = XB.Utils.MinF(XB.WorldData.LowestPoint,  low);
+        XB.WorldData.HighestPoint = XB.Utils.MaxF(XB.WorldData.HighestPoint, high);
 
 #if XBDEBUG
         debug.End();

@@ -23,6 +23,7 @@ public partial class DebugHUD : Godot.Control {
     private Godot.Image        _imgMiniMapO;
     private Godot.ImageTexture _texMiniMapO;
     private Godot.Label[]      _lbDebugStats;
+    private Godot.Label        _lbPlayerPos;
 
     public void InitializeDebugHUD() {
         _trBlueNoise          = new Godot.TextureRect();
@@ -34,10 +35,18 @@ public partial class DebugHUD : Godot.Control {
         _trBlueNoise.Texture  = _texBlueNoise;
         AddChild(_trBlueNoise);
 
-        var sizeMM   = new Godot.Vector2I(XB.HUD.ImgMiniMap.GetWidth(), XB.HUD.ImgMiniMap.GetHeight());
-            sizeMM   = XB.Utils.MinV2I(sizeMM, new Godot.Vector2I(_sizeMMMax, _sizeMMMax));
+        int sizeMMX = XB.HUD.ImgMiniMap.GetWidth();
+        int sizeMMY = XB.HUD.ImgMiniMap.GetHeight();
+        if (sizeMMX > sizeMMY) {
+            sizeMMX = _sizeMMMax;
+            sizeMMY = _sizeMMMax*(sizeMMY/sizeMMX);
+        } else {
+            sizeMMX = _sizeMMMax*(sizeMMX/sizeMMY);
+            sizeMMY = _sizeMMMax;
+        }
+        var sizeMM   = new Godot.Vector2I(sizeMMX, sizeMMY);
         _imgMiniMapO = Godot.Image.Create(sizeMM.X, sizeMM.Y, false, Godot.Image.Format.Rgba8);
-        var posMM    = new Godot.Vector2I(XB.AData.BaseResX -_dimSpacer - _imgMiniMapO.GetWidth(),
+        var posMM    = new Godot.Vector2I(XB.AData.BaseResX -_dimSpacer - sizeMM.X,
                                           _dimSpacer                                              );
 
         _texMiniMap          = new Godot.ImageTexture();
@@ -78,18 +87,26 @@ public partial class DebugHUD : Godot.Control {
         }
 
         _lbDebugStats = new Godot.Label[System.Enum.GetValues(typeof(XB.D)).Length];
+        var font = Godot.ResourceLoader.Load<Godot.Font>(XB.ScenePaths.FontLibMono);
         for (int i = 0; i < _lbDebugStats.Length; i++) {
             _lbDebugStats[i] = new Godot.Label();
             _lbDebugStats[i].Text = "";
             var tPos = new Godot.Vector2I(_dimSpacer, 2*_dimSpacer+sizeBN.Y + _debugLabelSpacing*i);
             _lbDebugStats[i].Position = tPos;
-            var font = Godot.ResourceLoader.Load<Godot.Font>(XB.ScenePaths.FontLibMono);
             _lbDebugStats[i].AddThemeFontOverride    ("font",               font                  );
             _lbDebugStats[i].AddThemeFontSizeOverride("font_size",          _debugLabelFontSize   );
             _lbDebugStats[i].AddThemeConstantOverride("outline_size",       _debugLabelOutlineSize);
             _lbDebugStats[i].AddThemeColorOverride   ("font_outline_color", _debugLabelFontOutline);
             AddChild(_lbDebugStats[i]);
         }
+
+        _lbPlayerPos = new Godot.Label();
+        _lbPlayerPos.Position = new Godot.Vector2I(2*_dimSpacer+sizeBN.X, _dimSpacer);
+        _lbPlayerPos.AddThemeFontOverride    ("font",               font                  );
+        _lbPlayerPos.AddThemeFontSizeOverride("font_size",          _debugLabelFontSize   );
+        _lbPlayerPos.AddThemeConstantOverride("outline_size",       _debugLabelOutlineSize);
+        _lbPlayerPos.AddThemeColorOverride   ("font_outline_color", _debugLabelFontOutline);
+        AddChild(_lbPlayerPos);
 
         ProcessMode = ProcessModeEnum.Always;
         _visible    = false;
@@ -128,8 +145,15 @@ public partial class DebugHUD : Godot.Control {
             }
         }
 
+        // player position
+        string plPos  = "X: " + XB.PController.PModel.GlobalPosition.X.ToString() + '\n';
+               plPos += "Y: " + XB.PController.PModel.GlobalPosition.Y.ToString() + '\n';
+               plPos += "Z: " + XB.PController.PModel.GlobalPosition.Z.ToString() + '\n';
+        _lbPlayerPos.Text = plPos;
+
         // minimap
-        XB.ManagerTerrain.UpdateQTreeTexture(ref _imgMiniMapO, XB.WorldData.WorldRes);
+        XB.ManagerTerrain.UpdateQTreeTexture(ref _imgMiniMapO,
+                                             _imgMiniMapO.GetWidth()/XB.WorldData.WorldDim.X);
         _texMiniMapO.Update(_imgMiniMapO);
         _texMiniMap.Update(XB.HUD.ImgMiniMap);
     }
@@ -177,15 +201,33 @@ public enum D { // unique debug identifier, naming scheme: "ClassFunction"
     ManagerInitializeSpheres,
     ManagerLinkSpheres,
     ManagerRequestSphere,
+    ManagerTerrainDivideQuadNode,
+    ManagerTerrainInitializeQTreeWorldSkirt,
+    ManagerTerrainInitializeQuadTree,
+    ManagerTerrainRecycleChildMesh,
+    ManagerTerrainRecycleMeshContainer,
+    ManagerTerrainRequestMeshContainer,
+    ManagerTerrainUpdateQNodeMesh,
+    ManagerTerrainUpdateQTreeMeshes,
+    ManagerTerrainUpdateQTreeWorldSkirt,
     ManagerToggleLinking,
     ManagerUnlinkSpheres,
     ManagerUnsetLinkingID,
     ManagerUpdateActiveSpheres,
     ManagerUpdateSpheres,
+    MeshContainerApplyToMesh,
+    MeshContainerReleaseMesh,
+    MeshContainerResetLowestHighest,
+    MeshContainerSampleTerrainNoise,
+    MeshContainerUpdateLowestHighest,
+    MeshContainerUseMesh,
     PController_Input,
     PController_PhysicsProcess,
     PControllerInitializePController,
     PControllerSpawnPlayer,
+    QNodeAssignMeshContainer,
+    QNodeReleaseMeshContainer,
+    QNodeUpdateAssignedMesh,
     RandomInitializeRandom,
     SphereInitializeSphere,
     SphereLinkSphere,
@@ -202,6 +244,7 @@ public enum D { // unique debug identifier, naming scheme: "ClassFunction"
     TerrainFlat,
     TerrainGradientX,
     TerrainGradientY,
+    TerrainHeightMapSample,
     TerrainHeightMax,
     TerrainHeightReplace,
     TerrainHeightsToMesh,
