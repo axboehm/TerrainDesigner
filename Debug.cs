@@ -185,6 +185,9 @@ public partial class DebugHUD : Godot.Control {
 
 public enum D { // unique debug identifier, naming scheme: "ClassFunction"
     Uninit,
+    CollisionTileInitializeCollisionMesh,
+    CollisionTileSampleTerrainNoise,
+    CollisionTileApplyToCollisionMesh,
     HUDAddDigitTexture,
     HUDCreateLinkingTexture,
     HUDCreateSphereTexture,
@@ -202,14 +205,14 @@ public enum D { // unique debug identifier, naming scheme: "ClassFunction"
     ManagerLinkSpheres,
     ManagerRequestSphere,
     ManagerTerrainDivideQuadNode,
-    ManagerTerrainInitializeQTreeWorldSkirt,
     ManagerTerrainInitializeQuadTree,
     ManagerTerrainRecycleChildMesh,
     ManagerTerrainRecycleMeshContainer,
     ManagerTerrainRequestMeshContainer,
+    ManagerTerrainUpdateCollisionTiles,
+    ManagerTerrainUpdateBlockStrength,
     ManagerTerrainUpdateQNodeMesh,
     ManagerTerrainUpdateQTreeMeshes,
-    ManagerTerrainUpdateQTreeWorldSkirt,
     ManagerToggleLinking,
     ManagerUnlinkSpheres,
     ManagerUnsetLinkingID,
@@ -219,6 +222,8 @@ public enum D { // unique debug identifier, naming scheme: "ClassFunction"
     MeshContainerReleaseMesh,
     MeshContainerResetLowestHighest,
     MeshContainerSampleTerrainNoise,
+    MeshContainerSetShaderAttribute,
+    MeshContainerSetShaderAttributes,
     MeshContainerUpdateLowestHighest,
     MeshContainerUseMesh,
     PController_Input,
@@ -263,8 +268,6 @@ public enum D { // unique debug identifier, naming scheme: "ClassFunction"
     UtilsUpdateRect2I,
     WorldDataInitializeTerrainMesh,
     WorldDataGenerateRandomTerrain,
-    WorldDataUpdateBlockStrength,
-    WorldDataUpdateTerrainShader,
 }
 
 public struct DebugEntry {

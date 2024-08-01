@@ -693,6 +693,7 @@ public partial class Menu : Godot.Control {
         ShowMessage(Tr("SETCODE_APPLIED"));
     }
 
+    //TODO[ALEX]: this breaks the tiles until refreshing them by walking
     private void ButtonGenerateTerrainOnPressed() {
         uint seed = 0;
         if (System.UInt32.TryParse(_leGenSeed.Text, out seed)) {

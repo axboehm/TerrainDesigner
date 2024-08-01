@@ -439,7 +439,7 @@ public partial class HUD : Godot.Control {
         _trMiniMap.Modulate    = _colMiniMap;
         _trMiniMapO.Modulate   = _colMiniMap;
         _blockMultCur          = XB.Utils.LerpF(_blockMultCur, _blockMult, _hudSm*dt); 
-        XB.WorldData.UpdateBlockStrength(_blockMultCur);
+        XB.ManagerTerrain.UpdateBlockStrength(_blockMultCur);
 
         UpdateMiniMapOverlayTexture();
 

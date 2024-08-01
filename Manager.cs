@@ -1,4 +1,5 @@
 #define XBDEBUG
+// #define XBVISUALIZECOLLIDERS
 using SysCG = System.Collections.Generic;
 namespace XB { // namespace open
 public class ManagerSphere {
@@ -228,12 +229,12 @@ public class QNode {
         var debug = new XB.DebugTimedBlock(XB.D.QNodeAssignMeshContainer);
 #endif
 
+        MeshContainer = mC;
+        Visible       = true;
 
 #if XBDEBUG
         debug.End();
 #endif 
-        MeshContainer = mC;
-        Visible       = true;
     }
 
     public void ReleaseMeshContainer() {
@@ -241,14 +242,14 @@ public class QNode {
         var debug = new XB.DebugTimedBlock(XB.D.QNodeReleaseMeshContainer);
 #endif
 
-
-#if XBDEBUG
-        debug.End();
-#endif 
         if (!Visible) { return; }
         MeshContainer.ReleaseMesh();
         MeshContainer = null;
         Visible       = false;
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public void UpdateAssignedMesh(float worldXSize, float worldZSize, float height,
@@ -267,51 +268,63 @@ public class QNode {
     }
 }
 
+// each MeshContainer represents the visible mesh data of one terrain tile
+// since the tiles have different resolutions, gaps can appear between the tiles
+// to prevent this, each tile gets a mesh skirt, an extension of the edges downwards to hide the gap
 public class MeshContainer {
-    public Godot.MeshInstance3D    MeshInst;
-    public Godot.Collections.Array MeshData;
-    public Godot.ArrayMesh         ArrMesh;
-    public Godot.StaticBody3D      StatBody;
-    public Godot.CollisionShape3D  CollShape;
-    public Godot.ShaderMaterial    Material;
     public int   XAmount;
     public int   ZAmount;
     public int   ID;
     public bool  InUse;
     public float LowestPoint;  // every MeshContainer tracks its own lowest and highest
     public float HighestPoint;
-    public Godot.Vector3[] Vertices;
-    public Godot.Vector2[] UVs;
-    public Godot.Vector3[] Normals;
-    public int[]           Triangles;
+    public Godot.MeshInstance3D    MeshInst; // holds tile and skirt meshes
+    public Godot.Collections.Array MeshDataTile;
+    public Godot.Collections.Array MeshDataSkirt;
+    public Godot.ArrayMesh         ArrMesh;
+    public Godot.ShaderMaterial    Material;
+    public Godot.Vector3[] VerticesTile;
+    public Godot.Vector3[] VerticesSkirt; // Z-, Z+, X-, X+
+    public Godot.Vector2[] UVsTile;
+    public Godot.Vector2[] UVsSkirt;
+    public Godot.Vector3[] NormalsTile;
+    public Godot.Vector3[] NormalsSkirt;
+    public int[]           TrianglesTile;
+    public int[]           TrianglesSkirt;
+    private const float    _skirtLength = 1.0f;
 
-    //TODO[ALEX]: colliders updating at the same time introduces twitchiness
-    //            maybe just generate colliders at startup at lower resolution and keep those throughout
-    //            or make respawn very exact and respawn on every change in meshtiles?
     public MeshContainer(Godot.Node root, int id, float lerpRAmount, float lerpGAmount) {
-        MeshInst  = new Godot.MeshInstance3D();
-        StatBody  = new Godot.StaticBody3D();
-        CollShape = new Godot.CollisionShape3D();
-        root.AddChild(StatBody);
-        StatBody.AddChild(MeshInst);
-        StatBody.AddChild(CollShape);
-        StatBody.CollisionLayer = XB.LayerMasks.EnvironmentLayer;
-        StatBody.CollisionMask  = XB.LayerMasks.EnvironmentMask; //TODO[ALEX]: necessary?
+        MeshInst = new Godot.MeshInstance3D();
+        root.AddChild(MeshInst);
 
-        Material  = new Godot.ShaderMaterial();
+        Material = new Godot.ShaderMaterial();
         Material.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ScenePaths.TerrainShader);
-        // colors initially represent somewhat of a gradient 
+        Material.SetShaderParameter("albedoMult", XB.WorldData.AlbedoMult);
+        Material.SetShaderParameter("tBlock",     XB.WorldData.BlockTex);
+        Material.SetShaderParameter("blockStr",   XB.WorldData.BlockStrength);
+        Material.SetShaderParameter("tNoiseP",    XB.WorldData.NoiseBombing);
+        Material.SetShaderParameter("tAlbedoM1",  XB.WorldData.Terrain1CATex);
+        Material.SetShaderParameter("tRMM1",      XB.WorldData.Terrain1RMTex);
+        Material.SetShaderParameter("tNormalM1",  XB.WorldData.Terrain1NTex );
+        Material.SetShaderParameter("tHeightM1",  XB.WorldData.Terrain1HTex );
+        Material.SetShaderParameter("tAlbedoM2",  XB.WorldData.Terrain2CATex);
+        Material.SetShaderParameter("tRMM2",      XB.WorldData.Terrain2RMTex);
+        Material.SetShaderParameter("tNormalM2",  XB.WorldData.Terrain2NTex );
+        Material.SetShaderParameter("tHeightM2",  XB.WorldData.Terrain2HTex );
+        // visualization colors initially represent somewhat of a gradient 
         // but will quickly get shuffled around as MeshContainers get reused
         float r = 1.0f - XB.Utils.LerpF(0.0f, 1.0f, lerpRAmount);
         float g =        XB.Utils.LerpF(0.0f, 1.0f, lerpGAmount);
         float b = XB.Random.RandomInRangeF(0.0f, 1.0f);
         var col = new Godot.Color(r, g, b, 1.0f);
-        Material.SetShaderParameter("albVis", col);
-        //TODO[ALEX]: set shader up
+        Material.SetShaderParameter("albVis",    col);
+        Material.SetShaderParameter("albVisStr", 0.5f);
 
-        MeshData = new Godot.Collections.Array();
-        MeshData.Resize((int)Godot.Mesh.ArrayType.Max);
-        ArrMesh  = new Godot.ArrayMesh();
+        MeshDataTile  = new Godot.Collections.Array();
+        MeshDataTile.Resize((int)Godot.Mesh.ArrayType.Max);
+        MeshDataSkirt = new Godot.Collections.Array();
+        MeshDataSkirt.Resize((int)Godot.Mesh.ArrayType.Max);
+        ArrMesh       = new Godot.ArrayMesh();
 
         XAmount = 0;
         ZAmount = 0;
@@ -334,49 +347,92 @@ public class MeshContainer {
 #endif 
     }
 
-    public void UseMesh(float xSize, float zSize, float res) {
+    public void UseMesh(float xPos, float zPos, float xSize, float zSize,
+                        float xWorldSize, float zWorldSize, float res    ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.MeshContainerUseMesh);
 #endif
 
         int xAmount = (int)(xSize*res) + 1;
         int zAmount = (int)(zSize*res) + 1;
-        if (XAmount != xAmount || ZAmount != zAmount) {
-            XAmount = xAmount;
-            ZAmount = zAmount;
-            Vertices  = new Godot.Vector3[XAmount*ZAmount];
-            UVs       = new Godot.Vector2[XAmount*ZAmount];
-            Normals   = new Godot.Vector3[XAmount*ZAmount];
-            Triangles = new int          [XAmount*ZAmount*6];
 
-            Godot.Vector2 v2 = new Godot.Vector2(0.0f, 0.0f);
-            for (int i = 0; i < UVs.Length; i++) {
-                int x = i%XAmount;
-                int z = i/XAmount;
-                v2.X = 1.0f - (float)x/(float)(XAmount-1);
-                v2.Y = 1.0f - (float)z/(float)(ZAmount-1);
-                UVs[i] = v2;
-            }
+        // tile (without skirt)
+        XAmount = xAmount;
+        ZAmount = zAmount;
+        VerticesTile  = new Godot.Vector3[XAmount*ZAmount];
+        UVsTile       = new Godot.Vector2[XAmount*ZAmount];
+        NormalsTile   = new Godot.Vector3[XAmount*ZAmount];
+        TrianglesTile = new int[(XAmount-1)*(ZAmount-1)*6];
 
-            int tri  = 0;
-            int vert = 0;
+        Godot.Vector2 v2 = new Godot.Vector2(0.0f, 0.0f);
+        float uvStartX = 1.0f - (xPos+xSize/2.0f)/xWorldSize;
+        float uvEndX   = 1.0f - (xPos-xSize/2.0f)/xWorldSize;
+        float uvStartY = 1.0f - (zPos+zSize/2.0f)/zWorldSize;
+        float uvEndY   = 1.0f - (zPos-zSize/2.0f)/zWorldSize;
+        for (int i = 0; i < UVsTile.Length; i++) {
+            int x = i%XAmount;
+            int y = i/XAmount;
+            v2.X = XB.Utils.LerpF(uvStartX, uvEndX, 1.0f - (float)x/(float)(XAmount-1));
+            v2.Y = XB.Utils.LerpF(uvStartY, uvEndY, 1.0f - (float)y/(float)(ZAmount-1));
+            UVsTile[i] = v2;
+        }
+
+        int tri  = 0;
+        int vert = 0;
+        for (int j = 0; j < ZAmount-1; j++) {
             for (int i = 0; i < XAmount-1; i++) {
-                for (int j = 0; j < ZAmount-1; j++) {
-                    Triangles[tri + 0] = vert;
-                    Triangles[tri + 1] = vert + 1 + xAmount;
-                    Triangles[tri + 2] = vert + 1;
-                    Triangles[tri + 3] = vert;
-                    Triangles[tri + 4] = vert +     XAmount;
-                    Triangles[tri + 5] = vert + 1 + XAmount;
-                    tri  += 6;
-                    vert += 1;
-                }
+                TrianglesTile[tri + 0] = vert;
+                TrianglesTile[tri + 1] = vert + 1;
+                TrianglesTile[tri + 2] = vert + 1 + XAmount;
+                TrianglesTile[tri + 3] = vert;
+                TrianglesTile[tri + 4] = vert + 1 + XAmount;
+                TrianglesTile[tri + 5] = vert +     XAmount;
+                tri  += 6;
                 vert += 1;
             }
-
-            MeshData[(int)Godot.Mesh.ArrayType.TexUV] = UVs;
-            MeshData[(int)Godot.Mesh.ArrayType.Index] = Triangles;
+            vert += 1;
         }
+
+        MeshDataTile[(int)Godot.Mesh.ArrayType.TexUV] = UVsTile;
+        MeshDataTile[(int)Godot.Mesh.ArrayType.Index] = TrianglesTile;
+
+        // skirt: each edge has two vertices per tile edge vertex, none are shared with the tile
+        VerticesSkirt  = new Godot.Vector3[2* (2*XAmount+2*ZAmount)];
+        UVsSkirt       = new Godot.Vector2[2* (2*XAmount+2*ZAmount)];
+        NormalsSkirt   = new Godot.Vector3[2* (2*XAmount+2*ZAmount)];
+        TrianglesSkirt = new int[(2*(XAmount-1) + 2*(ZAmount-1)) *6];
+
+        //NOTE[ALEX]: uvs for Z- and X- are added in reverse order, also see SampleTerrainNoise
+        for (int i = 0; i < XAmount; i++) {
+            // Z-
+            UVsSkirt[2*i+0] = UVsTile[i];
+            UVsSkirt[2*i+1] = UVsTile[i];
+            // Z+
+            int inv = XAmount-1-i; // inverted index for Vertices array
+            UVsSkirt[2*XAmount + 2*i+0] = UVsTile[inv + XAmount*ZAmount - XAmount];
+            UVsSkirt[2*XAmount + 2*i+1] = UVsTile[inv + XAmount*ZAmount - XAmount];
+        }
+        for (int i = 0; i < ZAmount; i++) {
+            // X-
+            int inv = ZAmount-1-i; // inverted index for Vertices array
+            UVsSkirt[4*XAmount + 2*i+0] = UVsTile[inv*XAmount];
+            UVsSkirt[4*XAmount + 2*i+1] = UVsTile[inv*XAmount];
+            // X+
+            UVsSkirt[4*XAmount + 2*ZAmount + 2*i+0] = UVsTile[i*XAmount + XAmount-1];
+            UVsSkirt[4*XAmount + 2*ZAmount + 2*i+1] = UVsTile[i*XAmount + XAmount-1];
+        }
+
+        SkirtTriangleIndices(ref TrianglesSkirt, 
+            6*0,                               0,                     XAmount-1); // bottom
+        SkirtTriangleIndices(ref TrianglesSkirt,
+            6*(XAmount-1),                     2*XAmount,             XAmount-1); // top
+        SkirtTriangleIndices(ref TrianglesSkirt,
+            6*( 2*(XAmount-1) ),               4*XAmount,             ZAmount-1); // left
+        SkirtTriangleIndices(ref TrianglesSkirt,
+            6*( 2*(XAmount-1) + (ZAmount-1) ), 4*XAmount + 2*ZAmount, ZAmount-1); // right
+
+        MeshDataSkirt[(int)Godot.Mesh.ArrayType.TexUV] = UVsSkirt;
+        MeshDataSkirt[(int)Godot.Mesh.ArrayType.Index] = TrianglesSkirt;
 
         MeshInst.Show();
         InUse = true;
@@ -384,6 +440,21 @@ public class MeshContainer {
 #if XBDEBUG
         debug.End();
 #endif 
+    }
+
+    private void SkirtTriangleIndices(ref int[] triangles, int offsetT, int offsetV, int amount) {
+        int tri  = 0;
+        int vert = 0;
+        for (int i = 0; i < amount; i++) {
+            triangles[offsetT + tri + 0] = offsetV + vert;
+            triangles[offsetT + tri + 1] = offsetV + vert + 1;
+            triangles[offsetT + tri + 2] = offsetV + vert + 3;
+            triangles[offsetT + tri + 3] = offsetV + vert;
+            triangles[offsetT + tri + 4] = offsetV + vert + 3;
+            triangles[offsetT + tri + 5] = offsetV + vert + 2;
+            tri  += 6;
+            vert += 2;
+        }
     }
 
     public void SampleTerrainNoise(float xPos, float zPos, float xSize,  float zSize,
@@ -394,27 +465,69 @@ public class MeshContainer {
 #endif
 
         var pos = new Godot.Vector3(xPos, 0.0f, zPos);
-        StatBody.GlobalPosition = pos; // move MeshInstance to center of tile, mesh is child
+        MeshInst.GlobalPosition = pos; // move MeshInstance to center of tile, mesh is child
 
         ResetLowestHighest();
 
+        // tile (without skirt)
         var   v3   = new Godot.Vector3(0.0f, 0.0f, 0.0f);
         float step = 1.0f/res;
         float sampledNoise = 0.0f;
-        for (int i = 0; i < XAmount; i++) {
-            for (int j = 0; j < ZAmount; j++) {
-                int vNumber = i*XAmount + j;
+        int   vNumber = 0;
+        for (int j = 0; j < ZAmount; j++) {
+            for (int i = 0; i < XAmount; i++) {
                 v3.X = (float)i*step - xSize/2.0f;
                 v3.Z = (float)j*step - zSize/2.0f;
                 sampledNoise = XB.Terrain.HeightMapSample(v3.X + pos.X, v3.Z + pos.Z,
                                                           worldXSize, worldZSize, ref imgHeightMap);
                 v3.Y = sampledNoise*height;
                 UpdateLowestHighest(v3.Y);
-                Vertices[vNumber] = v3;
+                VerticesTile[vNumber] = v3;
+                vNumber += 1;
             }
         }
 
-        XB.Terrain.CalculateNormals(ref Normals, ref Vertices, ref Triangles);
+        XB.Terrain.CalculateNormals(ref NormalsTile, ref VerticesTile, ref TrianglesTile);
+
+        // skirt vertices and normals (copied from edges of tile
+        //NOTE[ALEX]: if the vertices for opposing sides are added in the same order 
+        //            e.g. for Z- and Z+ from X- to X+, then the triangle indices need to be inverted
+        //            to use the same triangle indices for all four sides, the vertices and normals
+        //            are added in reverse order
+        for (int i = 0; i < XAmount; i++) {
+            // Z-
+            VerticesSkirt[2*i+0] = VerticesTile[i];
+            VerticesSkirt[2*i+1] = VerticesTile[i];
+            VerticesSkirt[2*i+1].Y -= _skirtLength;
+
+            NormalsSkirt [2*i+0] = NormalsTile[i];
+            NormalsSkirt [2*i+1] = NormalsTile[i];
+            // Z+
+            int inv = XAmount-1-i; // inverted index for Vertices array
+            VerticesSkirt[2*XAmount + 2*i+0] = VerticesTile[inv + XAmount*ZAmount - XAmount];
+            VerticesSkirt[2*XAmount + 2*i+1] = VerticesTile[inv + XAmount*ZAmount - XAmount];
+            VerticesSkirt[2*XAmount + 2*i+1].Y -= _skirtLength;
+
+            NormalsSkirt [2*XAmount + 2*i+0] = NormalsTile[inv + XAmount*ZAmount - XAmount];
+            NormalsSkirt [2*XAmount + 2*i+1] = NormalsTile[inv + XAmount*ZAmount - XAmount];
+        }
+        for (int i = 0; i < ZAmount; i++) {
+            // X-
+            int inv = ZAmount-1-i; // inverted index for Vertices array
+            VerticesSkirt[4*XAmount + 2*i+0] = VerticesTile[inv*XAmount];
+            VerticesSkirt[4*XAmount + 2*i+1] = VerticesTile[inv*XAmount];
+            VerticesSkirt[4*XAmount + 2*i+1].Y -= _skirtLength;
+
+            NormalsSkirt [4*XAmount + 2*i+0] = NormalsTile[inv*XAmount];
+            NormalsSkirt [4*XAmount + 2*i+1] = NormalsTile[inv*XAmount];
+            // X+
+            VerticesSkirt[4*XAmount + 2*ZAmount + 2*i+0] = VerticesTile[i * XAmount + XAmount-1];
+            VerticesSkirt[4*XAmount + 2*ZAmount + 2*i+1] = VerticesTile[i * XAmount + XAmount-1];
+            VerticesSkirt[4*XAmount + 2*ZAmount + 2*i+1].Y -= _skirtLength;
+
+            NormalsSkirt [4*XAmount + 2*ZAmount + 2*i+0] = NormalsTile[i*XAmount + XAmount-1];
+            NormalsSkirt [4*XAmount + 2*ZAmount + 2*i+1] = NormalsTile[i*XAmount + XAmount-1];
+        }
 
 #if XBDEBUG
         debug.End();
@@ -447,21 +560,91 @@ public class MeshContainer {
 #endif 
     }
 
+    //NOTE[ALEX]: hard coded because it is very specific to the shader used
+    public void SetShaderAttributes() {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.MeshContainerSetShaderAttributes);
+#endif
+
+        Material.SetShaderParameter("scaleX",      WorldData.WorldDim.X);
+        Material.SetShaderParameter("scaleY",      WorldData.WorldDim.Y);
+        Material.SetShaderParameter("blockScale",  WorldData.BlockUVScale);
+        Material.SetShaderParameter("uv1Scale",    WorldData.Mat1UVScale);
+        Material.SetShaderParameter("uv2Scale",    WorldData.Mat2UVScale);
+        Material.SetShaderParameter("noisePScale", WorldData.NoisePScale);
+        Material.SetShaderParameter("blendDepth",  WorldData.BlendDepth);
+        Material.SetShaderParameter("tHeight",     XB.PController.Hud.TexMiniMap);
+
+#if XBDEBUG
+        debug.End();
+#endif 
+    }
+
+    public void SetShaderAttribute(string attName, float value) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.MeshContainerSetShaderAttribute);
+#endif
+
+        Material.SetShaderParameter(attName, value);
+
+#if XBDEBUG
+        debug.End();
+#endif 
+    }
+
+    public void SetShaderAttribute(string attName, Godot.ImageTexture img) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.MeshContainerSetShaderAttribute);
+#endif
+
+        Material.SetShaderParameter(attName, img);
+
+#if XBDEBUG
+        debug.End();
+#endif 
+    }
+
+    //TODO[ALEX]:  world edge skirt?
     public void ApplyToMesh() {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.MeshContainerApplyToMesh);
 #endif
 
-        MeshData[(int)Godot.Mesh.ArrayType.Vertex] = Vertices;
-        MeshData[(int)Godot.Mesh.ArrayType.Normal] = Normals;
+        // int a = VerticesSkirt.Length/4;
+        // for (int i = 0*a; i < 3*a; i++) {
+        //     VerticesSkirt[i].X = 0.0f;
+        //     VerticesSkirt[i].Y = 0.0f;
+        //     VerticesSkirt[i].Z = 0.0f;
+        // }
+        // for (int i = 4*a; i < 4*a; i++) {
+        //     VerticesSkirt[i].X = 0.0f;
+        //     VerticesSkirt[i].Y = 0.0f;
+        //     VerticesSkirt[i].Z = 0.0f;
+        // }
+
+        MeshDataTile [(int)Godot.Mesh.ArrayType.Vertex] = VerticesTile;
+        MeshDataTile [(int)Godot.Mesh.ArrayType.Normal] = NormalsTile;
+        MeshDataSkirt[(int)Godot.Mesh.ArrayType.Vertex] = VerticesSkirt;
+        MeshDataSkirt[(int)Godot.Mesh.ArrayType.Normal] = NormalsSkirt;
+        // Godot.GD.Print("xamnt: " + XAmount + ", zamnt " + ZAmount);
+        // for (int i = 0; i < VerticesSkirt.Length; i++) {
+        //     Godot.GD.Print("v: " + VerticesSkirt[i] + ", n: " + NormalsSkirt[i] + ", uv: " + UVsSkirt[i]);
+        // }
+        // for (int i = 0; i < TrianglesSkirt.Length; i++) {
+        //     Godot.GD.Print(TrianglesSkirt[i]);
+        // }
 
         ArrMesh.ClearSurfaces();
-        ArrMesh.AddSurfaceFromArrays(Godot.Mesh.PrimitiveType.Triangles, MeshData);
+        ArrMesh.AddSurfaceFromArrays(Godot.Mesh.PrimitiveType.Triangles, MeshDataTile);
+        ArrMesh.AddSurfaceFromArrays(Godot.Mesh.PrimitiveType.Triangles, MeshDataSkirt);
 
-        MeshInst.Mesh   = ArrMesh;
-        CollShape.Shape = ArrMesh.CreateTrimeshShape();
-
+        MeshInst.Mesh = ArrMesh;
         MeshInst.Mesh.SurfaceSetMaterial(0, Material);
+        MeshInst.Mesh.SurfaceSetMaterial(1, Material); // skirt to hide gaps between tiles
+
+#if XBVISUALIZECOLLIDERS
+        MeshInst.Hide();
+#endif 
 
 #if XBDEBUG
         debug.End();
@@ -469,98 +652,227 @@ public class MeshContainer {
     }
 }
 
-public enum Sk {
-    B, // bottom (Z-)
-    T, // top    (Z+)
-    L, // left   (X-)
-    R, // right  (X+)
+public class CollisionTile {
+    public int   XAmount;
+    public int   ZAmount;
+    public float XPos;  // center x coordinate in meter
+    public float ZPos;
+    public float XSize; // dimensions in meter
+    public float ZSize;
+    public float Res;   // subdivisions per meter
+    public Godot.Collections.Array MeshData;
+    public Godot.ArrayMesh         ArrMesh;
+    public Godot.StaticBody3D      StatBody;
+    public Godot.CollisionShape3D  CollShape;
+    public Godot.Vector3[] Vertices;
+    public int[]           Triangles;
+#if XBVISUALIZECOLLIDERS
+    public Godot.MeshInstance3D MeshInstVis;
+    public Godot.ShaderMaterial MaterialVis;
+#endif 
+    
+    public CollisionTile(Godot.Node root, float xPos, float zPos, float xSize, float zSize,
+                         float res, uint collisionLayer, uint collisionMask                ) {
+        XPos    = xPos;
+        ZPos    = zPos;
+        XSize   = xSize;
+        ZSize   = zSize;
+        Res     = res;
+        XAmount = (int)(XSize*Res) + 1;
+        ZAmount = (int)(ZSize*Res) + 1;
+
+        StatBody  = new Godot.StaticBody3D();
+        CollShape = new Godot.CollisionShape3D();
+        root.AddChild(StatBody);
+        StatBody.AddChild(CollShape);
+        StatBody.CollisionLayer = collisionLayer;
+        StatBody.CollisionMask  = collisionMask;
+        StatBody.GlobalPosition = new Godot.Vector3(xPos, 0.0f, zPos);
+
+        MeshData = new Godot.Collections.Array();
+        MeshData.Resize((int)Godot.Mesh.ArrayType.Max);
+        ArrMesh  = new Godot.ArrayMesh();
+
+        //DebugPrint();
+
+#if XBVISUALIZECOLLIDERS
+        MeshInstVis  = new Godot.MeshInstance3D();
+        root.AddChild(MeshInstVis);
+        MeshInstVis.GlobalPosition = new Godot.Vector3(xPos, 0.0f, zPos);
+        MaterialVis = new Godot.ShaderMaterial();
+        MaterialVis.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ScenePaths.TerrainShader);
+        float r = XB.Random.RandomInRangeF(0.0f, 1.0f);
+        float g = XB.Random.RandomInRangeF(0.0f, 1.0f);
+        float b = XB.Random.RandomInRangeF(0.0f, 1.0f);
+        var col = new Godot.Color(r, g, b, 1.0f);
+        MaterialVis.SetShaderParameter("albVis",    col);
+        MaterialVis.SetShaderParameter("albVisStr", 1.0f);
+#endif
+    }
+
+#if XBDEBUG
+    public void DebugPrint() {
+        Godot.GD.Print("pos: " + XPos + " " + ZPos + ", size: " + XSize + " " + ZSize +
+                       ", res: " + Res + ", amnt: " + XAmount + " " + ZAmount          );
+    }
+#endif
+
+    public void InitializeCollisionMesh() {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.CollisionTileInitializeCollisionMesh);
+#endif
+
+        Vertices  = new Godot.Vector3[XAmount*ZAmount];
+        Triangles = new int[(XAmount-1)*(ZAmount-1)*6];
+
+        int tri  = 0;
+        int vert = 0;
+        for (int j = 0; j < ZAmount-1; j++) {
+            for (int i = 0; i < XAmount-1; i++) {
+                Triangles[tri + 0] = vert;
+                Triangles[tri + 1] = vert + 1;
+                Triangles[tri + 2] = vert + 1 + XAmount;
+                Triangles[tri + 3] = vert;
+                Triangles[tri + 4] = vert + 1 + XAmount;
+                Triangles[tri + 5] = vert +     XAmount;
+                tri  += 6;
+                vert += 1;
+            }
+            vert += 1;
+        }
+
+        MeshData[(int)Godot.Mesh.ArrayType.Index] = Triangles;
+
+#if XBDEBUG
+        debug.End();
+#endif 
+    }
+
+    public void SampleTerrainNoise(float worldXSize, float worldZSize, float height,
+                                   ref Godot.Image imgHeightMap                     ) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.CollisionTileSampleTerrainNoise);
+#endif
+
+        // Godot.GD.Print("xamnt: " + XAmount + ", zamnt: " + ZAmount);
+        var   v3   = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+        float step = 1.0f/Res;
+        float sampledNoise = 0.0f;
+        int   vNumber = 0;
+        for (int j = 0; j < ZAmount; j++) {
+            for (int i = 0; i < XAmount; i++) {
+                v3.X = (float)i*step - XSize/2.0f;
+                v3.Z = (float)j*step - ZSize/2.0f;
+                sampledNoise = XB.Terrain.HeightMapSample(v3.X + XPos, v3.Z + ZPos,
+                                                          worldXSize, worldZSize, ref imgHeightMap);
+                v3.Y = sampledNoise*height;
+                // Godot.GD.Print("i: " + i + ",j: " + j + ",vN: " + vNumber + " of " + Vertices.Length);
+                Vertices[vNumber] = v3;
+                vNumber += 1;
+            }
+        }
+
+#if XBDEBUG
+        debug.End();
+#endif 
+    }
+
+    public void ApplyToCollisionMesh() {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.CollisionTileApplyToCollisionMesh);
+#endif
+
+        MeshData[(int)Godot.Mesh.ArrayType.Vertex] = Vertices;
+
+        ArrMesh.ClearSurfaces();
+        ArrMesh.AddSurfaceFromArrays(Godot.Mesh.PrimitiveType.Triangles, MeshData);
+
+        CollShape.Shape = ArrMesh.CreateTrimeshShape();
+
+#if XBVISUALIZECOLLIDERS
+        MeshInst.Mesh = ArrMesh;
+        MeshInst.Mesh.SurfaceSetMaterial(0, MaterialVis);
+#endif
+
+#if XBDEBUG
+        debug.End();
+#endif 
+    }
 }
 
 public class ManagerTerrain {
     private static XB.QNode _qRoot;
     private static int      _nextID      = 0;
     private static int      _divisions   = 0;
-    private static float    _resolution  = 0.0f; // highest resolution
+    private static float    _resolutionM = 0.0f; // highest resolution of visible mesh tiles
+    private static float    _resolutionC = 0.0f; // resolution of collider tiles, uniform throughout
+    private static float    _sizeCTile   = 0.0f; // size of full size collision tiles
     private static float    _worldXSize  = 0.0f;
     private static float    _worldZSize  = 0.0f;
     private static float    _worldHeight = 0.0f;
     private static SysCG.List<XB.MeshContainer> _terrainMeshes;
+    private static XB.CollisionTile[,]          _terrainColTiles;
 
-    private static Godot.MeshInstance3D[]    _terrainSkirtMesh; // black sides
-    private static float[][]                 _edgeHeights; //TODO
-    private static Godot.Vector3[][]         _skVertices;
-    private static Godot.Vector3[][]         _skNormals;
-    private static int[][]                   _skTriangles;
-    private static Godot.ShaderMaterial      _terrainSkirtMat;
-    private static Godot.Collections.Array[] _meshDataSk;
-    private static Godot.ArrayMesh[]         _arrMeshSk;
-
-    // takes resolution at highest detail and number of quadtree divisions
-    public static void InitializeQuadTree(float xSize, float zSize, float height, float res, int div) {
+    public static void InitializeQuadTree(float xSize, float zSize, float height, float resM,
+                                          float resC, float sizeCTile, int div               ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainInitializeQuadTree);
 #endif
 
         //TODO[ALEX]: adjust divisions according to size to prevent overly large tiles
-        _nextID     = 0;
-        _divisions  = div;
-        _resolution = res;
-        float temp  = 1;
+        _nextID      = 0;
+        _divisions   = div;
+        _resolutionM = resM;
+        _resolutionC = resC;
+        _sizeCTile   = sizeCTile;
+        _worldXSize  = xSize;
+        _worldZSize  = zSize;
+        _worldHeight = height;
+        float temp   = 1;
         // limit divisions so that tiles do not get too small 
         // so that they would have < 2 vertices per side
         for (int i = 0; i < div; i++) {
             temp *= 2;
-            if (temp > xSize) {
+            if (temp > _worldXSize) {
                 _divisions = i;
                 Godot.GD.Print("Divisions set to high at : " + div + ", reduced to: " + _divisions);
                 break;
             }
         }
-        _worldXSize  = xSize;
-        _worldZSize  = zSize;
-        _worldHeight = height;
 
-        // Godot.GD.Print("InitializeQuadTree with Size: " + xSize + " x " + zSize
-        //                + ", Resolution: " + res + ", Divisions: " + _divisions );
+        Godot.GD.Print("InitializeQuadTree with Size: " + _worldXSize + " x " + _worldZSize
+                       + ", Mesh Resolution: " + _resolutionM + ", Divisions: " + _divisions
+                       + ", Coll Resolution: " + _resolutionC + ", CTile Size: " + _sizeCTile);
         
         // the lowest division level (highest detail) should have the specified resolution
-        for (int i = 0; i < _divisions; i++) { res = res/2.0f; }
-        _qRoot = new XB.QNode(ref _nextID, xSize/2, zSize/2, xSize, zSize, res);
+        for (int i = 0; i < _divisions; i++) { resM = resM/2.0f; }
+        _qRoot = new XB.QNode(ref _nextID, _worldXSize/2, _worldZSize/2, 
+                              _worldXSize, _worldZSize, resM            );
 
         DivideQuadNode(ref _qRoot, _divisions);
-        //TODO[ALEX]: colliders, node tile skirts
 
         _terrainMeshes = new SysCG.List<XB.MeshContainer>();
 
-        _terrainSkirtMesh = new Godot.MeshInstance3D[4];
-        _terrainSkirtMat  = new Godot.ShaderMaterial();
-        _terrainSkirtMat.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ScenePaths.TSkirtShader);
-        _meshDataSk = new Godot.Collections.Array[4];
-        _arrMeshSk  = new Godot.ArrayMesh[4];
-        for (int i = 0; i < 4; i++) {
-            _terrainSkirtMesh[i] = new Godot.MeshInstance3D();
-            XB.AData.MainRoot.AddChild(_terrainSkirtMesh[i]);
-            _meshDataSk[i] = new Godot.Collections.Array();
-            _meshDataSk[i].Resize((int)Godot.Mesh.ArrayType.Max);
-            _arrMeshSk[i]  = new Godot.ArrayMesh();
-        }
-        _skVertices = new Godot.Vector3[4][];
-        _skVertices[(int)XB.Sk.B] = new Godot.Vector3[2*((int)(_worldXSize*_resolution) + 1)];
-        _skVertices[(int)XB.Sk.T] = new Godot.Vector3[2*((int)(_worldXSize*_resolution) + 1)];
-        _skVertices[(int)XB.Sk.L] = new Godot.Vector3[2*((int)(_worldZSize*_resolution) + 1)];
-        _skVertices[(int)XB.Sk.R] = new Godot.Vector3[2*((int)(_worldZSize*_resolution) + 1)];
-        _skNormals = new Godot.Vector3[4][];
-        _skNormals[(int)XB.Sk.B] = new Godot.Vector3[2*((int)(_worldXSize*_resolution) + 1)];
-        _skNormals[(int)XB.Sk.T] = new Godot.Vector3[2*((int)(_worldXSize*_resolution) + 1)];
-        _skNormals[(int)XB.Sk.L] = new Godot.Vector3[2*((int)(_worldZSize*_resolution) + 1)];
-        _skNormals[(int)XB.Sk.R] = new Godot.Vector3[2*((int)(_worldZSize*_resolution) + 1)];
-        _skTriangles = new int[4][];
-        _skTriangles[(int)XB.Sk.B] = new int[(int)(_worldXSize*_resolution) * 6];
-        _skTriangles[(int)XB.Sk.T] = new int[(int)(_worldXSize*_resolution) * 6];
-        _skTriangles[(int)XB.Sk.L] = new int[(int)(_worldZSize*_resolution) * 6];
-        _skTriangles[(int)XB.Sk.R] = new int[(int)(_worldZSize*_resolution) * 6];
+        int colTileAmntX = (int)System.Math.Ceiling(_worldXSize*_resolutionC / _sizeCTile);
+        int colTileAmntZ = (int)System.Math.Ceiling(_worldZSize*_resolutionC / _sizeCTile);
+        _terrainColTiles = new XB.CollisionTile[colTileAmntX, colTileAmntZ];
+        float colXPos = 0.0f;
+        float colZPos = 0.0f;
+        for (int i = 0; i < colTileAmntX; i++) {
+            float colXSize = _sizeCTile * _resolutionC;
+            if ((i+1)*colXSize > _worldXSize) { colXSize =  _worldXSize - i*colXSize; }
+            colXPos = i*_sizeCTile*_resolutionC + colXSize/2.0f;
 
-        InitializeQTreeWorldSkirt();
+            for (int j = 0; j < colTileAmntZ; j++) {
+                float colZSize = _sizeCTile * _resolutionC;
+                if ((j+1)*colZSize > _worldZSize) { colZSize = _worldZSize - j*colZSize; }
+                colZPos = j*_sizeCTile*_resolutionC + colZSize/2.0f;
+
+                _terrainColTiles[i, j] = new XB.CollisionTile
+                    (XB.AData.MainRoot, colXPos, colZPos, colXSize, colZSize, _resolutionC,
+                     XB.LayerMasks.EnvironmentLayer, XB.LayerMasks.EnvironmentMask         );
+            }
+        }
 
 #if XBDEBUG
         debug.End();
@@ -603,6 +915,27 @@ public class ManagerTerrain {
 #endif 
     }
 
+    public static void UpdateCollisionTiles(ref Godot.Image imgHeightMap) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainUpdateCollisionTiles);
+#endif
+
+        int colTileAmntX = (int)System.Math.Ceiling(_worldXSize*_resolutionC / _sizeCTile);
+        int colTileAmntZ = (int)System.Math.Ceiling(_worldZSize*_resolutionC / _sizeCTile);
+        for (int i = 0; i < colTileAmntX; i++) {
+            for (int j = 0; j < colTileAmntZ; j++) {
+                _terrainColTiles[i, j].InitializeCollisionMesh();
+                _terrainColTiles[i, j].SampleTerrainNoise(_worldXSize, _worldZSize, _worldHeight,
+                                                          ref imgHeightMap                       );
+                _terrainColTiles[i, j].ApplyToCollisionMesh();
+            }
+        }
+
+#if XBDEBUG
+        debug.End();
+#endif 
+    }
+
     // reference position can be the player model or player camera,
     // depending on where the highest resolution mesh should be prioritized
     public static void UpdateQTreeMeshes(Godot.Vector2 refPos, ref Godot.Image imgHeightMap) {
@@ -611,7 +944,6 @@ public class ManagerTerrain {
 #endif
 
         UpdateQNodeMesh(refPos, ref _qRoot, ref imgHeightMap);   
-        UpdateQTreeWorldSkirt();
 
 #if XBDEBUG
         debug.End();
@@ -667,144 +999,6 @@ public class ManagerTerrain {
 #endif 
     }
 
-    private static void InitializeQTreeWorldSkirt() {
-#if XBDEBUG
-        var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainInitializeQTreeWorldSkirt);
-#endif
-
-        int amountX = (int)(_worldXSize*_resolution) + 1;
-        int amountZ = (int)(_worldZSize*_resolution) + 1;
-        var v3 = new Godot.Vector3(0.0f, 0.0f, -1.0f);
-        for (int i = 0; i < amountX; i++) { // bottom
-            _skNormals[(int)XB.Sk.B][2*i +0] = v3;
-            _skNormals[(int)XB.Sk.B][2*i +1] = v3;
-        }
-        v3.Z = 1.0f;
-        for (int i = 0; i < amountX; i++) { // top
-            _skNormals[(int)XB.Sk.T][2*i +0] = v3;
-            _skNormals[(int)XB.Sk.T][2*i +1] = v3;
-        }
-        v3.Z = 0.0f;
-        v3.X = -1.0f;
-        for (int i = 0; i < amountZ; i++) { // left
-            _skNormals[(int)XB.Sk.L][2*i +0] = v3;
-            _skNormals[(int)XB.Sk.L][2*i +1] = v3;
-        }
-        v3.X = 1.0f;
-        for (int i = 0; i < amountZ; i++) { // right
-            _skNormals[(int)XB.Sk.R][2*i +0] = v3;
-            _skNormals[(int)XB.Sk.R][2*i +1] = v3;
-        }
-
-        int tri  = 0;
-        int vert = 0;
-        for (int i = 0; i < amountX-1; i++) {
-            _skTriangles[(int)XB.Sk.B][tri + 0] = vert;
-            _skTriangles[(int)XB.Sk.B][tri + 1] = vert + 1;
-            _skTriangles[(int)XB.Sk.B][tri + 2] = vert + 3;
-            _skTriangles[(int)XB.Sk.B][tri + 3] = vert;
-            _skTriangles[(int)XB.Sk.B][tri + 4] = vert + 3;
-            _skTriangles[(int)XB.Sk.B][tri + 5] = vert + 2;
-
-            _skTriangles[(int)XB.Sk.T][tri + 0] = vert + 2;
-            _skTriangles[(int)XB.Sk.T][tri + 1] = vert + 3;
-            _skTriangles[(int)XB.Sk.T][tri + 2] = vert;
-            _skTriangles[(int)XB.Sk.T][tri + 3] = vert + 1;
-            _skTriangles[(int)XB.Sk.T][tri + 4] = vert;
-            _skTriangles[(int)XB.Sk.T][tri + 5] = vert + 3;
-            tri  += 6;
-            vert += 2;
-        }
-        tri  = 0;
-        vert = 0;
-        for (int i = 0; i < amountZ-1; i++) {
-            _skTriangles[(int)XB.Sk.L][tri + 0] = vert;
-            _skTriangles[(int)XB.Sk.L][tri + 1] = vert + 1;
-            _skTriangles[(int)XB.Sk.L][tri + 2] = vert + 3;
-            _skTriangles[(int)XB.Sk.L][tri + 3] = vert;
-            _skTriangles[(int)XB.Sk.L][tri + 4] = vert + 3;
-            _skTriangles[(int)XB.Sk.L][tri + 5] = vert + 2;
-
-            _skTriangles[(int)XB.Sk.R][tri + 0] = vert + 2;
-            _skTriangles[(int)XB.Sk.R][tri + 1] = vert + 3;
-            _skTriangles[(int)XB.Sk.R][tri + 2] = vert;
-            _skTriangles[(int)XB.Sk.R][tri + 3] = vert + 1;
-            _skTriangles[(int)XB.Sk.R][tri + 4] = vert;
-            _skTriangles[(int)XB.Sk.R][tri + 5] = vert + 3;
-            tri  += 6;
-            vert += 2;
-        }
-
-        foreach(XB.Sk sk in System.Enum.GetValues(typeof(XB.Sk))) {
-            _meshDataSk[(int)sk][(int)Godot.Mesh.ArrayType.Normal] = _skNormals  [(int)sk];
-            _meshDataSk[(int)sk][(int)Godot.Mesh.ArrayType.Index]  = _skTriangles[(int)sk];
-        }
-
-#if XBDEBUG
-        debug.End();
-#endif 
-    }
-
-    //TODO[ALEX]: how to read skirt mesh vertex y information?
-    //            update an array everytime an edge tile gets calculated?
-    // the world skirt mesh is always at full resolution, but adopts to the actual tile edges
-    private static void UpdateQTreeWorldSkirt() {
-#if XBDEBUG
-        var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainUpdateQTreeWorldSkirt);
-#endif
-
-        int   amountX = (int)(_worldXSize*_resolution) + 1;
-        int   amountZ = (int)(_worldZSize*_resolution) + 1;
-        var   v3      = new Godot.Vector3(0.0f, 0.0f, 0.0f);
-        float step    = 1.0f/_resolution;
-
-        for (int i = 0; i < amountX; i++) {
-            v3.X = i*step;
-
-            v3.Z = 0.0f;
-            v3.Y = 0.0f;
-            _skVertices[(int)XB.Sk.B][2*i+0] = v3;
-            v3.Y = XB.WorldData.KillPlane;
-            _skVertices[(int)XB.Sk.B][2*i+1] = v3;
-
-            v3.Z = _worldZSize;
-            v3.Y = 0.0f;
-            _skVertices[(int)XB.Sk.T][2*i+0] = v3;
-            v3.Y = XB.WorldData.KillPlane;
-            _skVertices[(int)XB.Sk.T][2*i+1] = v3;
-        }
-
-        for (int i = 0; i < amountZ; i++) {
-            v3.Z = i*step;
-
-            v3.X = _worldXSize;
-            v3.Y = 0.0f;
-            _skVertices[(int)XB.Sk.L][2*i+0] = v3;
-            v3.Y = XB.WorldData.KillPlane;
-            _skVertices[(int)XB.Sk.L][2*i+1] = v3;
-
-            v3.X = 0.0f;
-            v3.Y = 0.0f;
-            _skVertices[(int)XB.Sk.R][2*i+0] = v3;
-            v3.Y = XB.WorldData.KillPlane;
-            _skVertices[(int)XB.Sk.R][2*i+1] = v3;
-        }
-        
-        foreach(XB.Sk sk in System.Enum.GetValues(typeof(XB.Sk))) {
-            _meshDataSk[(int)sk][(int)Godot.Mesh.ArrayType.Vertex] = _skVertices[(int)sk];
-
-            _arrMeshSk[(int)sk].ClearSurfaces();
-            _arrMeshSk[(int)sk].AddSurfaceFromArrays(Godot.Mesh.PrimitiveType.Triangles,
-                                                     _meshDataSk[(int)sk]               );
-            _terrainSkirtMesh[(int)sk].Mesh = _arrMeshSk[(int)sk];
-            _terrainSkirtMesh[(int)sk].Mesh.SurfaceSetMaterial(0, _terrainSkirtMat);
-        }
-
-#if XBDEBUG
-        debug.End();
-#endif 
-    }
-
     private static void RecycleChildMesh(ref XB.QNode qNode) {
         if (qNode == null) { return; }
 #if XBDEBUG
@@ -830,7 +1024,9 @@ public class ManagerTerrain {
         for (int i = 0; i < _terrainMeshes.Count; i++) {
             if (!_terrainMeshes[i].InUse) {
                 qNode.AssignMeshContainer(_terrainMeshes[i]);
-                _terrainMeshes[i].UseMesh(qNode.XSize, qNode.ZSize, qNode.Res);
+                _terrainMeshes[i].UseMesh(qNode.XPos, qNode.ZPos, qNode.XSize, qNode.ZSize, 
+                                          _worldXSize, _worldZSize, qNode.Res              );
+                _terrainMeshes[i].SetShaderAttributes();
 #if XBDEBUG
                 debug.End();
 #endif 
@@ -843,7 +1039,9 @@ public class ManagerTerrain {
                                          qNode.XPos/_worldXSize, qNode.ZPos/_worldZSize);
         _terrainMeshes.Add(mC);
         qNode.AssignMeshContainer(_terrainMeshes[newID]);
-        _terrainMeshes[newID].UseMesh(qNode.XSize, qNode.ZSize, qNode.Res);
+        _terrainMeshes[newID].UseMesh(qNode.XPos, qNode.ZPos, qNode.XSize, qNode.ZSize, 
+                                      _worldXSize, _worldZSize, qNode.Res              );
+        _terrainMeshes[newID].SetShaderAttributes();
 
 #if XBDEBUG
         debug.End();
@@ -857,6 +1055,22 @@ public class ManagerTerrain {
 
         //Godot.GD.Print("RecycleTerrainMeshContainer " + qNode.ID);
         qNode.ReleaseMeshContainer();
+
+#if XBDEBUG
+        debug.End();
+#endif 
+    }
+
+    public static void UpdateBlockStrength(float multiplier) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainUpdateBlockStrength);
+#endif
+
+        for (int i = 0; i < _terrainMeshes.Count; i++) {
+            if (_terrainMeshes[i].InUse) {
+                _terrainMeshes[i].SetShaderAttribute("blockStr", multiplier*WorldData.BlockStrength);
+            }
+        }
 
 #if XBDEBUG
         debug.End();

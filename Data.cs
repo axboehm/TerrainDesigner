@@ -124,6 +124,17 @@ public class WorldData {
                                                             // block texture has 2x2 large squares
                                                             // with 10 subdivisions each per tile
     public static float                     BlendDepth    = 0.2f; // height blending edge
+    public static Godot.NoiseTexture2D      NoiseBombing;
+    public static Godot.Texture             BlockTex;
+    public static Godot.Texture             Terrain1CATex;
+    public static Godot.Texture             Terrain1RMTex;
+    public static Godot.Texture             Terrain1NTex;
+    public static Godot.Texture             Terrain1HTex;
+    public static Godot.Texture             Terrain2CATex;
+    public static Godot.Texture             Terrain2RMTex;
+    public static Godot.Texture             Terrain2NTex;
+    public static Godot.Texture             Terrain2HTex;
+
     public static Godot.Collections.Array   MeshData;
     public static Godot.Collections.Array[] MeshDataSk;
     public static Godot.ArrayMesh           ArrMesh;
@@ -150,35 +161,37 @@ public class WorldData {
         TerrainMat.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ScenePaths.TerrainShader);
 
         TerrainMat.SetShaderParameter("albedoMult", AlbedoMult);
-        var blockTex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.BlockTexture);
-        TerrainMat.SetShaderParameter("tBlock",   blockTex);
+        BlockTex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.BlockTexture);
+        TerrainMat.SetShaderParameter("tBlock",   BlockTex);
         TerrainMat.SetShaderParameter("blockStr", BlockStrength);
+
         var fastNoise = new Godot.FastNoiseLite();
             fastNoise.NoiseType = Godot.FastNoiseLite.NoiseTypeEnum.Perlin;
-        var noiseTex = new Godot.NoiseTexture2D();
-            noiseTex.Height          = NoiseRes;
-            noiseTex.Width           = NoiseRes;
-            noiseTex.Normalize       = true;
-            noiseTex.Seamless        = true;
-            noiseTex.GenerateMipmaps = true;
-            noiseTex.Noise           = fastNoise;
-        TerrainMat.SetShaderParameter("tNoiseP", noiseTex);
-        var terrain1CATex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain1CATex);
-        var terrain1RMTex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain1RMTex);
-        var terrain1NTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain1NTex);
-        var terrain1HTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain1HTex);
-        TerrainMat.SetShaderParameter("tAlbedoM1", terrain1CATex);
-        TerrainMat.SetShaderParameter("tRMM1",     terrain1RMTex);
-        TerrainMat.SetShaderParameter("tNormalM1", terrain1NTex );
-        TerrainMat.SetShaderParameter("tHeightM1", terrain1HTex );
-        var terrain2CATex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain2CATex);
-        var terrain2RMTex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain2RMTex);
-        var terrain2NTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain2NTex);
-        var terrain2HTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain2HTex);
-        TerrainMat.SetShaderParameter("tAlbedoM2", terrain2CATex);
-        TerrainMat.SetShaderParameter("tRMM2",     terrain2RMTex);
-        TerrainMat.SetShaderParameter("tNormalM2", terrain2NTex );
-        TerrainMat.SetShaderParameter("tHeightM2", terrain2HTex );
+        NoiseBombing = new Godot.NoiseTexture2D();
+        NoiseBombing.Noise           = fastNoise;
+        NoiseBombing.Height          = NoiseRes;
+        NoiseBombing.Width           = NoiseRes;
+        NoiseBombing.Normalize       = true;
+        NoiseBombing.Seamless        = true;
+        NoiseBombing.GenerateMipmaps = true;
+        Terrain1CATex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain1CATex);
+        Terrain1RMTex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain1RMTex);
+        Terrain1NTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain1NTex);
+        Terrain1HTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain1HTex);
+        Terrain2CATex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain2CATex);
+        Terrain2RMTex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain2RMTex);
+        Terrain2NTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain2NTex);
+        Terrain2HTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain2HTex);
+
+        TerrainMat.SetShaderParameter("tNoiseP", NoiseBombing);
+        TerrainMat.SetShaderParameter("tAlbedoM1", Terrain1CATex);
+        TerrainMat.SetShaderParameter("tRMM1",     Terrain1RMTex);
+        TerrainMat.SetShaderParameter("tNormalM1", Terrain1NTex );
+        TerrainMat.SetShaderParameter("tHeightM1", Terrain1HTex );
+        TerrainMat.SetShaderParameter("tAlbedoM2", Terrain2CATex);
+        TerrainMat.SetShaderParameter("tRMM2",     Terrain2RMTex);
+        TerrainMat.SetShaderParameter("tNormalM2", Terrain2NTex );
+        TerrainMat.SetShaderParameter("tHeightM2", Terrain2HTex );
         TerrainMat.SetShaderParameter("albVis", new Godot.Vector3(1.0f, 1.0f, 1.0f));
 
         TerrainSkirtMesh = new Godot.MeshInstance3D[4];
@@ -229,8 +242,11 @@ public class WorldData {
 
         // quadtree test
         int divisions = XB.Utils.MaxI(expX, expZ);
-        float height = 0.5f;
-        XB.ManagerTerrain.InitializeQuadTree(WorldDim.X, WorldDim.Y, height, res, divisions);
+        float height = 18.0f;
+        float resCollision = 1.0f;
+        float colliderSize = 3.0f;
+        XB.ManagerTerrain.InitializeQuadTree(WorldDim.X, WorldDim.Y, height, res,
+                                             resCollision, colliderSize, divisions);
 
 #if XBDEBUG
         debug.End();
@@ -251,8 +267,9 @@ public class WorldData {
         XB.Terrain.HeightsToMesh(ref TerrainHeights, WorldVerts.X, WorldVerts.Y, WorldRes,
                                  ref MeshData, ref ArrMesh, ref TerrainMesh, ref TerrainCollider,
                                  ref Vertices, ref UVs, ref Normals, ref Triangles, initializeArrays);
-        UpdateTerrainShader();
+        //XB.ManagerTerrain.UpdateTerrainShader();
         TerrainMesh.Hide(); ///
+        TerrainCollider.Disabled = true; ///
 
         XB.Terrain.SkirtMesh(ref Vertices, WorldVerts.X, WorldVerts.Y, (int)KillPlane,
                              ref MeshDataSk, ref ArrMeshSk, ref TerrainSkirtMesh, 
@@ -271,36 +288,7 @@ public class WorldData {
                                    LowestPoint, HighestPoint, ref XB.HUD.ImgMiniMap);
         XB.PController.Hud.UpdateMiniMap();
 
-#if XBDEBUG
-        debug.End();
-#endif 
-    }
-
-    public static void UpdateBlockStrength(float multiplier) {
-#if XBDEBUG
-        var debug = new XB.DebugTimedBlock(XB.D.WorldDataUpdateBlockStrength);
-#endif
-
-        TerrainMat.SetShaderParameter("blockStr", multiplier*BlockStrength);
-
-#if XBDEBUG
-        debug.End();
-#endif 
-    }
-
-    private static void UpdateTerrainShader() {
-#if XBDEBUG
-        var debug = new XB.DebugTimedBlock(XB.D.WorldDataUpdateTerrainShader);
-#endif
-
-        TerrainMat.SetShaderParameter("scaleX",      WorldDim.X);
-        TerrainMat.SetShaderParameter("scaleY",      WorldDim.Y);
-        TerrainMat.SetShaderParameter("blockScale",  BlockUVScale);
-        TerrainMat.SetShaderParameter("uv1Scale",    Mat1UVScale);
-        TerrainMat.SetShaderParameter("uv2Scale",    Mat2UVScale);
-        TerrainMat.SetShaderParameter("noisePScale", NoisePScale);
-        TerrainMat.SetShaderParameter("blendDepth",  BlendDepth);
-        TerrainMat.SetShaderParameter("tHeight",     XB.PController.Hud.TexMiniMap);
+        XB.ManagerTerrain.UpdateCollisionTiles(ref XB.HUD.ImgMiniMap);
 
 #if XBDEBUG
         debug.End();

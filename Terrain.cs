@@ -196,7 +196,7 @@ public class Terrain {
         for (int i = 0; i < amountX; i++) {
             for (int j = 0; j < amountY; j++) {
                 tHeights[i, j] = XB.Utils.MaxF(tHeights[i, j], tHeightsM[i, j]);
-                UpdateLowestHighest(tHeights[i, j]);
+                UpdateLowestHighest(tHeights[i, j], tHeights[i, j]);
             }
         }
 
@@ -215,7 +215,7 @@ public class Terrain {
         for (int i = 0; i < amountX; i++) {
             for (int j = 0; j < amountY; j++) {
                 tHeights[i, j] = tHeightsM[i, j];
-                UpdateLowestHighest(tHeights[i, j]);
+                UpdateLowestHighest(tHeights[i, j], tHeights[i, j]);
             }
         }
 
@@ -486,8 +486,8 @@ public class Terrain {
         float lower   = XB.Utils.LerpF(sampleC, sampleD, x-xI0);
         float result  = XB.Utils.LerpF(lower,   upper,   z-zI0);
 
-        // Godot.GD.Print(" world: " + sampleX + " / " + worldXSize + ", " + sampleZ + " / " + worldZSize);
-        // Godot.GD.Print(x + " " + z + " of " + img.GetSize() + " " + xI0 + " " + zI0);
+        // Godot.GD.Print(" world: " +sampleX +"m/" +worldXSize +"m, " +sampleZ +"m/" +worldZSize +"m");
+        // Godot.GD.Print(x + " " + z + " of " + img.GetSize() + " xI0: " + xI0 + " zI0: " + zI0);
         // Godot.GD.Print(result);
 
 #if XBDEBUG
