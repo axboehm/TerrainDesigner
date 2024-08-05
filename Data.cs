@@ -30,6 +30,7 @@ public struct Constants {
     public const float Sqrt2   = 1.41421356237f;
     public const float Deg2Rad = 0.01745329251f;
     public const float Rad2Deg = 57.2957795131f;
+    public const float Epsilon = 0.01f; // for floating point comparisons (empiric)
 }
 
 //NOTE[ALEX]: struct name intentionally kept short
