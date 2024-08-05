@@ -35,8 +35,8 @@ public partial class DebugHUD : Godot.Control {
         _trBlueNoise.Texture  = _texBlueNoise;
         AddChild(_trBlueNoise);
 
-        int sizeMMX = XB.HUD.ImgMiniMap.GetWidth();
-        int sizeMMY = XB.HUD.ImgMiniMap.GetHeight();
+        int sizeMMX = XB.WorldData.ImgMiniMap.GetWidth();
+        int sizeMMY = XB.WorldData.ImgMiniMap.GetHeight();
         if (sizeMMX > sizeMMY) {
             sizeMMX = _sizeMMMax;
             sizeMMY = _sizeMMMax*(sizeMMY/sizeMMX);
@@ -50,7 +50,7 @@ public partial class DebugHUD : Godot.Control {
                                           _dimSpacer                                              );
 
         _texMiniMap          = new Godot.ImageTexture();
-        _texMiniMap.SetImage(XB.HUD.ImgMiniMap);
+        _texMiniMap.SetImage(XB.WorldData.ImgMiniMap);
         _trMiniMap           = new Godot.TextureRect();
         _trMiniMap.Position  = posMM;
         _trMiniMap.Size      = sizeMM;
@@ -155,7 +155,7 @@ public partial class DebugHUD : Godot.Control {
         XB.ManagerTerrain.UpdateQTreeTexture(ref _imgMiniMapO,
                                              _imgMiniMapO.GetWidth()/XB.WorldData.WorldDim.X);
         _texMiniMapO.Update(_imgMiniMapO);
-        _texMiniMap.Update(XB.HUD.ImgMiniMap);
+        _texMiniMap.Update(XB.WorldData.ImgMiniMap);
     }
 
     public void ToggleDebugHUD() {
@@ -192,7 +192,6 @@ public enum D { // unique debug identifier, naming scheme: "ClassFunction"
     HUDCreateLinkingTexture,
     HUDCreateSphereTexture,
     HUDInitializeHud,
-    HUDInitializeMiniMap,
     HUDUpdateHUD,
     HUDUpdateMiniMap,
     HUDUpdateMiniMapOverlayTexture,
@@ -223,7 +222,7 @@ public enum D { // unique debug identifier, naming scheme: "ClassFunction"
     MeshContainerResetLowestHighest,
     MeshContainerSampleTerrainNoise,
     MeshContainerSetShaderAttribute,
-    MeshContainerSetShaderAttributes,
+    MeshContainerSetTerrainShaderAttributes,
     MeshContainerUpdateLowestHighest,
     MeshContainerUseMesh,
     PController_Input,

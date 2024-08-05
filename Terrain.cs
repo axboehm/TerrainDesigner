@@ -26,7 +26,7 @@ public class Terrain {
         var debug = new XB.DebugTimedBlock(XB.D.TerrainSetTerrainParameters);
 #endif
 
-        if (scale % 1.0f == 0.0f) { NoiseScale = scale + 0.5f; }
+        if (scale % 1.0f == 0.0f) { NoiseScale = scale + 0.5f; } // mitigate visible repititions
         else                      { NoiseScale = scale;        }
         Height  = height;
         OffsetX = offsetX;
@@ -224,7 +224,7 @@ public class Terrain {
 #endif 
     }
 
-    public static void HeightsToMesh(ref float[,] tHeights, int amountX, int amountY, int res,
+    public static void HeightsToMesh(ref float[,] tHeights, int amountX, int amountY, float res,
                                      ref Godot.Collections.Array mData, ref Godot.ArrayMesh arrMesh,
                                      ref Godot.MeshInstance3D mesh, ref Godot.CollisionShape3D col, 
                                      ref Godot.Vector3[] verts, ref Godot.Vector2[] uvs,
@@ -234,7 +234,7 @@ public class Terrain {
 #endif
 
         var v3 = new Godot.Vector3(0.0f, 0.0f, 0.0f);
-        float step = 1.0f/(float)res;
+        float step = 1.0f/res;
         for (int i = 0; i < verts.Length; i++) {
             int x = i%amountX;
             int z = i/amountX;
@@ -250,8 +250,8 @@ public class Terrain {
             for (int i = 0; i < uvs.Length; i++) {
                 int x = i%amountX;
                 int z = i/amountX;
-                v2.X = 1.0f - (float)x/(float)(amountX-1);
-                v2.Y = 1.0f - (float)z/(float)(amountY-1);
+                v2.X = (float)x/(float)(amountX-1);
+                v2.Y = (float)z/(float)(amountY-1);
                 uvs[i] = v2;
             }
 
@@ -449,9 +449,7 @@ public class Terrain {
         var height = new Godot.Color(0.0f, 0.0f, 1.0f, 0.0f); // only the blue value will be used
         for (int i = 0; i < amountX; i++) {
             for (int j = 0; j < amountY; j++) {
-                //NOTE[ALEX]: invert the id order because 0|0 of image is in top left
-                //            (also see XB.HUD.UpdateMiniMapOverlayTexture)
-                height.B = (tHeights[amountX-1-i, amountY-1-j] - lowest) / (highest - lowest);
+                height.B = (tHeights[i, j] - lowest) / (highest - lowest);
                 img.SetPixel(i, j, height);
             }
         }
@@ -461,20 +459,22 @@ public class Terrain {
 #endif 
     }
 
+    // takes world coordinates (negative coordinates) and world size along with heightmap
+    // returns the sampled value from the heightmap (between 0 and 1)
     public static float HeightMapSample(float sampleX, float sampleZ,
                                         float worldXSize, float worldZSize, ref Godot.Image img) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainHeightMapSample);
 #endif
 
-        float x  = (1.0f - (sampleX/worldXSize) ) * (img.GetWidth() -1);
-        float z  = (1.0f - (sampleZ/worldZSize) ) * (img.GetHeight()-1);
+        float x  = ( (-sampleX)/worldXSize) * (img.GetWidth() -1);
+        float z  = ( (-sampleZ)/worldZSize) * (img.GetHeight()-1);
         int   xI0 = (int)x;
         int   zI0 = (int)z;
         int   xI1 = XB.Utils.MinI(xI0+1, img.GetWidth() -1);
         int   zI1 = XB.Utils.MinI(zI0+1, img.GetHeight()-1);
 
-        // 0    0|0 in top left, in world: 0|0 in "bottom right"
+        // 0    0|0 in top left, in world: 0|0 in "top left", but X and Z axis go to negative
         //  AB  samples surrounding the sampled coordinates
         //  CD  sample coordinates are inside these points (including)
 
@@ -487,7 +487,8 @@ public class Terrain {
         float result  = XB.Utils.LerpF(lower,   upper,   z-zI0);
 
         // Godot.GD.Print(" world: " +sampleX +"m/" +worldXSize +"m, " +sampleZ +"m/" +worldZSize +"m");
-        // Godot.GD.Print(x + " " + z + " of " + img.GetSize() + " xI0: " + xI0 + " zI0: " + zI0);
+        // Godot.GD.Print(x + " " + z + " of " + img.GetSize() + " xI0: " + xI0 + " xI1: " + xI1
+        //                + " zI0: " + zI0 + " zI1: " + zI1                                     );
         // Godot.GD.Print(result);
 
 #if XBDEBUG

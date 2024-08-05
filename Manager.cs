@@ -222,7 +222,32 @@ public class QNode {
         XSize = xSize;
         ZSize = zSize;
         Res   = res;
+
+        //DebugPrint("Called at Creation");
     }
+
+#if XBDEBUG
+    public void DebugPrint(string note) {
+        string print = "Print Quadtree Node: " + ID.ToString() + ", Is Visible: " + Visible
+                       + " " + note + '\n';
+        print += "Ctr Pos: " + XPos.ToString() + "m " + ZPos.ToString() + "m, ";
+        print += "Size: " + XSize.ToString() + "m " + ZSize.ToString() + "m, ";
+        print += "Resolution: " + Res.ToString() + "/m\n";
+        print += "Has Parent: ";
+        if (Parent == null) { print += "No, "; }
+        else                      { print += "Yes, ID: " + Parent.ID.ToString() + ", "; }
+        print += '\n' + "Has Children: ";
+        if (Children[0] == null) { print += "No"; }
+        else                           { 
+            print += "Yes, IDs: "; 
+            for (int i = 0; i < 4; i++) {
+                print += Children[i].ID.ToString() + ", ";
+            }
+        }
+        print += '\n';
+        Godot.GD.Print(print);
+    }
+#endif
 
     public void AssignMeshContainer(XB.MeshContainer mC) {
 #if XBDEBUG
@@ -291,7 +316,7 @@ public class MeshContainer {
     public Godot.Vector3[] NormalsSkirt;
     public int[]           TrianglesTile;
     public int[]           TrianglesSkirt;
-    private const float    _skirtLength = 1.0f;
+    private const float    _skirtLength = 8.0f;
 
     public MeshContainer(Godot.Node root, int id, float lerpRAmount, float lerpGAmount) {
         MeshInst = new Godot.MeshInstance3D();
@@ -313,8 +338,8 @@ public class MeshContainer {
         Material.SetShaderParameter("tHeightM2",  XB.WorldData.Terrain2HTex );
         // visualization colors initially represent somewhat of a gradient 
         // but will quickly get shuffled around as MeshContainers get reused
-        float r = 1.0f - XB.Utils.LerpF(0.0f, 1.0f, lerpRAmount);
-        float g =        XB.Utils.LerpF(0.0f, 1.0f, lerpGAmount);
+        float r = 1.0f - XB.Utils.LerpF(0.0f, 1.0f, -lerpRAmount);
+        float g =        XB.Utils.LerpF(0.0f, 1.0f, -lerpGAmount);
         float b = XB.Random.RandomInRangeF(0.0f, 1.0f);
         var col = new Godot.Color(r, g, b, 1.0f);
         Material.SetShaderParameter("albVis",    col);
@@ -365,15 +390,15 @@ public class MeshContainer {
         TrianglesTile = new int[(XAmount-1)*(ZAmount-1)*6];
 
         Godot.Vector2 v2 = new Godot.Vector2(0.0f, 0.0f);
-        float uvStartX = 1.0f - (xPos+xSize/2.0f)/xWorldSize;
-        float uvEndX   = 1.0f - (xPos-xSize/2.0f)/xWorldSize;
-        float uvStartY = 1.0f - (zPos+zSize/2.0f)/zWorldSize;
-        float uvEndY   = 1.0f - (zPos-zSize/2.0f)/zWorldSize;
+        float uvStartX = -(xPos-xSize/2.0f)/xWorldSize;
+        float uvEndX   = -(xPos+xSize/2.0f)/xWorldSize;
+        float uvStartY = -(zPos-zSize/2.0f)/zWorldSize;
+        float uvEndY   = -(zPos+zSize/2.0f)/zWorldSize;
         for (int i = 0; i < UVsTile.Length; i++) {
             int x = i%XAmount;
             int y = i/XAmount;
-            v2.X = XB.Utils.LerpF(uvStartX, uvEndX, 1.0f - (float)x/(float)(XAmount-1));
-            v2.Y = XB.Utils.LerpF(uvStartY, uvEndY, 1.0f - (float)y/(float)(ZAmount-1));
+            v2.X = XB.Utils.LerpF(uvStartX, uvEndX, (float)x/(float)(XAmount-1));
+            v2.Y = XB.Utils.LerpF(uvStartY, uvEndY, (float)y/(float)(ZAmount-1));
             UVsTile[i] = v2;
         }
 
@@ -552,8 +577,8 @@ public class MeshContainer {
         var debug = new XB.DebugTimedBlock(XB.D.MeshContainerUpdateLowestHighest);
 #endif
 
-        LowestPoint  = float.MaxValue;
-        HighestPoint = float.MinValue;
+        LowestPoint  = XB.Utils.MinF(XB.WorldData.LowestPoint,  value);
+        HighestPoint = XB.Utils.MaxF(XB.WorldData.HighestPoint, value);
 
 #if XBDEBUG
         debug.End();
@@ -561,9 +586,9 @@ public class MeshContainer {
     }
 
     //NOTE[ALEX]: hard coded because it is very specific to the shader used
-    public void SetShaderAttributes() {
+    public void SetTerrainShaderAttributes() {
 #if XBDEBUG
-        var debug = new XB.DebugTimedBlock(XB.D.MeshContainerSetShaderAttributes);
+        var debug = new XB.DebugTimedBlock(XB.D.MeshContainerSetTerrainShaderAttributes);
 #endif
 
         Material.SetShaderParameter("scaleX",      WorldData.WorldDim.X);
@@ -626,6 +651,7 @@ public class MeshContainer {
         MeshDataTile [(int)Godot.Mesh.ArrayType.Normal] = NormalsTile;
         MeshDataSkirt[(int)Godot.Mesh.ArrayType.Vertex] = VerticesSkirt;
         MeshDataSkirt[(int)Godot.Mesh.ArrayType.Normal] = NormalsSkirt;
+
         // Godot.GD.Print("xamnt: " + XAmount + ", zamnt " + ZAmount);
         // for (int i = 0; i < VerticesSkirt.Length; i++) {
         //     Godot.GD.Print("v: " + VerticesSkirt[i] + ", n: " + NormalsSkirt[i] + ", uv: " + UVsSkirt[i]);
@@ -790,8 +816,8 @@ public class CollisionTile {
         CollShape.Shape = ArrMesh.CreateTrimeshShape();
 
 #if XBVISUALIZECOLLIDERS
-        MeshInst.Mesh = ArrMesh;
-        MeshInst.Mesh.SurfaceSetMaterial(0, MaterialVis);
+        MeshInstVis.Mesh = ArrMesh;
+        MeshInstVis.Mesh.SurfaceSetMaterial(0, MaterialVis);
 #endif
 
 #if XBDEBUG
@@ -813,32 +839,31 @@ public class ManagerTerrain {
     private static SysCG.List<XB.MeshContainer> _terrainMeshes;
     private static XB.CollisionTile[,]          _terrainColTiles;
 
+    //NOTE[ALEX]: there is no safequard against overly large worlds with high resolution
     public static void InitializeQuadTree(float xSize, float zSize, float height, float resM,
-                                          float resC, float sizeCTile, int div               ) {
+                                          float resC, float sizeCTile, float sizeMTileMin, int divMax) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainInitializeQuadTree);
 #endif
 
-        //TODO[ALEX]: adjust divisions according to size to prevent overly large tiles
         _nextID      = 0;
-        _divisions   = div;
         _resolutionM = resM;
         _resolutionC = resC;
         _sizeCTile   = sizeCTile;
         _worldXSize  = xSize;
         _worldZSize  = zSize;
         _worldHeight = height;
-        float temp   = 1;
-        // limit divisions so that tiles do not get too small 
-        // so that they would have < 2 vertices per side
-        for (int i = 0; i < div; i++) {
+
+        float temp = sizeMTileMin;
+        _divisions = 0;
+        for (int i = 0; i < divMax; i++) {
             temp *= 2;
             if (temp > _worldXSize) {
                 _divisions = i;
-                Godot.GD.Print("Divisions set to high at : " + div + ", reduced to: " + _divisions);
                 break;
             }
         }
+        _divisions = XB.Utils.MinI(_divisions, divMax);
 
         Godot.GD.Print("InitializeQuadTree with Size: " + _worldXSize + " x " + _worldZSize
                        + ", Mesh Resolution: " + _resolutionM + ", Divisions: " + _divisions
@@ -846,7 +871,7 @@ public class ManagerTerrain {
         
         // the lowest division level (highest detail) should have the specified resolution
         for (int i = 0; i < _divisions; i++) { resM = resM/2.0f; }
-        _qRoot = new XB.QNode(ref _nextID, _worldXSize/2, _worldZSize/2, 
+        _qRoot = new XB.QNode(ref _nextID, -_worldXSize/2, -_worldZSize/2, 
                               _worldXSize, _worldZSize, resM            );
 
         DivideQuadNode(ref _qRoot, _divisions);
@@ -869,7 +894,7 @@ public class ManagerTerrain {
                 colZPos = j*_sizeCTile*_resolutionC + colZSize/2.0f;
 
                 _terrainColTiles[i, j] = new XB.CollisionTile
-                    (XB.AData.MainRoot, colXPos, colZPos, colXSize, colZSize, _resolutionC,
+                    (XB.AData.MainRoot, -colXPos, -colZPos, colXSize, colZSize, _resolutionC,
                      XB.LayerMasks.EnvironmentLayer, XB.LayerMasks.EnvironmentMask         );
             }
         }
@@ -895,10 +920,10 @@ public class ManagerTerrain {
         float zSize = parent.ZSize/2.0f;
         float res   = parent.Res*2.0f;
 
-        var q1 = new XB.QNode(ref _nextID, xPos-xSize/2, zPos-zSize/2, xSize, zSize, res, parent);
-        var q2 = new XB.QNode(ref _nextID, xPos-xSize/2, zPos+zSize/2, xSize, zSize, res, parent);
-        var q3 = new XB.QNode(ref _nextID, xPos+xSize/2, zPos-zSize/2, xSize, zSize, res, parent);
-        var q4 = new XB.QNode(ref _nextID, xPos+xSize/2, zPos+zSize/2, xSize, zSize, res, parent);
+        var q1 = new XB.QNode(ref _nextID, xPos+xSize/2.0f, zPos+zSize/2.0f, xSize, zSize, res, parent);
+        var q2 = new XB.QNode(ref _nextID, xPos+xSize/2.0f, zPos-zSize/2.0f, xSize, zSize, res, parent);
+        var q3 = new XB.QNode(ref _nextID, xPos-xSize/2.0f, zPos+zSize/2.0f, xSize, zSize, res, parent);
+        var q4 = new XB.QNode(ref _nextID, xPos-xSize/2.0f, zPos-zSize/2.0f, xSize, zSize, res, parent);
 
         parent.Children[0] = q1;
         parent.Children[1] = q2;
@@ -1026,7 +1051,7 @@ public class ManagerTerrain {
                 qNode.AssignMeshContainer(_terrainMeshes[i]);
                 _terrainMeshes[i].UseMesh(qNode.XPos, qNode.ZPos, qNode.XSize, qNode.ZSize, 
                                           _worldXSize, _worldZSize, qNode.Res              );
-                _terrainMeshes[i].SetShaderAttributes();
+                _terrainMeshes[i].SetTerrainShaderAttributes();
 #if XBDEBUG
                 debug.End();
 #endif 
@@ -1041,7 +1066,7 @@ public class ManagerTerrain {
         qNode.AssignMeshContainer(_terrainMeshes[newID]);
         _terrainMeshes[newID].UseMesh(qNode.XPos, qNode.ZPos, qNode.XSize, qNode.ZSize, 
                                       _worldXSize, _worldZSize, qNode.Res              );
-        _terrainMeshes[newID].SetShaderAttributes();
+        _terrainMeshes[newID].SetTerrainShaderAttributes();
 
 #if XBDEBUG
         debug.End();
@@ -1078,30 +1103,10 @@ public class ManagerTerrain {
     }
 
 #if XBDEBUG
-    private static void PrintQNode(ref XB.QNode qNode) {
-        string print = "Print Quadtree Node: " + qNode.ID.ToString() + '\n';
-        print += "Ctr Pos: " + qNode.XPos.ToString() + "m " + qNode.ZPos.ToString() + "m, ";
-        print += "Size: " + qNode.XSize.ToString() + "m " + qNode.ZSize.ToString() + "m, ";
-        print += "Resolution: " + qNode.Res.ToString() + "/m\n";
-        print += "Has Parent: ";
-        if (qNode.Parent == null) { print += "No, "; }
-        else                      { print += "Yes, ID: " + qNode.Parent.ID.ToString() + ", "; }
-        print += '\n' + "Has Children: ";
-        if (qNode.Children[0] == null) { print += "No"; }
-        else                           { 
-            print += "Yes, IDs: "; 
-            for (int i = 0; i < 4; i++) {
-                print += qNode.Children[i].ID.ToString() + ", ";
-            }
-        }
-        print += '\n';
-        Godot.GD.Print(print);
-    }
-
     //prints tree depth first
     private static void PrintQTree(ref XB.QNode qNode) {
         if (qNode == null) { return; }
-        PrintQNode(ref qNode);
+        qNode.DebugPrint("Called by PrintQTree");
 
         PrintQTree(ref qNode.Children[0]);
         PrintQTree(ref qNode.Children[1]);
@@ -1125,18 +1130,16 @@ public class ManagerTerrain {
         if (qNode == null) { return; }
 
         if (qNode.Visible) {
-            // texture has 0|0 in top left, in world coordinates, "bottom right" has 0|0
-            int xSz  = tex.GetWidth(); 
-            int ySz  = tex.GetHeight(); 
-            int xCtr = (int)(qNode.XPos*scaleFactor);
-            int yCtr = (int)(qNode.ZPos*scaleFactor);
+            // texture has 0|0 in top left, in world coordinates, "top left" has 0|0 with negative axes
+            int xCtr = (int)(-qNode.XPos*scaleFactor);
+            int yCtr = (int)(-qNode.ZPos*scaleFactor);
             int dx   = (int)(qNode.XSize*scaleFactor);
             int dy   = (int)(qNode.ZSize*scaleFactor);
             int t    = 1;
-            XB.Utils.UpdateRect2I(xSz-xCtr-dx/2,      ySz-yCtr-dy/2,      dx, t,  ref rects[0], ref vect);
-            XB.Utils.UpdateRect2I(xSz-xCtr-dx/2,      ySz-yCtr-dy/2+dy-t, dx, t,  ref rects[1], ref vect);
-            XB.Utils.UpdateRect2I(xSz-xCtr-dx/2,      ySz-yCtr-dy/2,      t,  dy, ref rects[2], ref vect);
-            XB.Utils.UpdateRect2I(xSz-xCtr-dx/2+dx-t, ySz-yCtr-dy/2,      t,  dy, ref rects[3], ref vect);
+            XB.Utils.UpdateRect2I(xCtr-dx/2,      yCtr-dy/2,      dx, t,  ref rects[0], ref vect);
+            XB.Utils.UpdateRect2I(xCtr-dx/2,      yCtr-dy/2+dy-t, dx, t,  ref rects[1], ref vect);
+            XB.Utils.UpdateRect2I(xCtr-dx/2,      yCtr-dy/2,      t,  dy, ref rects[2], ref vect);
+            XB.Utils.UpdateRect2I(xCtr-dx/2+dx-t, yCtr-dy/2,      t,  dy, ref rects[3], ref vect);
 
             var col = XB.Col.Red.Lerp(XB.Col.Green, (float)iteration/(float)_divisions);
             for (int i = 0; i < 4; i++) { tex.FillRect(rects[i], col); }

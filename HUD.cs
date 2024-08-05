@@ -76,7 +76,6 @@ public partial class HUD : Godot.Control {
     private int                _rows     = 0;
     private int                _columns  = 0;
 
-    public  static Godot.Image ImgMiniMap;
     public  Godot.ImageTexture TexMiniMap;
     private Godot.Image        _imgMiniMapO;
     private Godot.ImageTexture _texMiniMapO;
@@ -158,6 +157,7 @@ public partial class HUD : Godot.Control {
         _trMiniMapO.Position = miniMapPosition;
         _trMiniMap.Size      = new Godot.Vector2I(_dimMMX, _dimMMY);
         _trMiniMapO.Size     = new Godot.Vector2I(_dimMMX, _dimMMY);
+        TexMiniMap.SetImage(XB.WorldData.ImgMiniMap);
         _texMiniMapO.SetImage(_imgMiniMapO);
 
         _colCross.A            = _crossAlpha;
@@ -176,26 +176,13 @@ public partial class HUD : Godot.Control {
 #endif 
     }
 
-    public void InitializeMiniMap(ref Godot.Vector2I size) {
-#if XBDEBUG
-        var debug = new XB.DebugTimedBlock(XB.D.HUDInitializeMiniMap);
-#endif
-
-        ImgMiniMap = Godot.Image.Create(size.X, size.Y, false, Godot.Image.Format.L8);
-        ImgMiniMap.Fill(XB.Col.Black);
-        TexMiniMap.SetImage(ImgMiniMap);
-
-#if XBDEBUG
-        debug.End();
-#endif 
-    }
-
+    //TODO[ALEX]: is this used when new terrain gets generated?
     public void UpdateMiniMap() {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.HUDUpdateMiniMap);
 #endif
 
-        TexMiniMap.Update(ImgMiniMap);
+        TexMiniMap.Update(XB.WorldData.ImgMiniMap);
 
 #if XBDEBUG
         debug.End();
@@ -360,12 +347,13 @@ public partial class HUD : Godot.Control {
 
         //NOTE[ALEX]: world corner is at 0|0, calculate % offset from corner
         //            texture starts at top right corner with 0|0,
-        //            world has z+ goind forward and x+ going left,
-        //            so 0|0 in world coordinates would be 1|1 in texture coordinates
-        float posX = XB.PController.PModel.GlobalPosition.X/XB.WorldData.WorldDim.X;
-        float posZ = XB.PController.PModel.GlobalPosition.Z/XB.WorldData.WorldDim.Y;
-        int   x    = (int)((1.0f-posX)*(float)_dimMMX);
-        int   z    = (int)((1.0f-posZ)*(float)_dimMMY);
+        //            world has z+ going forward and x+ going left,
+        //            so 0|0 in world coordinates is 0|0 in world coordinates
+        //            but the axes in world space go in negative direction
+        float posX = -XB.PController.PModel.GlobalPosition.X/XB.WorldData.WorldDim.X;
+        float posZ = -XB.PController.PModel.GlobalPosition.Z/XB.WorldData.WorldDim.Y;
+        int   x    = (int)(posX*(float)_dimMMX);
+        int   z    = (int)(posZ*(float)_dimMMY);
         XB.Utils.PointRectangles(x, z, _dimMMPl, ref _rects, ref _rSize, ref _vect);
         for (int i = 0; i < _rSize; i++) { _imgMiniMapO.FillRect(_rects[i], XB.Col.MPlayer); }
 

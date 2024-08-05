@@ -196,7 +196,7 @@ public partial class PController : Godot.CharacterBody3D {
         // prioritize high detail terrain around player, not camera
         XB.ManagerTerrain.UpdateQTreeMeshes(new Godot.Vector2(PModel.GlobalPosition.X,
                                                               PModel.GlobalPosition.Z),
-                                            ref XB.HUD.ImgMiniMap                      );
+                                            ref XB.WorldData.ImgMiniMap                );
         var spaceSt = RequestSpaceState(); // get spacestate for raycasting
 #if XBDEBUG
          _debugHud.UpdateDebugHUD(dt);
@@ -246,13 +246,13 @@ public partial class PController : Godot.CharacterBody3D {
         if        (GlobalPosition.Y < XB.WorldData.KillPlane || 
                    GlobalPosition.Y < (XB.WorldData.LowestPoint - XB.WorldData.LowHighExtra)) {
             SpawnPlayer(new Godot.Vector2(GlobalPosition.X, GlobalPosition.Z));
-        } else if (GlobalPosition.X < 0.0f) {
+        } else if (GlobalPosition.X > 0.0f) {
             SpawnPlayer(new Godot.Vector2(_respawnOff, GlobalPosition.Z));
-        } else if (GlobalPosition.X > XB.WorldData.WorldDim.X) {
+        } else if (GlobalPosition.X < -XB.WorldData.WorldDim.X) {
             SpawnPlayer(new Godot.Vector2(XB.WorldData.WorldDim.X-_respawnOff, GlobalPosition.Z));
-        } else if (GlobalPosition.Z < 0.0f) {
+        } else if (GlobalPosition.Z > 0.0f) {
             SpawnPlayer(new Godot.Vector2(GlobalPosition.X, _respawnOff));
-        } else if (GlobalPosition.Z > XB.WorldData.WorldDim.Y) {
+        } else if (GlobalPosition.Z < -XB.WorldData.WorldDim.Y) {
             SpawnPlayer(new Godot.Vector2(GlobalPosition.X, XB.WorldData.WorldDim.Y-_respawnOff));
         }
 
@@ -284,19 +284,19 @@ public partial class PController : Godot.CharacterBody3D {
             spV  = spV.Rotated(CCtrH.Transform.Basis.Y, CCtrH.Transform.Basis.GetEuler().Y);
         var vRot = new Godot.Vector3(v.X, 0.0f, v.Z); // as reference when rotating the player
 
-        if        (GlobalPosition.X < _respawnOff) { // limit x movement
-            v.X   = XB.Utils.MaxF(v.X, 0.0f);
-            spV.X = XB.Utils.MaxF(spV.X, 0.0f);
-        } else if (GlobalPosition.X > XB.WorldData.WorldDim.X-_respawnOff) {
-            v.X   = XB.Utils.MinF(v.X, 0.0f);
+        if        (GlobalPosition.X > -_respawnOff) { // limit x movement
+            v.X   = XB.Utils.MinF(v.X,   0.0f);
             spV.X = XB.Utils.MinF(spV.X, 0.0f);
+        } else if (GlobalPosition.X < -(XB.WorldData.WorldDim.X-_respawnOff)) {
+            v.X   = XB.Utils.MaxF(v.X,   0.0f);
+            spV.X = XB.Utils.MaxF(spV.X, 0.0f);
         } 
-        if        (GlobalPosition.Z < _respawnOff) { // limit z movement
-            v.Z   = XB.Utils.MaxF(v.Z, 0.0f);
-            spV.Z = XB.Utils.MaxF(spV.Z, 0.0f);
-        } else if (GlobalPosition.Z > XB.WorldData.WorldDim.Y-_respawnOff) {
-            v.Z   = XB.Utils.MinF(v.Z, 0.0f);
+        if        (GlobalPosition.Z > -_respawnOff) { // limit z movement
+            v.Z   = XB.Utils.MinF(v.Z,   0.0f);
             spV.Z = XB.Utils.MinF(spV.Z, 0.0f);
+        } else if (GlobalPosition.Z < -(XB.WorldData.WorldDim.Y-_respawnOff)) {
+            v.Z   = XB.Utils.MaxF(v.Z,   0.0f);
+            spV.Z = XB.Utils.MaxF(spV.Z, 0.0f);
         }
 
         // STEP 4: move using Godot's physics system
@@ -634,9 +634,9 @@ public partial class PController : Godot.CharacterBody3D {
         var debug = new XB.DebugTimedBlock(XB.D.PControllerSpawnPlayer);
 #endif
 
-        var spawnPoint  = new Godot.Vector3(XB.WorldData.WorldDim.X/2.0f, // fallback
+        var spawnPoint  = new Godot.Vector3(-XB.WorldData.WorldDim.X/2.0f, // fallback
                                             XB.WorldData.HighestPoint+XB.WorldData.LowHighExtra,
-                                            XB.WorldData.WorldDim.Y/2.0f                        );
+                                            -XB.WorldData.WorldDim.Y/2.0f                       );
         var origin      = new Godot.Vector3(spawnXZ.X,
                                             XB.WorldData.HighestPoint+XB.WorldData.LowHighExtra,
                                             spawnXZ.Y                                           );

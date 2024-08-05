@@ -77,6 +77,7 @@ public struct ScenePaths {
 }
 
 public class WorldData {
+    public static Godot.Image    ImgMiniMap;
     public static float          LowestPoint  = -1.0f;  // lowest used point used in player falling off,
                                                         // gets updated with terrain updating
     public static float          HighestPoint = +1.0f;
@@ -87,7 +88,7 @@ public class WorldData {
     public static int            VertAmount;            // total amount of terrain vertices
     public static int            SkVertAmountX;         // total amount of vertices on X skirt side
     public static int            SkVertAmountZ;
-    public static int            WorldRes     = 0;      // subdivisions per meter
+    public static float          WorldRes     = 0;      // subdivisions per meter
     public static float[,]       TerrainHeights;        // height value for each vertex
     public static float[,]       TerrainHeightsMod;     // stores calculated values to add to terrain
 
@@ -140,7 +141,8 @@ public class WorldData {
     public static Godot.ArrayMesh           ArrMesh;
     public static Godot.ArrayMesh[]         ArrMeshSk;
 
-    public static void InitializeTerrainMesh(int expX, int expZ, int res) {
+
+    public static void InitializeTerrainMesh(int expX, int expZ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.WorldDataInitializeTerrainMesh);
 #endif
@@ -183,7 +185,7 @@ public class WorldData {
         Terrain2NTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain2NTex);
         Terrain2HTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain2HTex);
 
-        TerrainMat.SetShaderParameter("tNoiseP", NoiseBombing);
+        TerrainMat.SetShaderParameter("tNoiseP",   NoiseBombing);
         TerrainMat.SetShaderParameter("tAlbedoM1", Terrain1CATex);
         TerrainMat.SetShaderParameter("tRMM1",     Terrain1RMTex);
         TerrainMat.SetShaderParameter("tNormalM1", Terrain1NTex );
@@ -211,7 +213,7 @@ public class WorldData {
         MeshData.Resize((int)Godot.Mesh.ArrayType.Max);
         ArrMesh  = new Godot.ArrayMesh();
 
-        WorldRes          = res;
+        WorldRes          = 8.0f;
         WorldDim          = new Godot.Vector2(sizeX, sizeZ);
         WorldVerts        = new Godot.Vector2I((int)(sizeX*WorldRes) +1, (int)(sizeZ*WorldRes) +1);
         TerrainHeights    = new float[WorldVerts.X, WorldVerts.Y];
@@ -222,7 +224,9 @@ public class WorldData {
         Normals           = new Godot.Vector3[VertAmount];
         Triangles         = new int[(WorldVerts.X-1)*(WorldVerts.Y-1)*6];
 
-        XB.PController.Hud.InitializeMiniMap(ref WorldVerts);
+        //TODO[ALEX]: texture is one pixel larger than required, also check with sampling
+        ImgMiniMap = Godot.Image.Create(WorldVerts.X, WorldVerts.Y, false, Godot.Image.Format.L8);
+        ImgMiniMap.Fill(XB.Col.Black);
 
         SkVertAmountX = WorldVerts.X*2;
         SkVertAmountZ = WorldVerts.Y*2;
@@ -241,12 +245,13 @@ public class WorldData {
 
 
         // quadtree test
-        int divisions = XB.Utils.MaxI(expX, expZ);
+        int divisionsMax = XB.Utils.MaxI(expX, expZ);
         float height = 18.0f;
         float resCollision = 1.0f;
-        float colliderSize = 3.0f;
-        XB.ManagerTerrain.InitializeQuadTree(WorldDim.X, WorldDim.Y, height, res,
-                                             resCollision, colliderSize, divisions);
+        float minimumTileSize = 8.0f;
+        float colliderSize    = 3.0f*minimumTileSize;
+        XB.ManagerTerrain.InitializeQuadTree(WorldDim.X, WorldDim.Y, height, WorldRes, resCollision,
+                                             colliderSize, minimumTileSize, divisionsMax            );
 
 #if XBDEBUG
         debug.End();
@@ -285,10 +290,9 @@ public class WorldData {
         }
 
         XB.Terrain.UpdateHeightMap(ref TerrainHeights, WorldVerts.X, WorldVerts.Y,
-                                   LowestPoint, HighestPoint, ref XB.HUD.ImgMiniMap);
-        XB.PController.Hud.UpdateMiniMap();
+                                   LowestPoint, HighestPoint, ref ImgMiniMap);
 
-        XB.ManagerTerrain.UpdateCollisionTiles(ref XB.HUD.ImgMiniMap);
+        XB.ManagerTerrain.UpdateCollisionTiles(ref ImgMiniMap);
 
 #if XBDEBUG
         debug.End();

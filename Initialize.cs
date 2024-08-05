@@ -32,16 +32,17 @@ public partial class Initialize : Godot.Node3D {
         XB.PersistData.SetPresetSettings(XB.SettingsPreset.Default);
         XB.PersistData.SetApplicationDefaults();
         XB.ManagerSphere.InitializeSpheres();
-        _player.InitializePController();
-        _player.InitializeHud();
-        XB.PersistData.UpdateScreen();
 
         // world dimensions given in exponent for power of 2:
         // 1 - 2m, 2 - 4m, 3 - 8m, 4 - 16m, 5 - 32m, 6 - 64m, 7 - 128m, 8 - 256m, 9 - 512m
-        XB.WorldData.InitializeTerrainMesh(6, 6, 8);
+        XB.WorldData.InitializeTerrainMesh(4, 4);
         XB.WorldData.GenerateRandomTerrain(true);
-        _player.SpawnPlayer(new Godot.Vector2(XB.WorldData.WorldDim.X/2.0f,
-                                              XB.WorldData.WorldDim.Y/2.0f));
+
+        _player.InitializePController();
+        _player.InitializeHud();
+        XB.PersistData.UpdateScreen();
+        _player.SpawnPlayer(new Godot.Vector2(-XB.WorldData.WorldDim.X/2.0f,
+                                              -XB.WorldData.WorldDim.Y/2.0f));
 
 #if XBDEBUG
         _player.InitializeDebugHud();
