@@ -160,8 +160,14 @@ public class ManagerSphere {
 
         // recalculate and assign terrain
         for (int i = 0; i < MaxSphereAmount; i++) {
+            if (Spheres[i].Active) {
+                XB.WorldData.ApplySphereCone(Spheres[i].GlobalPosition, Spheres[i].Radius,
+                                             Spheres[i].Angle                             );
+            }
             Spheres[i].RemoveSphere();
         }
+
+        XB.WorldData.UpdateTerrain(false);
 
 #if XBDEBUG
         debug.End();
@@ -1167,6 +1173,42 @@ public class ManagerTerrain {
 
         //Godot.GD.Print("RecycleTerrainMeshContainer " + qNode.ID);
         qNode.ReleaseMeshContainer();
+
+#if XBDEBUG
+        debug.End();
+#endif 
+    }
+
+    public static void ResampleMeshes(ref Godot.Image imgHeightMap) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainResampleMeshes);
+#endif
+
+        ResampleQNode(ref _qRoot, ref imgHeightMap);
+
+#if XBDEBUG
+        debug.End();
+#endif 
+    }
+
+    private static void ResampleQNode(ref XB.QNode qNode, ref Godot.Image imgHeightMap) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainResampleMeshes);
+#endif
+
+        if (qNode == null) { //NOTE[ALEX]: this should never happen
+            Godot.GD.Print("ResampleQNode with null child");
+            return;
+        }
+
+        if (qNode.Visible) {
+            qNode.UpdateAssignedMesh(_worldXSize, _worldZSize, _worldHeight, ref imgHeightMap);
+        } else {
+            ResampleQNode(ref qNode.Children[0], ref imgHeightMap);
+            ResampleQNode(ref qNode.Children[1], ref imgHeightMap);
+            ResampleQNode(ref qNode.Children[2], ref imgHeightMap);
+            ResampleQNode(ref qNode.Children[3], ref imgHeightMap);
+        }
 
 #if XBDEBUG
         debug.End();

@@ -53,7 +53,8 @@ public partial class PController : Godot.CharacterBody3D {
     private       bool  _thirdP          = true;
     private       bool  _canShoot        = false;
     private const float _respawnOff      = 0.5f;
-    private const float _sphereSpawnDist = 2.0f; // distance to newly placed sphere in meter
+    private const float _sphereSpawnDist = 2.0f;  // distance to newly placed sphere in meter
+    private       bool  _spawn           = false; // spawn player delayed for raycast to work
 
     // audio
     //NOTE[ALEX]: exporting the array directly does not consistently work in Godot 4.2.2 (bug)
@@ -127,6 +128,7 @@ public partial class PController : Godot.CharacterBody3D {
 
         _thirdP = true;
         _cDist  = XB.AData.CamMaxDist;
+        _spawn  = false;
 
         _hairMat = (Godot.BaseMaterial3D)GetNode<Godot.MeshInstance3D>
                        (_hairNode).GetSurfaceOverrideMaterial(0);
@@ -206,6 +208,13 @@ public partial class PController : Godot.CharacterBody3D {
              debug.End();
 #endif
             return;
+        }
+
+
+        // SPAWNPLAYER
+        if (_spawn) {
+            _spawn = false;
+            SpawnPlayerDelayed();
         }
 
 
@@ -607,6 +616,7 @@ public partial class PController : Godot.CharacterBody3D {
             _debugHud.TogglePauseDebug();
         }
         if (XB.AData.Input.Debug3) {
+            SpawnPlayer(new Godot.Vector2(GlobalPosition.X, GlobalPosition.Z));
             Godot.GD.Print("Debug3");
         }
         if (XB.AData.Input.Debug4) {
@@ -629,24 +639,48 @@ public partial class PController : Godot.CharacterBody3D {
 #endif 
     }
 
+    //NOTE[ALEX]: if a raycast happens in the same frame that a mesh gets assigned,
+    //            then that mesh will not be hit, 
+    //            to avoid this, SpawnPlayer is called one frame delayed
     public void SpawnPlayer(Godot.Vector2 spawnXZ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.PControllerSpawnPlayer);
 #endif
 
+        _spawn = true;
+        Godot.GD.Print("spawnplayer");
+
+        var spawnPoint = new Godot.Vector3(-XB.WorldData.WorldDim.X/2.0f, // fallback
+                                           XB.WorldData.HighestPoint+XB.WorldData.LowHighExtra,
+                                           -XB.WorldData.WorldDim.Y/2.0f                       );
+
+        GlobalPosition = spawnPoint;
+
+#if XBDEBUG
+        debug.End();
+#endif 
+    }
+
+    //TODO[ALEX]: when generating terrain, raycast still does not work properly
+    private void SpawnPlayerDelayed() {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.PControllerSpawnPlayerDelayed);
+#endif
+
+        Godot.GD.Print("spawnplayerdelayed");
         var spawnPoint  = new Godot.Vector3(-XB.WorldData.WorldDim.X/2.0f, // fallback
                                             XB.WorldData.HighestPoint+XB.WorldData.LowHighExtra,
                                             -XB.WorldData.WorldDim.Y/2.0f                       );
-        var origin      = new Godot.Vector3(spawnXZ.X,
+        var origin      = new Godot.Vector3(spawnPoint.X,
                                             XB.WorldData.HighestPoint+XB.WorldData.LowHighExtra,
-                                            spawnXZ.Y                                           );
-        var destination = new Godot.Vector3(spawnXZ.X, 
+                                            spawnPoint.Z                                           );
+        var destination = new Godot.Vector3(spawnPoint.X, 
                                             XB.WorldData.LowestPoint -XB.WorldData.LowHighExtra,
-                                            spawnXZ.Y                                           );
+                                            spawnPoint.Z                                           );
         var resultCD    = XB.Utils.Raycast(RequestSpaceState(), origin, destination,
                                            XB.LayerMasks.EnvironmentMask            );
+        Godot.GD.Print(spawnPoint + " " + origin + " " + destination);
         if (resultCD.Count > 0) {
-            //TODO[ALEX]: the raycast does not hit the generated terrain for some reason
             Godot.GD.Print("hit");
             spawnPoint    = (Godot.Vector3)resultCD["position"];
             spawnPoint.Y += _respawnOff;

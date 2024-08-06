@@ -86,63 +86,39 @@ public class WorldData {
     public static float          KillPlane    = -4096.0f; // fallback for the player falling off
     public static Godot.Vector2  WorldDim;              // world dimensions in meters
     public static Godot.Vector2I WorldVerts;
-    public static int            VertAmount;            // total amount of terrain vertices
-    public static int            SkVertAmountX;         // total amount of vertices on X skirt side
-    public static int            SkVertAmountZ;
     public static float          WorldRes     = 0;      // subdivisions per meter
+    public static float          CollisionRes = 1.0f;
+    public static float          TerrainTileMinimum = 8.0f;
+    public static float          ColliderSizeMult   = 3.0f; // multiplied with TerrainTileMinimum
+    public static float          TerrainHeight      = 10.0f;
+    public static int            TerrainDivisionsMax = 6;
     public static float[,]       TerrainHeights;        // height value for each vertex
     public static float[,]       TerrainHeightsMod;     // stores calculated values to add to terrain
 
-    public static Godot.MeshInstance3D      TerrainMesh;
-    public static Godot.Vector3[]           Vertices;
-    public static Godot.Vector2[]           UVs;
-    public static Godot.Vector3[]           Normals;
-    public static int[]                     Triangles;
-    public static Godot.MeshInstance3D[]    TerrainSkirtMesh; // black sides
-    public static Godot.Vector3[]           SkVerticesX0;
-    public static Godot.Vector3[]           SkVerticesX1;
-    public static Godot.Vector3[]           SkVerticesZ0;
-    public static Godot.Vector3[]           SkVerticesZ1;
-    public static Godot.Vector3[]           SkNormalsX0;
-    public static Godot.Vector3[]           SkNormalsX1;
-    public static Godot.Vector3[]           SkNormalsZ0;
-    public static Godot.Vector3[]           SkNormalsZ1;
-    public static int[]                     SkTrianglesX0;
-    public static int[]                     SkTrianglesX1;
-    public static int[]                     SkTrianglesZ0;
-    public static int[]                     SkTrianglesZ1;
-    public static Godot.StaticBody3D        TerrainStaticBody;
-    public static Godot.CollisionShape3D    TerrainCollider;
-    public static Godot.ShaderMaterial      TerrainMat;
-    public static Godot.ShaderMaterial      TerrainSkirtMat;
-    public static float                     BlockStrength = 0.6f;
-    public static int                       NoiseRes      = 256; // resolution of large scale noise
-                                                                 // texture for texture bombing
-    public static float                     AlbedoMult    = 0.6f;
-    public static float                     Mat1UVScale   = 1.0f/4.0f; // empirical value
-    public static float                     Mat2UVScale   = 1.0f/4.0f; // empirical value
-    public static float                     NoisePScale   = 0.1f;  // perlin noise for bombing
-    public static float                     BlockUVScale  = 1.0f/(2.0f*10.0f); 
+    public static float                BlockStrength = 0.6f;
+    public static int                  NoiseRes      = 256; // resolution of large scale noise
+                                                            // texture for texture bombing
+    public static float                AlbedoMult    = 0.6f;
+    public static float                Mat1UVScale   = 1.0f/4.0f; // empirical value
+    public static float                Mat2UVScale   = 1.0f/4.0f; // empirical value
+    public static float                NoisePScale   = 0.1f;  // perlin noise for bombing
+    public static float                BlockUVScale  = 1.0f/(2.0f*10.0f); 
                                                             // block texture has 2x2 large squares
                                                             // with 10 subdivisions each per tile
-    public static float                     BlendDepth    = 0.2f; // height blending edge
-    public static Godot.NoiseTexture2D      NoiseBombing;
-    public static Godot.Texture             BlockTex;
-    public static Godot.Texture             Terrain1CATex;
-    public static Godot.Texture             Terrain1RMTex;
-    public static Godot.Texture             Terrain1NTex;
-    public static Godot.Texture             Terrain1HTex;
-    public static Godot.Texture             Terrain2CATex;
-    public static Godot.Texture             Terrain2RMTex;
-    public static Godot.Texture             Terrain2NTex;
-    public static Godot.Texture             Terrain2HTex;
-
-    public static Godot.Collections.Array   MeshData;
-    public static Godot.Collections.Array[] MeshDataSk;
-    public static Godot.ArrayMesh           ArrMesh;
-    public static Godot.ArrayMesh[]         ArrMeshSk;
+    public static float                BlendDepth    = 0.2f; // height blending edge
+    public static Godot.NoiseTexture2D NoiseBombing;
+    public static Godot.Texture        BlockTex;
+    public static Godot.Texture        Terrain1CATex;
+    public static Godot.Texture        Terrain1RMTex;
+    public static Godot.Texture        Terrain1NTex;
+    public static Godot.Texture        Terrain1HTex;
+    public static Godot.Texture        Terrain2CATex;
+    public static Godot.Texture        Terrain2RMTex;
+    public static Godot.Texture        Terrain2NTex;
+    public static Godot.Texture        Terrain2HTex;
 
 
+    //TODO[ALEX]: z direction edges are off, x direction is correct
     public static void InitializeTerrainMesh(int expX, int expZ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.WorldDataInitializeTerrainMesh);
@@ -150,23 +126,6 @@ public class WorldData {
 
         float sizeX = (float)System.Math.Pow(2, expX);
         float sizeZ = (float)System.Math.Pow(2, expZ);
-
-        TerrainMesh       = new Godot.MeshInstance3D();
-        XB.AData.MainRoot.AddChild(TerrainMesh);
-        TerrainStaticBody = new Godot.StaticBody3D();
-        TerrainMesh.AddChild(TerrainStaticBody);
-        TerrainCollider   = new Godot.CollisionShape3D();
-        TerrainStaticBody.AddChild(TerrainCollider);
-        TerrainStaticBody.CollisionLayer = XB.LayerMasks.EnvironmentLayer;
-        TerrainStaticBody.CollisionMask  = XB.LayerMasks.EnvironmentMask;
-
-        TerrainMat        = new Godot.ShaderMaterial();
-        TerrainMat.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ScenePaths.TerrainShader);
-
-        TerrainMat.SetShaderParameter("albedoMult", AlbedoMult);
-        BlockTex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.BlockTexture);
-        TerrainMat.SetShaderParameter("tBlock",   BlockTex);
-        TerrainMat.SetShaderParameter("blockStr", BlockStrength);
 
         var fastNoise = new Godot.FastNoiseLite();
             fastNoise.NoiseType = Godot.FastNoiseLite.NoiseTypeEnum.Perlin;
@@ -186,80 +145,22 @@ public class WorldData {
         Terrain2NTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain2NTex);
         Terrain2HTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain2HTex);
 
-        TerrainMat.SetShaderParameter("tNoiseP",   NoiseBombing);
-        TerrainMat.SetShaderParameter("tAlbedoM1", Terrain1CATex);
-        TerrainMat.SetShaderParameter("tRMM1",     Terrain1RMTex);
-        TerrainMat.SetShaderParameter("tNormalM1", Terrain1NTex );
-        TerrainMat.SetShaderParameter("tHeightM1", Terrain1HTex );
-        TerrainMat.SetShaderParameter("tAlbedoM2", Terrain2CATex);
-        TerrainMat.SetShaderParameter("tRMM2",     Terrain2RMTex);
-        TerrainMat.SetShaderParameter("tNormalM2", Terrain2NTex );
-        TerrainMat.SetShaderParameter("tHeightM2", Terrain2HTex );
-        TerrainMat.SetShaderParameter("albVis", new Godot.Vector3(1.0f, 1.0f, 1.0f));
-
-        TerrainSkirtMesh = new Godot.MeshInstance3D[4];
-        TerrainSkirtMat  = new Godot.ShaderMaterial();
-        TerrainSkirtMat.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ScenePaths.TSkirtShader);
-        MeshDataSk = new Godot.Collections.Array[4];
-        ArrMeshSk  = new Godot.ArrayMesh[4];
-        for (int i = 0; i < 4; i++) {
-            TerrainSkirtMesh[i] = new Godot.MeshInstance3D();
-            XB.AData.MainRoot.AddChild(TerrainSkirtMesh[i]);
-            MeshDataSk[i] = new Godot.Collections.Array();
-            MeshDataSk[i].Resize((int)Godot.Mesh.ArrayType.Max);
-            ArrMeshSk[i] = new Godot.ArrayMesh();
-        }
-
-        MeshData = new Godot.Collections.Array();
-        MeshData.Resize((int)Godot.Mesh.ArrayType.Max);
-        ArrMesh  = new Godot.ArrayMesh();
-
         WorldRes          = 8.0f;
         WorldDim          = new Godot.Vector2(sizeX, sizeZ);
         WorldVerts        = new Godot.Vector2I((int)(sizeX*WorldRes) +1, (int)(sizeZ*WorldRes) +1);
         TerrainHeights    = new float[WorldVerts.X, WorldVerts.Y];
         TerrainHeightsMod = new float[WorldVerts.X, WorldVerts.Y];
-        VertAmount        = WorldVerts.X*WorldVerts.Y;
-        Vertices          = new Godot.Vector3[VertAmount];
-        UVs               = new Godot.Vector2[VertAmount];
-        Normals           = new Godot.Vector3[VertAmount];
-        Triangles         = new int[(WorldVerts.X-1)*(WorldVerts.Y-1)*6];
 
-        //TODO[ALEX]: texture is one pixel larger than required, also check with sampling
-        ImgMiniMap = Godot.Image.Create(WorldVerts.X, WorldVerts.Y, false, Godot.Image.Format.L8);
+        ImgMiniMap = Godot.Image.Create((int)(sizeX*WorldRes), (int)(sizeZ*WorldRes),
+                                              false, Godot.Image.Format.L8           );
         ImgMiniMap.Fill(XB.Col.Black);
-
-        SkVertAmountX = WorldVerts.X*2;
-        SkVertAmountZ = WorldVerts.Y*2;
-        SkVerticesX0  = new Godot.Vector3[SkVertAmountX];
-        SkVerticesX1  = new Godot.Vector3[SkVertAmountX];
-        SkVerticesZ0  = new Godot.Vector3[SkVertAmountZ];
-        SkVerticesZ1  = new Godot.Vector3[SkVertAmountZ];
-        SkNormalsX0   = new Godot.Vector3[SkVertAmountX];
-        SkNormalsX1   = new Godot.Vector3[SkVertAmountX];
-        SkNormalsZ0   = new Godot.Vector3[SkVertAmountZ];
-        SkNormalsZ1   = new Godot.Vector3[SkVertAmountZ];
-        SkTrianglesX0 = new int[(WorldVerts.X-1)*6];
-        SkTrianglesX1 = new int[(WorldVerts.X-1)*6];
-        SkTrianglesZ0 = new int[(WorldVerts.Y-1)*6];
-        SkTrianglesZ1 = new int[(WorldVerts.Y-1)*6];
-
-
-        // quadtree test
-        int divisionsMax = XB.Utils.MaxI(expX, expZ);
-        float height = 18.0f;
-        float resCollision = 1.0f;
-        float minimumTileSize = 8.0f;
-        float colliderSize    = 3.0f*minimumTileSize;
-        XB.ManagerTerrain.InitializeQuadTree(WorldDim.X, WorldDim.Y, height, WorldRes, resCollision,
-                                             colliderSize, minimumTileSize, divisionsMax            );
 
 #if XBDEBUG
         debug.End();
 #endif 
     }
 
-    public static void GenerateRandomTerrain(bool initializeArrays = false) {
+    public static void GenerateRandomTerrain() {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.WorldDataGenerateRandomTerrain);
 #endif
@@ -270,30 +171,51 @@ public class WorldData {
         XB.Terrain.FBM(WorldVerts.X, WorldVerts.Y, WorldDim.X, WorldDim.Y);
         XB.Terrain.HeightReplace(ref TerrainHeights, ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y);
 
-        XB.Terrain.HeightsToMesh(ref TerrainHeights, WorldVerts.X, WorldVerts.Y, WorldRes,
-                                 ref MeshData, ref ArrMesh, ref TerrainMesh, ref TerrainCollider,
-                                 ref Vertices, ref UVs, ref Normals, ref Triangles, initializeArrays);
-        //XB.ManagerTerrain.UpdateTerrainShader();
-        TerrainMesh.Hide(); ///
-        TerrainCollider.Disabled = true; ///
+#if XBDEBUG
+        debug.End();
+#endif 
+    }
 
-        XB.Terrain.SkirtMesh(ref Vertices, WorldVerts.X, WorldVerts.Y, (int)KillPlane,
-                             ref MeshDataSk, ref ArrMeshSk, ref TerrainSkirtMesh, 
-                             ref SkVerticesX0, ref SkVerticesX1, ref SkVerticesZ0, ref SkVerticesZ1,
-                             ref SkNormalsX0, ref SkNormalsX1, ref SkNormalsZ0, ref SkNormalsZ1, 
-                             ref SkTrianglesX0, ref SkTrianglesX1, ref SkTrianglesZ0, ref SkTrianglesZ1,
-                             initializeArrays                                                           );
+    public static void UpdateTerrain(bool reInitialize) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.WorldDataUpdateTerrain);
+#endif
 
-        TerrainMesh.Mesh.SurfaceSetMaterial(0, TerrainMat);
-        for (int i = 0; i < 4; i++) { 
-            TerrainSkirtMesh[i].Mesh.SurfaceSetMaterial(0, TerrainSkirtMat); 
-            TerrainSkirtMesh[i].Hide(); ///
+        XB.Terrain.UpdateHeightMap(ref TerrainHeights, LowestPoint, HighestPoint, ref ImgMiniMap);
+        XB.PController.Hud.UpdateMiniMap();
+
+        if (reInitialize) {
+            XB.ManagerTerrain.InitializeQuadTree(WorldDim.X, WorldDim.Y, TerrainHeight, WorldRes,
+                                                 CollisionRes, ColliderSizeMult*TerrainTileMinimum,
+                                                 TerrainTileMinimum, TerrainDivisionsMax           );
+        } else {
+            XB.ManagerTerrain.ResampleMeshes(ref ImgMiniMap);
         }
 
-        XB.Terrain.UpdateHeightMap(ref TerrainHeights, WorldVerts.X, WorldVerts.Y,
-                                   LowestPoint, HighestPoint, ref ImgMiniMap);
-
         XB.ManagerTerrain.UpdateCollisionTiles(ref ImgMiniMap);
+
+#if XBDEBUG
+        debug.End();
+#endif 
+    }
+
+    // takes angle in degrees
+    public static void ApplySphereCone(Godot.Vector3 pos, float radius, float angle) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.WorldDataApplySphereCone);
+#endif
+
+        // Godot.GD.Print("ApplySphereCone with p: " + pos + ", r: " + radius + ", a: " + angle);
+        
+        XB.Terrain.Cone(ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y,
+                        WorldDim.X, WorldDim.Y, pos.X, pos.Z,
+                        radius, angle*XB.Constants.Deg2Rad, pos.Y, XB.Direction.Up);
+        XB.Terrain.HeightMax(ref TerrainHeights, ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y);
+        XB.Terrain.Cone(ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y,
+                        WorldDim.X, WorldDim.Y, pos.X, pos.Z,
+                        radius, angle*XB.Constants.Deg2Rad, pos.Y, XB.Direction.Down);
+        XB.Terrain.HeightMin(ref TerrainHeights, ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y);
+        TerrainHeight = HighestPoint - LowestPoint;
 
 #if XBDEBUG
         debug.End();

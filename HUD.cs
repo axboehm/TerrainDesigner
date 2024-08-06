@@ -157,7 +157,6 @@ public partial class HUD : Godot.Control {
         _trMiniMapO.Position = miniMapPosition;
         _trMiniMap.Size      = new Godot.Vector2I(_dimMMX, _dimMMY);
         _trMiniMapO.Size     = new Godot.Vector2I(_dimMMX, _dimMMY);
-        TexMiniMap.SetImage(XB.WorldData.ImgMiniMap);
         _texMiniMapO.SetImage(_imgMiniMapO);
 
         _colCross.A            = _crossAlpha;
@@ -182,6 +181,7 @@ public partial class HUD : Godot.Control {
         var debug = new XB.DebugTimedBlock(XB.D.HUDUpdateMiniMap);
 #endif
 
+        TexMiniMap.SetImage(XB.WorldData.ImgMiniMap);
         TexMiniMap.Update(XB.WorldData.ImgMiniMap);
 
 #if XBDEBUG

@@ -36,6 +36,7 @@ public partial class Menu : Godot.Control {
     [Godot.Export] private Godot.Button   _bQuit;
     [Godot.Export] private Godot.Button   _bGenerate;
     [Godot.Export] private Godot.LineEdit _leGenSeed;
+    [Godot.Export] private Godot.Button   _bApplySpheres;
 
     // system tab
     [Godot.Export] private Godot.TabContainer _tabSys;
@@ -114,6 +115,7 @@ public partial class Menu : Godot.Control {
         _bGenerate.Pressed     += ButtonGenerateTerrainOnPressed;
         _leGenSeed.TextChanged += LineEditGenerateSeedOnTextChanged;
         _leGenSeed.MaxLength    = 8;
+        _bApplySpheres.Pressed += ButtonApplySpheresOnPressed;
 
         // system tab
         _bApplyCode.Pressed    += ButtonApplyCodeOnPressed;
@@ -693,7 +695,6 @@ public partial class Menu : Godot.Control {
         ShowMessage(Tr("SETCODE_APPLIED"));
     }
 
-    //TODO[ALEX]: this breaks the tiles until refreshing them by walking
     private void ButtonGenerateTerrainOnPressed() {
         uint seed = 0;
         if (System.UInt32.TryParse(_leGenSeed.Text, out seed)) {
@@ -701,10 +702,21 @@ public partial class Menu : Godot.Control {
             seed = (uint)System.DateTime.Now.GetHashCode();
         }
         XB.Random.InitializeRandom(seed);
-        XB.WorldData.GenerateRandomTerrain(false);
+        XB.WorldData.GenerateRandomTerrain();
+        XB.WorldData.UpdateTerrain(false);
+
         _player.SpawnPlayer(new Godot.Vector2(XB.WorldData.WorldDim.X/2.0f,
                                               XB.WorldData.WorldDim.Y/2.0f));
         ShowMessage(Tr("GENERATED_TERRAIN"));
+        ButtonResumeOnPressed();
+    }
+
+    private void ButtonApplySpheresOnPressed() {
+        XB.ManagerSphere.ApplyTerrain();
+        _player.SpawnPlayer(new Godot.Vector2(_player.GlobalPosition.X,
+                                              _player.GlobalPosition.Z));
+        ShowMessage(Tr("APPLIED_SPHERES"));
+        ButtonResumeOnPressed();
     }
 
     private void LineEditGenerateSeedOnTextChanged(string text) {

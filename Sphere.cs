@@ -21,6 +21,8 @@ public partial class Sphere : Godot.CharacterBody3D {
     public float Highlighted = 0.0f;
     public bool  Linked      = false;
     public bool  LinkedTo    = false;
+    public float Radius      = 0.0f;
+    public float Angle       = 0.0f; // in degrees
     public XB.SphereTexSt TexSt = XB.SphereTexSt.Inactive;
     private SysCG.List<XB.Sphere> _linkedSpheres = new SysCG.List<XB.Sphere>();
 
@@ -39,7 +41,15 @@ public partial class Sphere : Godot.CharacterBody3D {
         var debug = new XB.DebugTimedBlock(XB.D.SphereInitializeSphere);
 #endif
 
-        ID             = id;
+        ID          = id;
+        Active      = false;
+        Highlighted = 0.0f;
+        Linked      = false;
+        LinkedTo    = false;
+        Radius      = 0.0f;
+        Radius      = 1.0f; //TODO[ALEX]: test
+        Angle       = 0.0f;
+        Angle       = 70.0f; //TODO[ALEX]: test
         CollisionLayer = XB.LayerMasks.SphereLayer;
 
         _shellMat  = (Godot.ShaderMaterial)GetNode<Godot.MeshInstance3D>
