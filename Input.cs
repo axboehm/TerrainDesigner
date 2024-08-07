@@ -128,8 +128,8 @@ public partial class Input : Godot.Node {
         // d pad
         if (Godot.Input.IsActionJustPressed("DUp"))    { DUp     = true; }  // unused
         if (Godot.Input.IsActionJustPressed("DDown"))  { DDown   = true; }  // toggle 1st/3rd person
-        if (Godot.Input.IsActionJustPressed("DLeft"))  { DLeft   = true; }  // unused
-        if (Godot.Input.IsActionJustPressed("DRight")) { DRight  = true; }  // unused
+        if (Godot.Input.IsActionPressed    ("DLeft"))  { DLeft   = true; }  // sphere radius modifier
+        if (Godot.Input.IsActionPressed    ("DRight")) { DRight  = true; }  // sphere angle modifier
         // face buttons
         if (Godot.Input.IsActionJustPressed("FUp"))    { FUp     = true; }  // link
         if (Godot.Input.IsActionJustPressed("FDown"))  { FDown   = true; }  // jump
@@ -140,7 +140,7 @@ public partial class Input : Godot.Node {
         if (Godot.Input.IsActionPressed    ("SLBot"))  { SLBot   = true; }  // aim
         // right shoulder buttons
         if (Godot.Input.IsActionJustPressed("SRTop"))  { SRTop   = true; }  // remove sphere
-        if (Godot.Input.IsActionPressed    ("SRBot"))  { SRBot   = true; }  // shoot / unused
+        if (Godot.Input.IsActionPressed    ("SRBot"))  { SRBot   = true; }  // drag sphere
 
 
 #if XBDEBUG
@@ -229,10 +229,10 @@ public partial class Input : Godot.Node {
                         iEvent.Keycode = Godot.Key.Q;
                     } break;
                     case "DLeft": {
-                        iEvent.Keycode = Godot.Key.Z;
+                        iEvent.Keycode = Godot.Key.Shift;
                     } break;
                     case "DRight": {
-                        iEvent.Keycode = Godot.Key.C;
+                        iEvent.Keycode = Godot.Key.Ctrl;
                     } break;
                     case "FUp": {
                         iEvent.Keycode = Godot.Key.F;

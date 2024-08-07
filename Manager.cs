@@ -159,6 +159,7 @@ public class ManagerSphere {
 #endif
 
         // recalculate and assign terrain
+        //TODO[ALEX]: apply dam geometry
         for (int i = 0; i < MaxSphereAmount; i++) {
             if (Spheres[i].Active) {
                 XB.WorldData.ApplySphereCone(Spheres[i].GlobalPosition, Spheres[i].Radius,

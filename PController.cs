@@ -597,10 +597,24 @@ public partial class PController : Godot.CharacterBody3D {
                     XB.ManagerSphere.Spheres[XB.ManagerSphere.HLSphereID].RemoveSphere();
                 }
             }
-            if (_canShoot && XB.AData.Input.SRBot) {
+            if (_canShoot && XB.AData.Input.SRBot
+                    && !XB.AData.Input.DLeft && !XB.AData.Input.DRight) {
                 if (XB.ManagerSphere.HLSphereID < XB.ManagerSphere.MaxSphereAmount) {
                     XB.ManagerSphere.Spheres[XB.ManagerSphere.HLSphereID].MoveSphere
                         (_cam.GlobalTransform, _camTransPrev, spaceSt, spV*dt);
+                }
+            }
+            //TODO[ALEX]: this should continue until let go of mouse, not when sphere is out of reticle
+            if (_canShoot && XB.AData.Input.DLeft && XB.AData.Input.SRBot) {
+                if (XB.ManagerSphere.HLSphereID < XB.ManagerSphere.MaxSphereAmount) {
+                    XB.ManagerSphere.Spheres[XB.ManagerSphere.HLSphereID].ChangeSphereRadius
+                        (XB.AData.Input.CamY*dt);
+                }
+            }
+            if (_canShoot && XB.AData.Input.DRight && XB.AData.Input.SRBot) {
+                if (XB.ManagerSphere.HLSphereID < XB.ManagerSphere.MaxSphereAmount) {
+                    XB.ManagerSphere.Spheres[XB.ManagerSphere.HLSphereID].ChangeSphereAngle
+                        (XB.AData.Input.CamY*dt);
                 }
             }
         }
