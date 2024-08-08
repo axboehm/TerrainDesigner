@@ -79,18 +79,16 @@ public struct ScenePaths {
 
 public class WorldData {
     public static Godot.Image    ImgMiniMap;
-    public static float          LowestPoint  = -1.0f;  // lowest used point used in player falling off,
-                                                        // gets updated with terrain updating
-    public static float          HighestPoint = +1.0f;
-    public static float          LowHighExtra = 1.0f;   // additional amount for hidh/low updating
+    public static float          LowestPoint  = -1.0f;  // lowest y coordinate in world
+    public static float          HighestPoint = +1.0f;  // highest y coordinate in world
+    public static float          LowHighExtra = 1.0f;   // buffer amount for high/low updating
     public static float          KillPlane    = -4096.0f; // fallback for the player falling off
     public static Godot.Vector2  WorldDim;              // world dimensions in meters
     public static Godot.Vector2I WorldVerts;
-    public static float          WorldRes     = 0;      // subdivisions per meter
-    public static float          CollisionRes = 1.0f;
-    public static float          TerrainTileMinimum = 8.0f;
-    public static float          ColliderSizeMult   = 3.0f; // multiplied with TerrainTileMinimum
-    public static float          TerrainHeight      = 10.0f;
+    public static float          WorldRes            = 0;    // subdivisions per meter
+    public static float          CollisionRes        = 1.0f;
+    public static float          TerrainTileMinimum  = 8.0f;
+    public static float          ColliderSizeMult    = 3.0f; // multiplied with TerrainTileMinimum
     public static int            TerrainDivisionsMax = 6;
     public static float[,]       TerrainHeights;        // height value for each vertex
     public static float[,]       TerrainHeightsMod;     // stores calculated values to add to terrain
@@ -171,6 +169,8 @@ public class WorldData {
         XB.Terrain.FBM(WorldVerts.X, WorldVerts.Y, WorldDim.X, WorldDim.Y);
         XB.Terrain.HeightReplace(ref TerrainHeights, ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y);
 
+        Godot.GD.Print("Generate Terrain: LP: " + LowestPoint + ", HP: " + HighestPoint);
+
 #if XBDEBUG
         debug.End();
 #endif 
@@ -182,17 +182,17 @@ public class WorldData {
 #endif
 
         XB.Terrain.UpdateHeightMap(ref TerrainHeights, LowestPoint, HighestPoint, ref ImgMiniMap);
-        XB.PController.Hud.UpdateMiniMap();
+        XB.PController.Hud.UpdateMiniMap(LowestPoint, HighestPoint);
 
         if (reInitialize) {
-            XB.ManagerTerrain.InitializeQuadTree(WorldDim.X, WorldDim.Y, TerrainHeight, WorldRes,
+            XB.ManagerTerrain.InitializeQuadTree(WorldDim.X, WorldDim.Y, WorldRes,
                                                  CollisionRes, ColliderSizeMult*TerrainTileMinimum,
                                                  TerrainTileMinimum, TerrainDivisionsMax           );
         } else {
-            XB.ManagerTerrain.ResampleMeshes(ref ImgMiniMap);
+            XB.ManagerTerrain.ResampleMeshes(LowestPoint, HighestPoint, ref ImgMiniMap);
         }
 
-        XB.ManagerTerrain.UpdateCollisionTiles(ref ImgMiniMap);
+        XB.ManagerTerrain.UpdateCollisionTiles(LowestPoint, HighestPoint, ref ImgMiniMap);
 
 #if XBDEBUG
         debug.End();
@@ -215,7 +215,6 @@ public class WorldData {
                         WorldDim.X, WorldDim.Y, pos.X, pos.Z,
                         radius, angle*XB.Constants.Deg2Rad, pos.Y, XB.Direction.Down);
         XB.Terrain.HeightMin(ref TerrainHeights, ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y);
-        TerrainHeight = HighestPoint - LowestPoint;
 
 #if XBDEBUG
         debug.End();

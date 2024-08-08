@@ -158,7 +158,6 @@ public class ManagerSphere {
         var debug = new XB.DebugTimedBlock(XB.D.ManagerApplyTerrain);
 #endif
 
-        // recalculate and assign terrain
         //TODO[ALEX]: apply dam geometry
         for (int i = 0; i < MaxSphereAmount; i++) {
             if (Spheres[i].Active) {
@@ -167,8 +166,6 @@ public class ManagerSphere {
             }
             Spheres[i].RemoveSphere();
         }
-
-        XB.WorldData.UpdateTerrain(false);
 
 #if XBDEBUG
         debug.End();
@@ -284,14 +281,15 @@ public class QNode {
 #endif 
     }
 
-    public void UpdateAssignedMesh(float worldXSize, float worldZSize, float height,
-                                   ref Godot.Image imgHeightMap                     ) {
+    public void UpdateAssignedMesh(float worldXSize, float worldZSize,
+                                   float lowestPoint, float highestPoint,
+                                   ref Godot.Image imgHeightMap          ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.QNodeUpdateAssignedMesh);
 #endif
 
         MeshContainer.SampleTerrainNoise(XPos, ZPos, XSize, ZSize, worldXSize, worldZSize,
-                                         Res, height, ref imgHeightMap                    );
+                                         Res, lowestPoint, highestPoint, ref imgHeightMap );
         var worldEdge = new bool[4];
 
         if (worldZSize-(-ZPos+ZSize/2.0f) < XB.Constants.Epsilon) { worldEdge[(int)XB.Sk.ZM] = true;  }
@@ -326,8 +324,6 @@ public class MeshContainer {
     public int   ZAmount;
     public int   ID;
     public bool  InUse;
-    public float LowestPoint;  // every MeshContainer tracks its own lowest and highest
-    public float HighestPoint;
     public Godot.MeshInstance3D      MeshInst; // holds tile and skirt meshes
     public Godot.Collections.Array   MeshDataTile;
     public Godot.Collections.Array[] MeshDataSkirt;
@@ -392,8 +388,6 @@ public class MeshContainer {
         ZAmount = 0;
         ID      = id;
         InUse   = true;
-
-        ResetLowestHighest();
     }
 
     public void ReleaseMesh() {
@@ -537,16 +531,17 @@ public class MeshContainer {
     }
 
     public void SampleTerrainNoise(float xPos, float zPos, float xSize,  float zSize,
-                                   float worldXSize, float worldZSize, float res, float height,
-                                   ref Godot.Image imgHeightMap                                ) {
+                                   float worldXSize, float worldZSize, float res,
+                                   float lowestPoint, float highestPoint, 
+                                   ref Godot.Image imgHeightMap                      ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.MeshContainerSampleTerrainNoise);
 #endif
 
+        float height = XB.Utils.AbsF(highestPoint-lowestPoint);
         var pos = new Godot.Vector3(xPos, 0.0f, zPos);
         MeshInst.GlobalPosition = pos; // move MeshInstance to center of tile, mesh is child
-
-        ResetLowestHighest();
+        // Godot.GD.Print("MeshContainerSampleTerrainNoise: lp: " + lowestPoint + ", h: " + height);
 
         // tile (without skirt)
         var   v3   = new Godot.Vector3(0.0f, 0.0f, 0.0f);
@@ -559,8 +554,7 @@ public class MeshContainer {
                 v3.Z = (float)j*step - zSize/2.0f;
                 sampledNoise = XB.Terrain.HeightMapSample(v3.X + pos.X, v3.Z + pos.Z,
                                                           worldXSize, worldZSize, ref imgHeightMap);
-                v3.Y = sampledNoise*height;
-                UpdateLowestHighest(v3.Y);
+                v3.Y = sampledNoise*height + lowestPoint;
                 VerticesTile[vNumber] = v3;
                 vNumber += 1;
             }
@@ -605,32 +599,6 @@ public class MeshContainer {
             NormalsSkirt [(int)XB.Sk.XP][2*i+0]    = NormalsTile [i*XAmount + XAmount-1];
             NormalsSkirt [(int)XB.Sk.XP][2*i+1]    = NormalsTile [i*XAmount + XAmount-1];
         }
-
-#if XBDEBUG
-        debug.End();
-#endif 
-    }
-
-    private void ResetLowestHighest() {
-#if XBDEBUG
-        var debug = new XB.DebugTimedBlock(XB.D.MeshContainerResetLowestHighest);
-#endif
-
-        LowestPoint  = float.MaxValue;
-        HighestPoint = float.MinValue;
-
-#if XBDEBUG
-        debug.End();
-#endif 
-    }
-
-    private void UpdateLowestHighest(float value) {
-#if XBDEBUG
-        var debug = new XB.DebugTimedBlock(XB.D.MeshContainerUpdateLowestHighest);
-#endif
-
-        LowestPoint  = XB.Utils.MinF(XB.WorldData.LowestPoint,  value);
-        HighestPoint = XB.Utils.MaxF(XB.WorldData.HighestPoint, value);
 
 #if XBDEBUG
         debug.End();
@@ -868,12 +836,14 @@ public class CollisionTile {
 #endif 
     }
 
-    public void SampleTerrainNoise(float worldXSize, float worldZSize, float height,
-                                   ref Godot.Image imgHeightMap                     ) {
+    public void SampleTerrainNoise(float worldXSize, float worldZSize,
+                                   float lowestPoint, float highestPoint,
+                                   ref Godot.Image imgHeightMap          ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.CollisionTileSampleTerrainNoise);
 #endif
 
+        float height = XB.Utils.AbsF(highestPoint-lowestPoint);
         // Godot.GD.Print("xamnt: " + XAmount + ", zamnt: " + ZAmount);
         var   v3   = new Godot.Vector3(0.0f, 0.0f, 0.0f);
         float step = 1.0f/Res;
@@ -885,7 +855,7 @@ public class CollisionTile {
                 v3.Z = (float)j*step - ZSize/2.0f;
                 sampledNoise = XB.Terrain.HeightMapSample(v3.X + XPos, v3.Z + ZPos,
                                                           worldXSize, worldZSize, ref imgHeightMap);
-                v3.Y = sampledNoise*height;
+                v3.Y = sampledNoise*height + lowestPoint;
                 // Godot.GD.Print("i: " + i + ",j: " + j + ",vN: " + vNumber + " of " + Vertices.Length);
                 Vertices[vNumber] = v3;
                 vNumber += 1;
@@ -929,13 +899,12 @@ public class ManagerTerrain {
     private static float    _sizeCTile   = 0.0f; // size of full size collision tiles
     private static float    _worldXSize  = 0.0f;
     private static float    _worldZSize  = 0.0f;
-    private static float    _worldHeight = 0.0f;
     private static SysCG.List<XB.MeshContainer> _terrainMeshes;
     private static XB.CollisionTile[,]          _terrainColTiles;
 
     //NOTE[ALEX]: there is no safequard against overly large worlds with high resolution
-    public static void InitializeQuadTree(float xSize, float zSize, float height, float resM,
-                                          float resC, float sizeCTile, float sizeMTileMin, int divMax) {
+    public static void InitializeQuadTree(float xSize, float zSize, float resM, float resC,
+                                          float sizeCTile, float sizeMTileMin, int divMax  ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainInitializeQuadTree);
 #endif
@@ -946,7 +915,6 @@ public class ManagerTerrain {
         _sizeCTile   = sizeCTile;
         _worldXSize  = xSize;
         _worldZSize  = zSize;
-        _worldHeight = height;
 
         float temp = sizeMTileMin;
         _divisions = 0;
@@ -1034,7 +1002,8 @@ public class ManagerTerrain {
 #endif 
     }
 
-    public static void UpdateCollisionTiles(ref Godot.Image imgHeightMap) {
+    public static void UpdateCollisionTiles(float lowestPoint, float highestPoint,
+                                            ref Godot.Image imgHeightMap          ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainUpdateCollisionTiles);
 #endif
@@ -1044,8 +1013,8 @@ public class ManagerTerrain {
         for (int i = 0; i < colTileAmntX; i++) {
             for (int j = 0; j < colTileAmntZ; j++) {
                 _terrainColTiles[i, j].InitializeCollisionMesh();
-                _terrainColTiles[i, j].SampleTerrainNoise(_worldXSize, _worldZSize, _worldHeight,
-                                                          ref imgHeightMap                       );
+                _terrainColTiles[i, j].SampleTerrainNoise(_worldXSize, _worldZSize, lowestPoint,
+                                                          highestPoint, ref imgHeightMap        );
                 _terrainColTiles[i, j].ApplyToCollisionMesh();
             }
         }
@@ -1057,12 +1026,13 @@ public class ManagerTerrain {
 
     // reference position can be the player model or player camera,
     // depending on where the highest resolution mesh should be prioritized
-    public static void UpdateQTreeMeshes(Godot.Vector2 refPos, ref Godot.Image imgHeightMap) {
+    public static void UpdateQTreeMeshes(Godot.Vector2 refPos, float lowestPoint,
+                                         float highestPoint, ref Godot.Image imgHeightMap) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainUpdateQTreeMeshes);
 #endif
 
-        UpdateQNodeMesh(refPos, ref _qRoot, ref imgHeightMap);   
+        UpdateQNodeMesh(refPos, ref _qRoot, lowestPoint, highestPoint, ref imgHeightMap);   
 
 #if XBDEBUG
         debug.End();
@@ -1070,6 +1040,7 @@ public class ManagerTerrain {
     }
 
     private static void UpdateQNodeMesh(Godot.Vector2 refPos, ref XB.QNode qNode,
+                                        float lowestPoint, float highestPoint,
                                         ref Godot.Image imgHeightMap             ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainUpdateQNodeMesh);
@@ -1077,9 +1048,8 @@ public class ManagerTerrain {
         if (qNode.Children[0] == null) {
             if (!qNode.Visible) {
                 RequestMeshContainer(ref qNode);
-                qNode.UpdateAssignedMesh(_worldXSize, _worldZSize, _worldHeight, ref imgHeightMap);
-                XB.Terrain.UpdateLowestHighest(qNode.MeshContainer.LowestPoint,
-                                               qNode.MeshContainer.HighestPoint);
+                qNode.UpdateAssignedMesh(_worldXSize, _worldZSize, lowestPoint, 
+                                         highestPoint, ref imgHeightMap        );
                 RecycleChildMesh(ref qNode.Children[0]);
                 RecycleChildMesh(ref qNode.Children[1]);
                 RecycleChildMesh(ref qNode.Children[2]);
@@ -1096,16 +1066,15 @@ public class ManagerTerrain {
             if (qNode.Visible) {
                 RecycleMeshContainer(ref qNode);
             }
-            UpdateQNodeMesh(refPos, ref qNode.Children[0], ref imgHeightMap);
-            UpdateQNodeMesh(refPos, ref qNode.Children[1], ref imgHeightMap);
-            UpdateQNodeMesh(refPos, ref qNode.Children[2], ref imgHeightMap);
-            UpdateQNodeMesh(refPos, ref qNode.Children[3], ref imgHeightMap);
+            UpdateQNodeMesh(refPos, ref qNode.Children[0], lowestPoint, highestPoint, ref imgHeightMap);
+            UpdateQNodeMesh(refPos, ref qNode.Children[1], lowestPoint, highestPoint, ref imgHeightMap);
+            UpdateQNodeMesh(refPos, ref qNode.Children[2], lowestPoint, highestPoint, ref imgHeightMap);
+            UpdateQNodeMesh(refPos, ref qNode.Children[3], lowestPoint, highestPoint, ref imgHeightMap);
         } else {
             if (!qNode.Visible) {
                 RequestMeshContainer(ref qNode);
-                qNode.UpdateAssignedMesh(_worldXSize, _worldZSize, _worldHeight, ref imgHeightMap);
-                XB.Terrain.UpdateLowestHighest(qNode.MeshContainer.LowestPoint,
-                                               qNode.MeshContainer.HighestPoint);
+                qNode.UpdateAssignedMesh(_worldXSize, _worldZSize, lowestPoint,
+                                         highestPoint, ref imgHeightMap        );
                 RecycleChildMesh(ref qNode.Children[0]);
                 RecycleChildMesh(ref qNode.Children[1]);
                 RecycleChildMesh(ref qNode.Children[2]);
@@ -1180,19 +1149,21 @@ public class ManagerTerrain {
 #endif 
     }
 
-    public static void ResampleMeshes(ref Godot.Image imgHeightMap) {
+    public static void ResampleMeshes(float lowestPoint, float highestPoint,
+                                      ref Godot.Image imgHeightMap          ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainResampleMeshes);
 #endif
 
-        ResampleQNode(ref _qRoot, ref imgHeightMap);
+        ResampleQNode(ref _qRoot, lowestPoint, highestPoint, ref imgHeightMap);
 
 #if XBDEBUG
         debug.End();
 #endif 
     }
 
-    private static void ResampleQNode(ref XB.QNode qNode, ref Godot.Image imgHeightMap) {
+    private static void ResampleQNode(ref XB.QNode qNode, float lowestPoint,
+                                      float highestPoint, ref Godot.Image imgHeightMap) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainResampleMeshes);
 #endif
@@ -1203,12 +1174,13 @@ public class ManagerTerrain {
         }
 
         if (qNode.Visible) {
-            qNode.UpdateAssignedMesh(_worldXSize, _worldZSize, _worldHeight, ref imgHeightMap);
+            qNode.UpdateAssignedMesh(_worldXSize, _worldZSize, lowestPoint,
+                                     highestPoint, ref imgHeightMap        );
         } else {
-            ResampleQNode(ref qNode.Children[0], ref imgHeightMap);
-            ResampleQNode(ref qNode.Children[1], ref imgHeightMap);
-            ResampleQNode(ref qNode.Children[2], ref imgHeightMap);
-            ResampleQNode(ref qNode.Children[3], ref imgHeightMap);
+            ResampleQNode(ref qNode.Children[0], lowestPoint, highestPoint, ref imgHeightMap);
+            ResampleQNode(ref qNode.Children[1], lowestPoint, highestPoint, ref imgHeightMap);
+            ResampleQNode(ref qNode.Children[2], lowestPoint, highestPoint, ref imgHeightMap);
+            ResampleQNode(ref qNode.Children[3], lowestPoint, highestPoint, ref imgHeightMap);
         }
 
 #if XBDEBUG

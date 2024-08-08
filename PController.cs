@@ -50,11 +50,14 @@ public partial class PController : Godot.CharacterBody3D {
                    private float                _colSm      = 14.0f;
                    private Godot.Color          _colCurrent = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
 
-    private       bool  _thirdP          = true;
-    private       bool  _canShoot        = false;
-    private const float _respawnOff      = 0.5f;
-    private const float _sphereSpawnDist = 2.0f;  // distance to newly placed sphere in meter
-    private       bool  _spawn           = false; // spawn player delayed for raycast to work
+    private       bool          _thirdP           = true;
+    private       bool          _canShoot         = false;
+    private const float         _respawnOff       = 0.5f;  // distance to ground when respawning
+    private const float         _sphereSpawnDist  = 2.0f;  // distance to newly placed sphere in meter
+    private       bool          _spawn            = false; // spawn player delayed for raycast to work
+    private       Godot.Vector2 _spawnPos         = new Godot.Vector2(0.0f, 0.0f);
+    private       int           _spawnAttempts    = 0;
+    private const int           _spawnAttemptsMax = 20;
 
     // audio
     //NOTE[ALEX]: exporting the array directly does not consistently work in Godot 4.2.2 (bug)
@@ -198,7 +201,8 @@ public partial class PController : Godot.CharacterBody3D {
         // prioritize high detail terrain around player, not camera
         XB.ManagerTerrain.UpdateQTreeMeshes(new Godot.Vector2(PModel.GlobalPosition.X,
                                                               PModel.GlobalPosition.Z),
-                                            ref XB.WorldData.ImgMiniMap                );
+                                            XB.WorldData.LowestPoint, XB.WorldData.HighestPoint,
+                                            ref XB.WorldData.ImgMiniMap                         );
         var spaceSt = RequestSpaceState(); // get spacestate for raycasting
 #if XBDEBUG
          _debugHud.UpdateDebugHUD(dt);
@@ -213,7 +217,6 @@ public partial class PController : Godot.CharacterBody3D {
 
         // SPAWNPLAYER
         if (_spawn) {
-            _spawn = false;
             SpawnPlayerDelayed();
         }
 
@@ -254,15 +257,30 @@ public partial class PController : Godot.CharacterBody3D {
         // STEP 2: check for player being outside of terrain area
         if        (GlobalPosition.Y < XB.WorldData.KillPlane || 
                    GlobalPosition.Y < (XB.WorldData.LowestPoint - XB.WorldData.LowHighExtra)) {
-            SpawnPlayer(new Godot.Vector2(GlobalPosition.X, GlobalPosition.Z));
+            Godot.GD.Print(">> out of bounds high/low");
+            PlacePlayer(new Godot.Vector3(GlobalPosition.X, 
+                                          XB.WorldData.HighestPoint + XB.WorldData.LowHighExtra,
+                                          GlobalPosition.Z                                      ));
         } else if (GlobalPosition.X > 0.0f) {
-            SpawnPlayer(new Godot.Vector2(_respawnOff, GlobalPosition.Z));
+            Godot.GD.Print(">> out of bounds X high");
+            PlacePlayer(new Godot.Vector3(-_respawnOff,
+                                          GlobalPosition.Y + XB.WorldData.LowHighExtra,
+                                          GlobalPosition.Z                             ));
         } else if (GlobalPosition.X < -XB.WorldData.WorldDim.X) {
-            SpawnPlayer(new Godot.Vector2(XB.WorldData.WorldDim.X-_respawnOff, GlobalPosition.Z));
+            Godot.GD.Print(">> out of bounds X low");
+            PlacePlayer(new Godot.Vector3(-XB.WorldData.WorldDim.X + _respawnOff,
+                                          GlobalPosition.Y + XB.WorldData.LowHighExtra,
+                                          GlobalPosition.Z                             ));
         } else if (GlobalPosition.Z > 0.0f) {
-            SpawnPlayer(new Godot.Vector2(GlobalPosition.X, _respawnOff));
+            Godot.GD.Print(">> out of bounds Z high");
+            PlacePlayer(new Godot.Vector3(GlobalPosition.X,
+                                          GlobalPosition.Y + XB.WorldData.LowHighExtra,
+                                          -_respawnOff                                 ));
         } else if (GlobalPosition.Z < -XB.WorldData.WorldDim.Y) {
-            SpawnPlayer(new Godot.Vector2(GlobalPosition.X, XB.WorldData.WorldDim.Y-_respawnOff));
+            Godot.GD.Print(">> out of bounds Z low");
+            PlacePlayer(new Godot.Vector3(GlobalPosition.X,
+                                          GlobalPosition.Y + XB.WorldData.LowHighExtra,
+                                          -XB.WorldData.WorldDim.Y + _respawnOff       ));
         }
 
         // STEP 3: horizontal movement relative to camera rotation
@@ -656,51 +674,70 @@ public partial class PController : Godot.CharacterBody3D {
     //NOTE[ALEX]: if a raycast happens in the same frame that a mesh gets assigned,
     //            then that mesh will not be hit, 
     //            to avoid this, SpawnPlayer is called one frame delayed
+    //
+    //TODO
+    //            occasionally the raycast just does not return anything at all and 
+    //            respawning is not successful, the out of bounds check in STEP 2
+    //            ensures those cases do not cause an irrecoverable state
+    //            I have not found any issues with collider generation or the provided parameters
+    //            in those cases so the issue appears to not be in my code
+    //            for now I will accept this limitation
     public void SpawnPlayer(Godot.Vector2 spawnXZ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.PControllerSpawnPlayer);
 #endif
 
-        _spawn = true;
-        Godot.GD.Print("spawnplayer");
-
-        var spawnPoint = new Godot.Vector3(-XB.WorldData.WorldDim.X/2.0f, // fallback
-                                           XB.WorldData.HighestPoint+XB.WorldData.LowHighExtra,
-                                           -XB.WorldData.WorldDim.Y/2.0f                       );
-
-        GlobalPosition = spawnPoint;
+        Godot.GD.Print("spawnplayer " + spawnXZ);
+        _spawn    = true;
+        _spawnPos = spawnXZ;
 
 #if XBDEBUG
         debug.End();
 #endif 
     }
 
-    //TODO[ALEX]: when generating terrain, raycast still does not work properly
     private void SpawnPlayerDelayed() {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.PControllerSpawnPlayerDelayed);
 #endif
 
-        Godot.GD.Print("spawnplayerdelayed");
-        var spawnPoint  = new Godot.Vector3(-XB.WorldData.WorldDim.X/2.0f, // fallback
-                                            XB.WorldData.HighestPoint+XB.WorldData.LowHighExtra,
-                                            -XB.WorldData.WorldDim.Y/2.0f                       );
-        var origin      = new Godot.Vector3(spawnPoint.X,
-                                            XB.WorldData.HighestPoint+XB.WorldData.LowHighExtra,
-                                            spawnPoint.Z                                           );
-        var destination = new Godot.Vector3(spawnPoint.X, 
-                                            XB.WorldData.LowestPoint -XB.WorldData.LowHighExtra,
-                                            spawnPoint.Z                                           );
+        float high = XB.WorldData.HighestPoint+XB.WorldData.LowHighExtra;
+        float low  = XB.WorldData.LowestPoint -XB.WorldData.LowHighExtra;
+        var spawnPoint  = new Godot.Vector3(_spawnPos.X,  high, _spawnPos.Y );
+        var origin      = new Godot.Vector3(spawnPoint.X, high, spawnPoint.Z);
+        var destination = new Godot.Vector3(spawnPoint.X, low,  spawnPoint.Z);
         var resultCD    = XB.Utils.Raycast(RequestSpaceState(), origin, destination,
                                            XB.LayerMasks.EnvironmentMask            );
-        Godot.GD.Print(spawnPoint + " " + origin + " " + destination);
+        Godot.GD.Print("try spawn at: " + spawnPoint + ", o: " + origin + ", d: " + destination
+                       + ", PlPos: " + GlobalPosition);
         if (resultCD.Count > 0) {
-            Godot.GD.Print("hit");
-            spawnPoint    = (Godot.Vector3)resultCD["position"];
-            spawnPoint.Y += _respawnOff;
+            spawnPoint      = (Godot.Vector3)resultCD["position"];
+            spawnPoint.Y   += _respawnOff;
+            _spawn          = false;
+            _spawnAttempts  = 0;
+            PlacePlayer(spawnPoint);
+            Godot.GD.Print("spawn hit " + spawnPoint);
+        } else if (_spawnAttempts >= _spawnAttemptsMax) {
+            _spawn         = false;
+            _spawnAttempts = 0;
+            PlacePlayer(spawnPoint);
+            Godot.GD.Print("spawn out of attempts at " + spawnPoint);
+        } else {
+            _spawnAttempts += 1;
+            Godot.GD.Print("spawn no hit");
         }
 
-        GlobalPosition = spawnPoint;
+#if XBDEBUG
+        debug.End();
+#endif 
+    }
+
+    private void PlacePlayer(Godot.Vector3 pos) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.PControllerPlacePlayer);
+#endif
+
+        GlobalPosition = pos;
 
 #if XBDEBUG
         debug.End();

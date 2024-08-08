@@ -28,6 +28,8 @@ public partial class Sphere : Godot.CharacterBody3D {
     public        float Angle        = 0.0f;   // in degrees
     private const float _angleMult   = 600.0f; // empirical
     private const float _angleReset  = 60.0f;
+    private const float _angleMin    = 1.0f;
+    private const float _angleMax    = 89.0f;
 
     public  XB.SphereTexSt TexSt = XB.SphereTexSt.Inactive;
     private SysCG.List<XB.Sphere> _linkedSpheres = new SysCG.List<XB.Sphere>();
@@ -391,7 +393,6 @@ public partial class Sphere : Godot.CharacterBody3D {
 
         Radius += amount*_radiusMult; // mouse down will reduce radius
         Radius  = XB.Utils.MaxF(0.0f, Radius);
-        Godot.GD.Print("Radius of Sphere " + ID + ": " + Radius);
         UpdateConeMesh();
 
 #if XBDEBUG
@@ -405,8 +406,7 @@ public partial class Sphere : Godot.CharacterBody3D {
 #endif
 
         Angle -= amount*_angleMult; // mouse down will "push down" angle toward 90 deg
-        Angle  = XB.Utils.ClampF(Angle, 0.0f, 90.0f);
-        Godot.GD.Print("Angle of Sphere " + ID + ": " + Angle);
+        Angle  = XB.Utils.ClampF(Angle, _angleMin, _angleMax);
         UpdateConeMesh();
 
 #if XBDEBUG
@@ -434,8 +434,6 @@ public partial class Sphere : Godot.CharacterBody3D {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.SphereUpdateConeMesh);
 #endif
-
-        Godot.GD.Print("UpdateConeMesh");
 
         _verticesCone[0] = new Godot.Vector3(0.0f, 0.0f, 0.0f);
         var dir    = new Godot.Vector3(Radius, 0.0f, 0.0f);

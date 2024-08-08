@@ -49,24 +49,24 @@ public partial class DebugHUD : Godot.Control {
         var posMM    = new Godot.Vector2I(XB.AData.BaseResX -_dimSpacer - sizeMM.X,
                                           _dimSpacer                                              );
 
-        _texMiniMap          = new Godot.ImageTexture();
+        _texMiniMap            = new Godot.ImageTexture();
         _texMiniMap.SetImage(XB.WorldData.ImgMiniMap);
-        _trMiniMap           = new Godot.TextureRect();
-        _trMiniMap.Position  = posMM;
-        _trMiniMap.Size      = sizeMM;
-        _trMiniMap.Texture   = _texMiniMap;
-        _trMiniMap.ExpandMode = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
+        _trMiniMap             = new Godot.TextureRect();
+        _trMiniMap.Position    = posMM;
+        _trMiniMap.Size        = sizeMM;
+        _trMiniMap.Texture     = _texMiniMap;
+        _trMiniMap.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
         _trMiniMap.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
         AddChild(_trMiniMap);
 
-        _texMiniMapO         = new Godot.ImageTexture();
+        _texMiniMapO            = new Godot.ImageTexture();
         _imgMiniMapO.Fill(XB.Col.Transp);
         _texMiniMapO.SetImage(_imgMiniMapO);
-        _trMiniMapO          = new Godot.TextureRect();
-        _trMiniMapO.Position = posMM;
-        _trMiniMapO.Size     = sizeMM;
-        _trMiniMapO.Texture  = _texMiniMapO;
-        _trMiniMapO.ExpandMode = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
+        _trMiniMapO             = new Godot.TextureRect();
+        _trMiniMapO.Position    = posMM;
+        _trMiniMapO.Size        = sizeMM;
+        _trMiniMapO.Texture     = _texMiniMapO;
+        _trMiniMapO.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
         _trMiniMapO.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
         AddChild(_trMiniMapO);
 
@@ -189,6 +189,7 @@ public enum D { // unique debug identifier, naming scheme: "ClassFunction"
     CollisionTileSampleTerrainNoise,
     CollisionTileApplyToCollisionMesh,
     HUDAddDigitTexture,
+    HUDCreateGradientTexture,
     HUDCreateLinkingTexture,
     HUDCreateSphereTexture,
     HUDInitializeHud,
@@ -222,15 +223,14 @@ public enum D { // unique debug identifier, naming scheme: "ClassFunction"
     MeshContainerAdjustWorldEdgeSkirt,
     MeshContainerApplyToMesh,
     MeshContainerReleaseMesh,
-    MeshContainerResetLowestHighest,
     MeshContainerSampleTerrainNoise,
     MeshContainerSetShaderAttribute,
     MeshContainerSetTerrainShaderAttributes,
-    MeshContainerUpdateLowestHighest,
     MeshContainerUseMesh,
     PController_Input,
     PController_PhysicsProcess,
     PControllerInitializePController,
+    PControllerPlacePlayer,
     PControllerSpawnPlayer,
     PControllerSpawnPlayerDelayed,
     QNodeAssignMeshContainer,

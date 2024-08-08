@@ -705,14 +705,15 @@ public partial class Menu : Godot.Control {
         XB.WorldData.GenerateRandomTerrain();
         XB.WorldData.UpdateTerrain(false);
 
-        _player.SpawnPlayer(new Godot.Vector2(XB.WorldData.WorldDim.X/2.0f,
-                                              XB.WorldData.WorldDim.Y/2.0f));
+        _player.SpawnPlayer(new Godot.Vector2(-XB.WorldData.WorldDim.X/2.0f,
+                                              -XB.WorldData.WorldDim.Y/2.0f));
         ShowMessage(Tr("GENERATED_TERRAIN"));
         ButtonResumeOnPressed();
     }
 
     private void ButtonApplySpheresOnPressed() {
         XB.ManagerSphere.ApplyTerrain();
+        XB.WorldData.UpdateTerrain(false);
         _player.SpawnPlayer(new Godot.Vector2(_player.GlobalPosition.X,
                                               _player.GlobalPosition.Z));
         ShowMessage(Tr("APPLIED_SPHERES"));

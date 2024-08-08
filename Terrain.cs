@@ -133,6 +133,7 @@ public class Terrain {
         }
     }
 
+    // angle should be constrained to be within 1 and 89 degrees (including), to prevent weirdness
     public static void Cone(ref float[,] tHeights, int amountX, int amountZ,
                             float worldSizeX, float worldSizeZ, float centerX, float centerZ,
                             float radius, float angle, float height, XB.Direction dir        ) {
@@ -140,13 +141,9 @@ public class Terrain {
         float zStep = worldSizeZ/(float)(amountZ-1);
         var   v2    = new Godot.Vector2(0.0f, 0.0f);
 
-        // slope for 89.0f is 57.29004m/1m
-        float ramp = 0;
-        if (angle <= 89.0f*XB.Constants.Deg2Rad) {
-            float cos = (float)System.Math.Cos(angle);
-            float sin = (float)System.Math.Sin(angle);
-            ramp = sin/cos;
-        }
+        float cos  = (float)System.Math.Cos(angle);
+        float sin  = (float)System.Math.Sin(angle);
+        float ramp = sin/cos;
 
         float direction = 1.0f;
         if (dir == XB.Direction.Down) { direction = -1.0f; }
@@ -158,10 +155,8 @@ public class Terrain {
                 float dist = v2.Length();
                 if (dist <= radius) {
                     tHeights[i, j] = height;
-                } else if (angle <= 89.0f*XB.Constants.Deg2Rad) {
-                    tHeights[i, j] = height - direction*ramp*(dist-radius);
                 } else {
-                    tHeights[i, j] = direction*float.MinValue;
+                    tHeights[i, j] = height - direction*ramp*(dist-radius);
                 }
             }
         }
@@ -242,7 +237,7 @@ public class Terrain {
         for (int i = 0; i < amountX; i++) {
             for (int j = 0; j < amountZ; j++) {
                 tHeights[i, j] = XB.Utils.MinF(tHeights[i, j], tHeightsM[i, j]);
-                UpdateLowestHighest(tHeights[i, j], tHeights[i, j]);
+                UpdateLowestHighest(tHeights[i, j]);
             }
         }
 
@@ -261,7 +256,7 @@ public class Terrain {
         for (int i = 0; i < amountX; i++) {
             for (int j = 0; j < amountZ; j++) {
                 tHeights[i, j] = XB.Utils.MaxF(tHeights[i, j], tHeightsM[i, j]);
-                UpdateLowestHighest(tHeights[i, j], tHeights[i, j]);
+                UpdateLowestHighest(tHeights[i, j]);
             }
         }
 
@@ -280,7 +275,7 @@ public class Terrain {
         for (int i = 0; i < amountX; i++) {
             for (int j = 0; j < amountZ; j++) {
                 tHeights[i, j] = tHeightsM[i, j];
-                UpdateLowestHighest(tHeights[i, j], tHeights[i, j]);
+                UpdateLowestHighest(tHeights[i, j]);
             }
         }
 
@@ -422,13 +417,17 @@ public class Terrain {
 #endif 
     }
 
-    public static void UpdateLowestHighest(float low, float high) {
+    public static void UpdateLowestHighest(float value) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainUpdateLowestHighest);
 #endif
 
-        XB.WorldData.LowestPoint  = XB.Utils.MinF(XB.WorldData.LowestPoint,  low);
-        XB.WorldData.HighestPoint = XB.Utils.MaxF(XB.WorldData.HighestPoint, high);
+        //NOTE[ALEX]: does not use min max functions for easier debugging/logging
+        if (value < XB.WorldData.LowestPoint) {
+            XB.WorldData.LowestPoint = value;
+        } else if ( value > XB.WorldData.HighestPoint) {
+            XB.WorldData.HighestPoint = value;
+        }
 
 #if XBDEBUG
         debug.End();
