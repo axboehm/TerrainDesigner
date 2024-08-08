@@ -373,7 +373,10 @@ public partial class Sphere : Godot.CharacterBody3D {
             move.X = prevToThis.X + playerMovement.X;
             move.Y = hitThisG.Y-hitPrevG.Y;
             move.Z = prevToThis.Z + playerMovement.Z;
-            GlobalPosition += move; // since the sphere does not have in-world collisions
+            var pos   = GlobalPosition + move;
+                pos.Y = XB.Utils.ClampF(GlobalPosition.Y, XB.WorldData.KillPlane,
+                                                         -XB.WorldData.KillPlane); // killplane is neg.
+            GlobalPosition = pos; // since the sphere does not have in-world collisions
         }
 
         UpdateConeMesh();
@@ -392,7 +395,7 @@ public partial class Sphere : Godot.CharacterBody3D {
 #endif
 
         Radius += amount*_radiusMult; // mouse down will reduce radius
-        Radius  = XB.Utils.MaxF(0.0f, Radius);
+        Radius  = XB.Utils.ClampF(Radius, 0.0f, XB.WorldData.WorldDim.X + XB.WorldData.WorldDim.Y);
         UpdateConeMesh();
 
 #if XBDEBUG
