@@ -58,23 +58,35 @@ public struct Col {
     public static Godot.Color SpLink   = new Godot.Color(1.0f, 0.43f, 0.0f, 1.0f);
 }
 
-public struct ScenePaths {
-    public static string Player        = "res://assets/player/playerController.tscn";
-    public static string ButtonAudio   = "res://assets/audio/soundButtonPress.tscn";
-    public static string Sphere        = "res://assets/sphere/sphere.tscn";
-    public static string TerrainShader = "res://code/shaders/terrain.gdshader";
-    public static string TSkirtShader  = "res://code/shaders/terrainSkirt.gdshader";
-    public static string BlueNoiseTex  = "res://materials/data/blueNoise64px.png";
-    public static string BlockTexture  = "res://materials/data/blockTexture2048.png";
-    public static string Terrain1CATex = "res://materials/data/asteroidStone1_CA.png";
-    public static string Terrain1RMTex = "res://materials/data/asteroidStone1_RM.png";
-    public static string Terrain1NTex  = "res://materials/data/asteroidStone1_N.png";
-    public static string Terrain1HTex  = "res://materials/data/asteroidStone1_HEIGHT.png";
-    public static string Terrain2CATex = "res://materials/data/grdAsteroid1_C.png";
-    public static string Terrain2RMTex = "res://materials/data/grdAsteroid1_RM.png";
-    public static string Terrain2NTex  = "res://materials/data/grdAsteroid1_N.png";
-    public static string Terrain2HTex  = "res://materials/data/grdAsteroid1_HEIGHT.png";
-    public static string FontLibMono   = "res://assets/ui/fonts/LiberationMono-Regular.ttf";
+public struct ResourcePaths {
+    public static string Player           = "res://assets/player/playerController.tscn";
+    public static string ButtonAudio      = "res://assets/audio/soundButtonPress.tscn";
+    public static string Sphere           = "res://assets/sphere/sphere.tscn";
+    public static string TerrainShader    = "res://code/shaders/terrain.gdshader";
+    public static string TSkirtShader     = "res://code/shaders/terrainSkirt.gdshader";
+    public static string BlueNoiseTex     = "res://materials/data/blueNoise64px.png";
+    public static string BlockTexture     = "res://materials/data/blockTexture2048.png";
+    public static string Terrain1CATex    = "res://materials/data/asteroidStone1_CA.png";
+    public static string Terrain1RMTex    = "res://materials/data/asteroidStone1_RM.png";
+    public static string Terrain1NTex     = "res://materials/data/asteroidStone1_N.png";
+    public static string Terrain1HTex     = "res://materials/data/asteroidStone1_HEIGHT.png";
+    public static string Terrain2CATex    = "res://materials/data/grdAsteroid1_C.png";
+    public static string Terrain2RMTex    = "res://materials/data/grdAsteroid1_RM.png";
+    public static string Terrain2NTex     = "res://materials/data/grdAsteroid1_N.png";
+    public static string Terrain2HTex     = "res://materials/data/grdAsteroid1_HEIGHT.png";
+    public static string FontLibMono      = "res://assets/ui/fonts/LiberationMono-Regular.ttf";
+    public static string SpShellShader    = "res://code/shaders/sphereShell.gdshader";
+    public static string SpScreenShader   = "res://code/shaders/sphereScreen.gdshader";
+    public static string SpScrGhostShader = "res://code/shaders/sphereScreenBehind.gdshader";
+    public static string SpShellCATex     = "res://assets/sphere/data/sphereLP_C.png";
+    public static string SpScreenCATex    = "res://assets/sphere/data/sphereLP_C_1.png";
+    public static string SpShellRMTex     = "res://assets/sphere/data/sphereLP_RM.png";
+    public static string SpScreenRMTex    = "res://assets/sphere/data/sphereLP_RM_3.png";
+    public static string SpShellNTex      = "res://assets/sphere/data/sphereLP_NOpenGL.png";
+    public static string SpScreenNTex     = "res://assets/sphere/data/sphereLP_NOpenGL_2.png";
+    public static string SpShellETex      = "res://assets/sphere/data/sphereLP_E.png";
+    public static string SpScreenETex     = "res://assets/sphere/data/sphereLP_E_4.png";
+    public static string SpEMaskTex       = "res://assets/sphere/data/sphereEmissionMask.png";
 }
 
 public class WorldData {
@@ -136,14 +148,14 @@ public class WorldData {
         NoiseBombing.Normalize       = true;
         NoiseBombing.Seamless        = true;
         NoiseBombing.GenerateMipmaps = true;
-        Terrain1CATex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain1CATex);
-        Terrain1RMTex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain1RMTex);
-        Terrain1NTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain1NTex);
-        Terrain1HTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain1HTex);
-        Terrain2CATex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain2CATex);
-        Terrain2RMTex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain2RMTex);
-        Terrain2NTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain2NTex);
-        Terrain2HTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ScenePaths.Terrain2HTex);
+        Terrain1CATex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain1CATex);
+        Terrain1RMTex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain1RMTex);
+        Terrain1NTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain1NTex);
+        Terrain1HTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain1HTex);
+        Terrain2CATex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain2CATex);
+        Terrain2RMTex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain2RMTex);
+        Terrain2NTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain2NTex);
+        Terrain2HTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain2HTex);
 
         WorldRes          = 8.0f;
         WorldDim          = new Godot.Vector2(sizeX, sizeZ);

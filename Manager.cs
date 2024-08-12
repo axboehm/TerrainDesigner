@@ -264,10 +264,11 @@ public class ManagerSphere {
         int rSize = 0;
         var vect  = new Godot.Vector2I(0, 0);
 
-        var sphereScn = Godot.ResourceLoader.Load<Godot.PackedScene>(XB.ScenePaths.Sphere);
+        var sphereScn = Godot.ResourceLoader.Load<Godot.PackedScene>(XB.ResourcePaths.Sphere);
         XB.Sphere sphere;
         for (int i = 0; i < MaxSphereAmount; i++) {
-            sphere = (XB.Sphere)sphereScn.Instantiate();
+            sphere = (XB.Sphere)sphereScn.Instantiate(); //TODO[ALEX]: instantiate here is not right
+            // creates shallow copies  that do not have their individual materials
             sphere.InitializeSphere(i, ref rects, ref rSize, ref vect);
             XB.AData.MainRoot.AddChild(sphere);
             Spheres[i] = sphere;
@@ -397,7 +398,7 @@ public class ManagerSphere {
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereUnlinkSpheres);
 #endif
 
-        Godot.GD.Print("unlinking: " + HLSphereID);
+        // Godot.GD.Print("unlinking: " + HLSphereID);
         Spheres[HLSphereID].SphereTextureRemoveLinked();
         Spheres[HLSphereID].UnlinkFromAllSpheres();
         RecycleDamSegment(HLSphereID);
@@ -413,7 +414,7 @@ public class ManagerSphere {
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereUpdateDam);
 #endif
 
-        Godot.GD.Print("UpdateDam: " + sphereID);
+        // Godot.GD.Print("UpdateDam: " + sphereID);
         for (int i = 0; i < DamSegments.Count; i++) {
             if (!DamSegments[i].InUse) { continue; }
             if (   DamSegments[i].LinkedIDs[0] == sphereID
@@ -439,6 +440,11 @@ public class ManagerSphere {
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereApplyTerrain);
 #endif
 
+        for (int i = 0; i < MaxSphereAmount; i++) {
+            if (!Spheres[i].Active) { continue; }
+            XB.WorldData.ApplySphereCone(Spheres[i].GlobalPosition, Spheres[i].Radius,
+                                         Spheres[i].Angle                             );
+        }
         for (int i = 0; i < DamSegments.Count; i++) {
             if (!DamSegments[i].InUse) { continue; }
             XB.WorldData.ApplyDamSegment(Spheres[DamSegments[i].LinkedIDs[0]].GlobalPosition,
@@ -450,9 +456,6 @@ public class ManagerSphere {
             DamSegments[i].ReleaseMesh();
         }
         for (int i = 0; i < MaxSphereAmount; i++) {
-            if (!Spheres[i].Active) { continue; }
-            XB.WorldData.ApplySphereCone(Spheres[i].GlobalPosition, Spheres[i].Radius,
-                                         Spheres[i].Angle                             );
             Spheres[i].RemoveSphere();
         }
 
@@ -491,7 +494,7 @@ public class ManagerSphere {
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereRequestDamSegment);
 #endif
 
-        Godot.GD.Print("RequestDamSegment: " + linkedToID1 + ", " + linkedToID2);
+        // Godot.GD.Print("RequestDamSegment: " + linkedToID1 + ", " + linkedToID2);
         for (int i = 0; i < DamSegments.Count; i++) {
             if (!DamSegments[i].InUse) {
                 DamSegments[i].UseMesh(linkedToID1, linkedToID2);
@@ -520,7 +523,7 @@ public class ManagerSphere {
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereRecycleDamSegment);
 #endif
 
-        Godot.GD.Print("RecycleDamSegment: " + sphereID);
+        // Godot.GD.Print("RecycleDamSegment: " + sphereID);
         for (int i = 0; i < DamSegments.Count; i++) {
             if (!DamSegments[i].InUse) { continue; }
             if (   DamSegments[i].LinkedIDs[0] == sphereID
@@ -682,7 +685,7 @@ public class MeshContainer {
         root.AddChild(MeshInst);
 
         MaterialTile = new Godot.ShaderMaterial();
-        MaterialTile.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ScenePaths.TerrainShader);
+        MaterialTile.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.TerrainShader);
         MaterialTile.SetShaderParameter("albedoMult", XB.WorldData.AlbedoMult);
         MaterialTile.SetShaderParameter("tBlock",     XB.WorldData.BlockTex);
         MaterialTile.SetShaderParameter("blockStr",   XB.WorldData.BlockStrength);
@@ -705,7 +708,7 @@ public class MeshContainer {
         MaterialTile.SetShaderParameter("albVisStr", 0.5f);
 
         MaterialSkirt = new Godot.ShaderMaterial();
-        MaterialSkirt.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ScenePaths.TSkirtShader);
+        MaterialSkirt.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.TSkirtShader);
 
         MeshDataTile  = new Godot.Collections.Array();
         MeshDataTile.Resize((int)Godot.Mesh.ArrayType.Max);
@@ -1125,7 +1128,7 @@ public class CollisionTile {
         root.AddChild(MeshInstVis);
         MeshInstVis.GlobalPosition = new Godot.Vector3(xPos, 0.0f, zPos);
         MaterialVis = new Godot.ShaderMaterial();
-        MaterialVis.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ScenePaths.TerrainShader);
+        MaterialVis.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.TerrainShader);
         float r = XB.Random.RandomInRangeF(0.0f, 1.0f);
         float g = XB.Random.RandomInRangeF(0.0f, 1.0f);
         float b = XB.Random.RandomInRangeF(0.0f, 1.0f);

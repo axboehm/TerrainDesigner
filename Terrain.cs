@@ -188,7 +188,6 @@ public class Terrain {
         var debug = new XB.DebugTimedBlock(XB.D.TerrainUnevenCapsule);
 #endif
 
-        //TODO[ALEX]: issue with min/max on inverted one
         float xStep = worldSizeX/(float)(amountX-1);
         float zStep = worldSizeZ/(float)(amountZ-1);
         var   p  = new Godot.Vector2(0.0f, 0.0f);

@@ -471,7 +471,7 @@ public partial class Menu : Godot.Control {
     }
 
     public void ButtonResumeOnPressed() {
-        XB.Utils.PlayUISound(XB.ScenePaths.ButtonAudio);
+        XB.Utils.PlayUISound(XB.ResourcePaths.ButtonAudio);
         Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Captured;
         GetTree().Paused      = false;
         Hide();
@@ -528,13 +528,13 @@ public partial class Menu : Godot.Control {
     }
 
     public void ButtonAppDefaultsOnPressed() {
-        XB.Utils.PlayUISound(XB.ScenePaths.ButtonAudio);
+        XB.Utils.PlayUISound(XB.ResourcePaths.ButtonAudio);
         ShowMessage(XB.Settings.ApplicationDefaults());
         ApplySettings();
     }
 
     public void ButtonApplyOnPressed () {
-        XB.Utils.PlayUISound(XB.ScenePaths.ButtonAudio);
+        XB.Utils.PlayUISound(XB.ResourcePaths.ButtonAudio);
         string preset = _obPresets.GetItemText(_obPresets.GetSelectedId());
         ShowMessage(XB.Settings.PresetSettings(XB.AData.Presets[preset]));
         ApplySettings();
@@ -576,18 +576,18 @@ public partial class Menu : Godot.Control {
     }
 
     public void ButtonPopupCancelOnPressed() {
-        XB.Utils.PlayUISound(XB.ScenePaths.ButtonAudio);
+        XB.Utils.PlayUISound(XB.ResourcePaths.ButtonAudio);
         _ctrlPopup.Hide();
     }
 
     public void ButtonPopupQuitOnPressed() {
-        XB.Utils.PlayUISound(XB.ScenePaths.ButtonAudio);
+        XB.Utils.PlayUISound(XB.ResourcePaths.ButtonAudio);
         _ctrlPopup.Show();
         _lbPopup.Text = Tr("QUIT_QUESTION");
     }
 
     public void ButtonDefaultsCKOnPressed() {
-        XB.Utils.PlayUISound(XB.ScenePaths.ButtonAudio);
+        XB.Utils.PlayUISound(XB.ResourcePaths.ButtonAudio);
         ShowMessage(Tr("DEFAULT_KEYBINDINGS"));
         XB.AData.Input.DefaultInputActions();
         UpdateControlTab();
@@ -619,7 +619,7 @@ public partial class Menu : Godot.Control {
     public void ButtonCK23OnPressed() {ControlsChange(23);}
 
     private void ControlsChange(int id) {
-        XB.Utils.PlayUISound(XB.ScenePaths.ButtonAudio);
+        XB.Utils.PlayUISound(XB.ResourcePaths.ButtonAudio);
         _setKeyID             = id;
         _setKey               = true;
         _lockInput            = true;

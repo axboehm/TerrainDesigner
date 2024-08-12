@@ -87,7 +87,7 @@ public partial class DebugHUD : Godot.Control {
         }
 
         _lbDebugStats = new Godot.Label[System.Enum.GetValues(typeof(XB.D)).Length];
-        var font = Godot.ResourceLoader.Load<Godot.Font>(XB.ScenePaths.FontLibMono);
+        var font = Godot.ResourceLoader.Load<Godot.Font>(XB.ResourcePaths.FontLibMono);
         for (int i = 0; i < _lbDebugStats.Length; i++) {
             _lbDebugStats[i] = new Godot.Label();
             _lbDebugStats[i].Text = "";

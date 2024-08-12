@@ -2,7 +2,7 @@ shader_type spatial;
 render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_schlick_ggx;
 
 uniform sampler2D tAlbedo   : source_color, filter_linear_mipmap, repeat_enable;
-uniform sampler2D tRMM      : hint_default_black, filter_linear_mipmap, repeat_enable;
+uniform sampler2D tRM       : hint_default_black, filter_linear_mipmap, repeat_enable;
 uniform sampler2D tNormal   : hint_roughness_normal, filter_linear_mipmap, repeat_enable;
 uniform sampler2D tEmission : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D tMask     : source_color, filter_nearest, repeat_enable;
@@ -13,8 +13,8 @@ uniform float emissionStr   = 1.5;
 
 void fragment() {
     vec3  albedo   = texture(tAlbedo,   UV).rgb;
-    float rough    = texture(tRMM,      UV).r;
-    float metal    = texture(tRMM,      UV).g;
+    float rough    = texture(tRM,       UV).r;
+    float metal    = texture(tRM,       UV).g;
     vec3  normal   = texture(tNormal,   UV).rgb;
     vec3  emission = texture(tEmission, UV).rgb;
     float maskHl   = texture(tMask,     UV).r;

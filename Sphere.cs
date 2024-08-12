@@ -3,8 +3,10 @@ namespace XB { // namespace open
 using SysCG = System.Collections.Generic;
 public partial class Sphere : Godot.CharacterBody3D {
     [Godot.Export] private Godot.NodePath        _sphereMesh;
+                   private Godot.MeshInstance3D  _meshInstSphere;
                    private Godot.ShaderMaterial  _shellMat;
                    private Godot.ShaderMaterial  _screenMat;
+                   private Godot.ShaderMaterial  _scrGhostMat;
                    private Godot.MeshInstance3D  _meshInstCone;
     [Godot.Export] private Godot.AnimationPlayer _animPl;
                    private Godot.Image           _imgScrolling;
@@ -42,6 +44,7 @@ public partial class Sphere : Godot.CharacterBody3D {
     private const float _sphScrSpeed    = 0.018f;
     private       float _hlMult         = 0.0f;
     private const float _hlSm           = 12.0f;
+    private const float _fresnelPower   = 2.0f;
 
     private Godot.Collections.Array _meshDataCone;
     private Godot.ArrayMesh         _arrMesh;
@@ -67,8 +70,10 @@ public partial class Sphere : Godot.CharacterBody3D {
         Angle       = _angleReset;
         CollisionLayer = XB.LayerMasks.SphereLayer;
 
-        TexSt         = XB.SphereTexSt.Inactive;
+        TexSt          = XB.SphereTexSt.Inactive;
         _linkedSpheres = new SysCG.List<XB.Sphere>();
+
+        _meshInstSphere = GetNode<Godot.MeshInstance3D>(_sphereMesh);
 
         _meshInstCone  = new Godot.MeshInstance3D();
         AddChild(_meshInstCone);
@@ -117,16 +122,46 @@ public partial class Sphere : Godot.CharacterBody3D {
             _normalsCone[i] = v3;
         }
 
-        _shellMat  = (Godot.ShaderMaterial)GetNode<Godot.MeshInstance3D>
-                         (_sphereMesh).GetSurfaceOverrideMaterial(0);
-        _screenMat = (Godot.ShaderMaterial)GetNode<Godot.MeshInstance3D>
-                         (_sphereMesh).GetSurfaceOverrideMaterial(1);
+        _shellMat        = new Godot.ShaderMaterial();
+        _shellMat.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.SpShellShader);
+        _shellMat.ResourceLocalToScene = true;
+        _shellMat.SetShaderParameter ("tAlbedo",       XB.ResourcePaths.SpShellCATex);
+        _shellMat.SetShaderParameter ("tRM",           XB.ResourcePaths.SpShellRMTex);
+        _shellMat.SetShaderParameter ("tNormal",       XB.ResourcePaths.SpShellNTex);
+        _shellMat.SetShaderParameter ("tEmission",     XB.ResourcePaths.SpShellETex);
+        _shellMat.SetShaderParameter ("tMask",         XB.ResourcePaths.SpEMaskTex);
+        _shellMat.SetShaderParameter ("highlightMult", 0.0f);
+        _shellMat.SetShaderParameter ("emissionStr",   _sphEmitStr);
+        Godot.GD.Print("lll");
+        Godot.GD.Print(_meshInstSphere.Mesh.SurfaceGetMaterial(0));
+        _meshInstSphere.Mesh.SurfaceSetMaterial(0, _shellMat);
+        Godot.GD.Print(_meshInstSphere.Mesh.SurfaceGetMaterial(0));
 
-        _shellMat.SetShaderParameter ("highlightCol",  _sphereColor);
-        _shellMat.SetShaderParameter ("highlightMult", 0.0f        );
-        _shellMat.SetShaderParameter ("emissionStr",   _sphEmitStr );
-        _screenMat.SetShaderParameter("scrollSpeed",   _sphScrSpeed);
-        _screenMat.SetShaderParameter("emissionStr",   _sphEmitStr );
+        _screenMat        = new Godot.ShaderMaterial();
+        _screenMat.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.SpScreenShader);
+        _screenMat.ResourceLocalToScene = true;
+        _screenMat.SetShaderParameter("tAlbedo",     XB.ResourcePaths.SpScreenCATex);
+        _screenMat.SetShaderParameter("tRM",         XB.ResourcePaths.SpScreenRMTex);
+        _screenMat.SetShaderParameter("tNormal",     XB.ResourcePaths.SpScreenNTex);
+        _screenMat.SetShaderParameter("tEmission",   XB.ResourcePaths.SpScreenETex);
+        _screenMat.SetShaderParameter("scrollSpeed", _sphScrSpeed);
+        _screenMat.SetShaderParameter("emissionStr", _sphEmitStr);
+
+        _scrGhostMat        = new Godot.ShaderMaterial();
+        _scrGhostMat.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.SpScrGhostShader);
+        _scrGhostMat.ResourceLocalToScene = true;
+        _scrGhostMat.SetShaderParameter("tAlbedo",     XB.ResourcePaths.SpScreenCATex);
+        _scrGhostMat.SetShaderParameter("tRM",         XB.ResourcePaths.SpScreenRMTex);
+        _scrGhostMat.SetShaderParameter("tNormal",     XB.ResourcePaths.SpScreenNTex);
+        _scrGhostMat.SetShaderParameter("tEmission",   XB.ResourcePaths.SpScreenETex);
+        _scrGhostMat.SetShaderParameter("scrollSpeed", _sphScrSpeed);
+        _scrGhostMat.SetShaderParameter("emissionStr", _sphEmitStr);
+        _scrGhostMat.SetShaderParameter("fresnelPow" , _fresnelPower);
+        _scrGhostMat.RenderPriority = -1; // draw main screen material behind "ghost" material
+        _scrGhostMat.NextPass = _screenMat;
+        _meshInstSphere.Mesh.SurfaceSetMaterial(1, _scrGhostMat);
+        
+        //TODO[ALEX]: materials are not assigned properly (somehow things get overwritten or something silly like  that
 
         _imgScrolling = Godot.Image.Create(_dimScrollX, _dimScrollY, false, Godot.Image.Format.Rgba8);
         _imgScrolling.Fill(XB.Col.Black);
@@ -151,7 +186,8 @@ public partial class Sphere : Godot.CharacterBody3D {
 
         _texScrolling = new Godot.ImageTexture();
         _texScrolling.SetImage(_imgScrolling);
-        _screenMat.SetShaderParameter("tWriting", _texScrolling);
+        _screenMat.SetShaderParameter  ("tWriting", _texScrolling);
+        _scrGhostMat.SetShaderParameter("tWriting", _texScrolling);
 
         Hide();
 
@@ -188,9 +224,9 @@ public partial class Sphere : Godot.CharacterBody3D {
         _hlMult     = XB.Utils.LerpF(_hlMult, Highlighted, _hlSm*dt);
         Highlighted = 0.0f;
         LinkedTo    = false;
-        _shellMat.SetShaderParameter ("emissionStr",   _sphEmitStr );
-        _shellMat.SetShaderParameter ("highlightCol",  _sphereColor);
-        _shellMat.SetShaderParameter ("highlightMult", _hlMult     );
+        _shellMat.SetShaderParameter("emissionStr",   _sphEmitStr );
+        _shellMat.SetShaderParameter("highlightCol",  _sphereColor);
+        _shellMat.SetShaderParameter("highlightMult", _hlMult     );
 
 #if XBDEBUG
         debug.End();
@@ -273,6 +309,8 @@ public partial class Sphere : Godot.CharacterBody3D {
 #endif
 
         _linkedSpheres.Remove(sphereUnlinkFrom);
+        TexSt = XB.SphereTexSt.Active;
+        XB.PController.Hud.UpdateSphereTexture(ID, TexSt);
 
         if (_linkedSpheres.Count == 0) {
             if (Linked && _animPl.CurrentAnimation != "contract") { _animPl.Play("contract"); }
@@ -312,7 +350,6 @@ public partial class Sphere : Godot.CharacterBody3D {
 #endif
 
         Godot.GD.Print("remove");
-        //TODO[ALEX]: remove sphere dam and cone geometry
         UnlinkFromAllSpheres();
         _animPl.Play("expand");
         _animPl.Stop(); // stop animation at beginning of expand animation (contracted state)
