@@ -74,6 +74,11 @@ public class Utils {
         return (a + (b-a)*t);
     }
 
+    public static Godot.Vector3 LerpV3(Godot.Vector3 a, Godot.Vector3 b, float t) {
+        t = XB.Utils.ClampF(t, 0.0f, 1.0f);
+        return (a + (b-a)*t);
+    }
+
     public static float AbsF(float a) {
         if (a < 0.0f) return (-1.0f*a);
         else          return a;

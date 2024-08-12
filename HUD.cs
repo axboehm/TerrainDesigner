@@ -316,7 +316,6 @@ public partial class HUD : Godot.Control {
             int xStart = (int)( (float)i/(tex.GetWidth()-1) * (tex.GetWidth()-1) );
             XB.Utils.UpdateRect2I(xStart, 0, 1, tex.GetHeight(), ref rects[0], ref vect);
             col.B = i*step; // in L8 image, only blue channel is used
-            Godot.GD.Print(col.B);
             image.FillRect(rects[0], col);
         }
         tex.Update(image);

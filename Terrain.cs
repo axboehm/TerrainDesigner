@@ -37,7 +37,7 @@ public class Terrain {
         OffsetX = offsetX;
         OffsetZ = offsetZ;
         Octaves = octaves;
-        AmpMult = (float)System.Math.Pow(2.0f, -persistence);
+        AmpMult = System.MathF.Pow(2.0f, -persistence);
         Lacunarity    = lacunarity;
         Exponentation = exponentation;
 
@@ -90,7 +90,7 @@ public class Terrain {
                 }
 
                 total /= Normalization;
-                total  = (float)System.Math.Pow(total, Exponentation) * Height;
+                total  = System.MathF.Pow(total, Exponentation) * Height;
                 XB.WorldData.TerrainHeightsMod[i, j] = total;
             }
         }
@@ -128,7 +128,7 @@ public class Terrain {
             }
 
             total /= Normalization;
-            total  = (float)System.Math.Pow(total, Exponentation) * Height;
+            total  = System.MathF.Pow(total, Exponentation) * Height;
             XB.WorldData.TerrainHeightsMod[i, j] = total;
         }
     }
@@ -137,12 +137,16 @@ public class Terrain {
     public static void Cone(ref float[,] tHeights, int amountX, int amountZ,
                             float worldSizeX, float worldSizeZ, float centerX, float centerZ,
                             float radius, float angle, float height, XB.Direction dir        ) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.TerrainCone);
+#endif
+
         float xStep = worldSizeX/(float)(amountX-1);
         float zStep = worldSizeZ/(float)(amountZ-1);
         var   v2    = new Godot.Vector2(0.0f, 0.0f);
 
-        float cos  = (float)System.Math.Cos(angle);
-        float sin  = (float)System.Math.Sin(angle);
+        float cos  = System.MathF.Cos(angle);
+        float sin  = System.MathF.Sin(angle);
         float ramp = sin/cos;
 
         float direction = 1.0f;
@@ -164,7 +168,105 @@ public class Terrain {
         Godot.GD.Print("Cone at: " + centerX + "m " + centerZ + "m, of "
                        + worldSizeX + "m " + worldSizeZ + "m, tip height: " + height + "m, radius: "
                        + radius + "m, angle: " + angle*XB.Constants.Rad2Deg + "deg, direction: "
-                       + direction+ ", xStep: " + xStep + ", zStep: " + zStep);
+                       + direction + ", xStep: " + xStep + ", zStep: " + zStep);
+
+#if XBDEBUG
+        debug.End();
+#endif 
+    }
+
+    // signed distance field based on: https://iquilezles.org/articles/distfunctions2d/
+    // flip signs for point differences because world is in negative coordinates
+    public static void UnevenCapsule(ref float[,] tHeights, int amountX, int amountZ,
+                                     float worldSizeX, float worldSizeZ, 
+                                     float center1X, float center1Z, float radius1,
+                                     float angle1, float height1,
+                                     float center2X, float center2Z, float radius2,
+                                     float angle2, float height2,
+                                     XB.Direction dir                                ) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.TerrainUnevenCapsule);
+#endif
+
+        //TODO[ALEX]: issue with min/max on inverted one
+        float xStep = worldSizeX/(float)(amountX-1);
+        float zStep = worldSizeZ/(float)(amountZ-1);
+        var   p  = new Godot.Vector2(0.0f, 0.0f);
+        var   pb = new Godot.Vector2(center1X - center2X, center1Z - center2Z);
+        float h  = pb.Dot(pb);
+        var   q  = new Godot.Vector2(0.0f, 0.0f);
+        float b  = radius1-radius2;
+        var   c  = new Godot.Vector2(System.MathF.Sqrt(h - b*b), b);
+
+        float cos   = System.MathF.Cos(angle1);
+        float sin   = System.MathF.Sin(angle1);
+        float ramp1 = sin/cos;
+              cos   = System.MathF.Cos(angle2);
+              sin   = System.MathF.Sin(angle2);
+        float ramp2 = sin/cos;
+
+        float direction = 1.0f;
+        if (dir == XB.Direction.Down) { direction = -1.0f; }
+
+        for (int i = 0; i < amountX; i++) {
+            p.X = i*xStep + center1X;
+            for (int j = 0; j < amountZ; j++) {
+                p.Y = j*zStep  + center1Z;
+                q.X = pb.Y;
+                q.Y = -pb.X;
+                q.X = p.Dot(q)  / h;
+                q.Y = p.Dot(pb) / h;
+
+                q.X = XB.Utils.AbsF(q.X);
+
+                float k = c.Cross(q);
+                float m = c.Dot(q);
+                float n = q.Dot(q);
+
+                float dist   = 0.0f;
+                float height = 0.0f;
+                if        (k < 0.0f) { // point 1 side
+                    dist = System.MathF.Sqrt(h * n) - radius1; 
+                    if (dist < 0.0f) {
+                        height = height1;
+                    } else {
+                        height = height1 - direction*ramp1*dist;
+                    }
+                } else if (k > c.X ) { // point 2 side
+                    dist = System.MathF.Sqrt(h * (n + 1.0f - 2.0f*q.Y)) - radius2; 
+                    if (dist < 0.0f) {
+                        height = height2;
+                    } else {
+                        height = height2 - direction*ramp2*dist;
+                    }
+                }else { // in between points, t as ratio between distances
+                    dist = m - radius1;
+                    float t = k/c.X;
+                    if (dist < 0.0f) {
+                        height = XB.Utils.LerpF(height1, height2, t);
+                    } else {
+                        float heightLerp = XB.Utils.LerpF(height1, height2, t);
+                        float rampLerp   = XB.Utils.LerpF(ramp1, ramp2, t);
+                        height = heightLerp - direction*rampLerp*dist;
+                    }
+                }
+
+                tHeights[i, j] = height;
+            }
+        }
+
+        Godot.GD.Print("Uneven Capsule with world size: " + worldSizeX + "m, " + worldSizeZ 
+                       + "m, direction: " + direction + ", xStep: " + xStep + ", zStep: " + zStep
+                       + "\nP1: " + center1X + "m " + center1Z
+                       + "m, point height: " + height1 + "m, radius: " + radius1 +  "m, angle: "
+                       + angle1*XB.Constants.Rad2Deg + "deg."
+                       + "\nP2: " + center2X + "m " + center2Z
+                       + "m, point height: " + height2 + "m, radius: " + radius2 +  "m, angle: "
+                       + angle2*XB.Constants.Rad2Deg + "deg.")                                   ;
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public static void Flat(ref float[,] tHeights, int amountX, int amountZ, float height) {

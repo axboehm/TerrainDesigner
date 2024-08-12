@@ -648,11 +648,14 @@ public partial class PController : Godot.CharacterBody3D {
             _debugHud.TogglePauseDebug();
         }
         if (XB.AData.Input.Debug3) {
-            SpawnPlayer(new Godot.Vector2(GlobalPosition.X, GlobalPosition.Z));
             Godot.GD.Print("Debug3");
+            SpawnPlayer(new Godot.Vector2(GlobalPosition.X, GlobalPosition.Z));
         }
         if (XB.AData.Input.Debug4) {
             Godot.GD.Print("Debug4");
+            for (int i = 0; i < XB.ManagerSphere.DamSegments.Count; i++) {
+                XB.ManagerSphere.DamSegments[i].DebugPrint("i: " + i.ToString());
+            }
         }
         if (XB.AData.Input.Debug5) {
             Godot.GD.Print("Debug5");

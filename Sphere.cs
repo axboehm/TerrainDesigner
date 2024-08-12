@@ -31,8 +31,8 @@ public partial class Sphere : Godot.CharacterBody3D {
     private const float _angleMin    = 1.0f;
     private const float _angleMax    = 89.0f;
 
-    public  XB.SphereTexSt TexSt = XB.SphereTexSt.Inactive;
-    private SysCG.List<XB.Sphere> _linkedSpheres = new SysCG.List<XB.Sphere>();
+    public  XB.SphereTexSt        TexSt;
+    private SysCG.List<XB.Sphere> _linkedSpheres;
 
     private Godot.Color _sphereColor    = new Godot.Color(0.0f, 0.0f, 0.0f, 1.0f); // modulating
     private const float _sphEmitStrDef  = 2.1f;
@@ -49,7 +49,6 @@ public partial class Sphere : Godot.CharacterBody3D {
     private Godot.Vector2[]         _uvsCone;
     private Godot.Vector3[]         _normalsCone;
     private int[]                   _trianglesCone;
-    private const float             _edgeLength  = 64.0f;
     private const int               _circleSteps = 36; // subdivisions for the cone circle
 
 
@@ -67,6 +66,9 @@ public partial class Sphere : Godot.CharacterBody3D {
         Radius      = _radiusReset;
         Angle       = _angleReset;
         CollisionLayer = XB.LayerMasks.SphereLayer;
+
+        TexSt         = XB.SphereTexSt.Inactive;
+        _linkedSpheres = new SysCG.List<XB.Sphere>();
 
         _meshInstCone  = new Godot.MeshInstance3D();
         AddChild(_meshInstCone);
@@ -287,6 +289,7 @@ public partial class Sphere : Godot.CharacterBody3D {
         var debug = new XB.DebugTimedBlock(XB.D.SphereUnlinkFromAllSpheres);
 #endif
 
+        Godot.GD.Print("unlinkall");
         if (!Linked) { return; }
 
         foreach (XB.Sphere lS in _linkedSpheres) { lS.UnlinkSphere(this); }
@@ -294,6 +297,8 @@ public partial class Sphere : Godot.CharacterBody3D {
 
         if (_animPl.CurrentAnimation != "contract") { _animPl.Play("contract"); }
         Linked = false;
+
+        XB.ManagerSphere.RecycleDamSegment(ID);
 
 #if XBDEBUG
         debug.End();
@@ -306,6 +311,7 @@ public partial class Sphere : Godot.CharacterBody3D {
         var debug = new XB.DebugTimedBlock(XB.D.SphereRemoveSphere);
 #endif
 
+        Godot.GD.Print("remove");
         //TODO[ALEX]: remove sphere dam and cone geometry
         UnlinkFromAllSpheres();
         _animPl.Play("expand");
@@ -374,14 +380,14 @@ public partial class Sphere : Godot.CharacterBody3D {
             move.Y = hitThisG.Y-hitPrevG.Y;
             move.Z = prevToThis.Z + playerMovement.Z;
             var pos   = GlobalPosition + move;
-                pos.Y = XB.Utils.ClampF(GlobalPosition.Y, XB.WorldData.KillPlane,
-                                                         -XB.WorldData.KillPlane); // killplane is neg.
+                pos.Y = XB.Utils.ClampF(GlobalPosition.Y + move.Y, XB.WorldData.KillPlane,
+                                                                  -XB.WorldData.KillPlane);
             GlobalPosition = pos; // since the sphere does not have in-world collisions
         }
 
         UpdateConeMesh();
         if (Linked) {
-            //TODO[ALEX]: update dam geometry
+            XB.ManagerSphere.UpdateDam(ID);
         }
 
 #if XBDEBUG
@@ -397,6 +403,7 @@ public partial class Sphere : Godot.CharacterBody3D {
         Radius += amount*_radiusMult; // mouse down will reduce radius
         Radius  = XB.Utils.ClampF(Radius, 0.0f, XB.WorldData.WorldDim.X + XB.WorldData.WorldDim.Y);
         UpdateConeMesh();
+        XB.ManagerSphere.UpdateDam(ID);
 
 #if XBDEBUG
         debug.End();
@@ -411,6 +418,7 @@ public partial class Sphere : Godot.CharacterBody3D {
         Angle -= amount*_angleMult; // mouse down will "push down" angle toward 90 deg
         Angle  = XB.Utils.ClampF(Angle, _angleMin, _angleMax);
         UpdateConeMesh();
+        XB.ManagerSphere.UpdateDam(ID);
 
 #if XBDEBUG
         debug.End();
@@ -440,7 +448,7 @@ public partial class Sphere : Godot.CharacterBody3D {
 
         _verticesCone[0] = new Godot.Vector3(0.0f, 0.0f, 0.0f);
         var dir    = new Godot.Vector3(Radius, 0.0f, 0.0f);
-        var dirAng = dir.Rotated(Godot.Vector3.Forward, Angle*XB.Constants.Deg2Rad);
+        var dirAng =              dir.Rotated(Godot.Vector3.Forward, Angle*XB.Constants.Deg2Rad);
         var nrmAng = Godot.Vector3.Up.Rotated(Godot.Vector3.Forward, Angle*XB.Constants.Deg2Rad);
         for (int i = 0; i <= _circleSteps; i++) {
             float rotAmnt = (i/(float)_circleSteps)*XB.Constants.Tau;
@@ -449,7 +457,7 @@ public partial class Sphere : Godot.CharacterBody3D {
             _verticesCone[1 + 1*(_circleSteps+1) + i] = _verticesCone[1 + 0*(_circleSteps+1) + i];
             _normalsCone [1 + 1*(_circleSteps+1) + i] = nrmAng.Rotated(Godot.Vector3.Up, rotAmnt);
             _verticesCone[1 + 2*(_circleSteps+1) + i] = _verticesCone[1 + 0*(_circleSteps+1) + i] 
-                + _edgeLength*dirAng.Rotated(Godot.Vector3.Up, rotAmnt);
+                + XB.WorldData.SphereEdgeLength*dirAng.Rotated(Godot.Vector3.Up, rotAmnt);
             _normalsCone [1 + 2*(_circleSteps+1) + i] = nrmAng.Rotated(Godot.Vector3.Up, rotAmnt);
         }
 

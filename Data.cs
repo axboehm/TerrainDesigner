@@ -83,6 +83,8 @@ public class WorldData {
     public static float          HighestPoint = +1.0f;  // highest y coordinate in world
     public static float          LowHighExtra = 1.0f;   // buffer amount for high/low updating
     public static float          KillPlane    = -4096.0f; // fallback for the player falling off
+    public static float          SphereEdgeLength    = 64.0f;
+    public static int            DamSegmentDivisions = 16;
     public static Godot.Vector2  WorldDim;              // world dimensions in meters
     public static Godot.Vector2I WorldVerts;
     public static float          WorldRes            = 0;    // subdivisions per meter
@@ -122,8 +124,8 @@ public class WorldData {
         var debug = new XB.DebugTimedBlock(XB.D.WorldDataInitializeTerrainMesh);
 #endif
 
-        float sizeX = (float)System.Math.Pow(2, expX);
-        float sizeZ = (float)System.Math.Pow(2, expZ);
+        float sizeX = System.MathF.Pow(2, expX);
+        float sizeZ = System.MathF.Pow(2, expZ);
 
         var fastNoise = new Godot.FastNoiseLite();
             fastNoise.NoiseType = Godot.FastNoiseLite.NoiseTypeEnum.Perlin;
@@ -214,6 +216,34 @@ public class WorldData {
         XB.Terrain.Cone(ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y,
                         WorldDim.X, WorldDim.Y, pos.X, pos.Z,
                         radius, angle*XB.Constants.Deg2Rad, pos.Y, XB.Direction.Down);
+        XB.Terrain.HeightMin(ref TerrainHeights, ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y);
+
+#if XBDEBUG
+        debug.End();
+#endif 
+    }
+
+    // takes angle in degrees
+    public static void ApplyDamSegment(Godot.Vector3 pos1, float radius1, float angle1,
+                                       Godot.Vector3 pos2, float radius2, float angle2 ) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.WorldDataApplyDamSegment);
+#endif
+
+        Godot.GD.Print("ApplyDamSegment with p1: " + pos1 + ", r1: " + radius1 + ", a1: " + angle1
+                       + ", p2: " + pos2 + ", r2: " + radius2 + ", a2: " + angle2                 );
+        
+        XB.Terrain.UnevenCapsule(ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y,
+                                 WorldDim.X, WorldDim.Y,
+                                 pos1.X, pos1.Z, radius1, angle1*XB.Constants.Deg2Rad, pos1.Y,
+                                 pos2.X, pos2.Z, radius2, angle2*XB.Constants.Deg2Rad, pos2.Y,
+                                 XB.Direction.Up                                              );
+        XB.Terrain.HeightMax(ref TerrainHeights, ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y);
+        XB.Terrain.UnevenCapsule(ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y,
+                                 WorldDim.X, WorldDim.Y,
+                                 pos1.X, pos1.Z, radius1, angle1*XB.Constants.Deg2Rad, pos1.Y,
+                                 pos2.X, pos2.Z, radius2, angle2*XB.Constants.Deg2Rad, pos2.Y,
+                                 XB.Direction.Down                                            );
         XB.Terrain.HeightMin(ref TerrainHeights, ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y);
 
 #if XBDEBUG
