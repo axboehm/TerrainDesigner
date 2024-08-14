@@ -9,6 +9,7 @@ public class DamSegment {
     public Godot.MeshInstance3D    MeshInst;
     public Godot.Collections.Array MeshDataDam;
     public Godot.ArrayMesh         ArrMesh;
+    public Godot.ShaderMaterial    MaterialDam;
     public Godot.Vector3[]         VerticesDam;
     public Godot.Vector2[]         UVsDam;
     public Godot.Vector3[]         NormalsDam;
@@ -35,6 +36,13 @@ public class DamSegment {
         MeshInst = new Godot.MeshInstance3D();
         root.AddChild(MeshInst);
 
+        MaterialDam = new Godot.ShaderMaterial();
+        MaterialDam.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.ConeDamShader);
+        MaterialDam.SetShaderParameter("cTopInner", XB.Col.DamTI);
+        MaterialDam.SetShaderParameter("cTopOuter", XB.Col.DamTO);
+        MaterialDam.SetShaderParameter("cBotUpper", XB.Col.DamBU);
+        MaterialDam.SetShaderParameter("cBotLower", XB.Col.DamBL);
+
         MeshDataDam = new Godot.Collections.Array();
         MeshDataDam.Resize((int)Godot.Mesh.ArrayType.Max);
         ArrMesh     = new Godot.ArrayMesh();
@@ -51,8 +59,8 @@ public class DamSegment {
 
         var v2 = new Godot.Vector2(0.0f, 0.0f);
         for (int i = 0; i < SegmentDivisions; i++) {
-            v2.X = i/(SegmentDivisions-1);
-            v2.Y = 0.0f;
+            v2.X = i/(float)(SegmentDivisions-1);
+            v2.Y = 1.0f;
             UVsDam[i*VAmnt + 0] = v2;
             UVsDam[i*VAmnt + 6] = v2;
             v2.Y = 0.5f;
@@ -60,7 +68,7 @@ public class DamSegment {
             UVsDam[i*VAmnt + 2] = v2;
             UVsDam[i*VAmnt + 4] = v2;
             UVsDam[i*VAmnt + 5] = v2;
-            v2.Y = 1.0f;
+            v2.Y = 0.0f;
             UVsDam[i*VAmnt + 3] = v2;
         }
 
@@ -190,7 +198,6 @@ public class DamSegment {
             dirR = XB.Utils.LerpV3(dirR1, dirR2, t);
             nrmR = XB.Utils.LerpV3(nrmR1, nrmR2, t);
 
-            //TODO[ALEX]: double check that the steps are done correctly (stepping)
             VerticesDam[i*VAmnt + 0] = posSp1L + dirLU*((float)i*stepL) + dirL*edgeLength;
             VerticesDam[i*VAmnt + 1] = posSp1L + dirLU*((float)i*stepL);
             VerticesDam[i*VAmnt + 2] = posSp1L + dirLU*((float)i*stepL);
@@ -225,8 +232,7 @@ public class DamSegment {
         ArrMesh.AddSurfaceFromArrays(Godot.Mesh.PrimitiveType.Triangles, MeshDataDam);
 
         MeshInst.Mesh = ArrMesh;
-        //TODO[ALEX]: material
-        //MeshInst.Mesh.SurfaceSetMaterial(0, MaterialDam);
+        MeshInst.Mesh.SurfaceSetMaterial(0, MaterialDam);
 
 #if XBDEBUG
         debug.End();
@@ -267,8 +273,7 @@ public class ManagerSphere {
         var sphereScn = Godot.ResourceLoader.Load<Godot.PackedScene>(XB.ResourcePaths.Sphere);
         XB.Sphere sphere;
         for (int i = 0; i < MaxSphereAmount; i++) {
-            sphere = (XB.Sphere)sphereScn.Instantiate(); //TODO[ALEX]: instantiate here is not right
-            // creates shallow copies  that do not have their individual materials
+            sphere = (XB.Sphere)sphereScn.Instantiate();
             sphere.InitializeSphere(i, ref rects, ref rSize, ref vect);
             XB.AData.MainRoot.AddChild(sphere);
             Spheres[i] = sphere;
@@ -687,17 +692,17 @@ public class MeshContainer {
         MaterialTile = new Godot.ShaderMaterial();
         MaterialTile.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.TerrainShader);
         MaterialTile.SetShaderParameter("albedoMult", XB.WorldData.AlbedoMult);
-        MaterialTile.SetShaderParameter("tBlock",     XB.WorldData.BlockTex);
+        MaterialTile.SetShaderParameter("tBlock",     XB.Resources.BlockTex);
         MaterialTile.SetShaderParameter("blockStr",   XB.WorldData.BlockStrength);
-        MaterialTile.SetShaderParameter("tNoiseP",    XB.WorldData.NoiseBombing);
-        MaterialTile.SetShaderParameter("tAlbedoM1",  XB.WorldData.Terrain1CATex);
-        MaterialTile.SetShaderParameter("tRMM1",      XB.WorldData.Terrain1RMTex);
-        MaterialTile.SetShaderParameter("tNormalM1",  XB.WorldData.Terrain1NTex );
-        MaterialTile.SetShaderParameter("tHeightM1",  XB.WorldData.Terrain1HTex );
-        MaterialTile.SetShaderParameter("tAlbedoM2",  XB.WorldData.Terrain2CATex);
-        MaterialTile.SetShaderParameter("tRMM2",      XB.WorldData.Terrain2RMTex);
-        MaterialTile.SetShaderParameter("tNormalM2",  XB.WorldData.Terrain2NTex );
-        MaterialTile.SetShaderParameter("tHeightM2",  XB.WorldData.Terrain2HTex );
+        MaterialTile.SetShaderParameter("tNoiseP",    XB.Resources.NoiseBombing);
+        MaterialTile.SetShaderParameter("tAlbedoM1",  XB.Resources.Terrain1CATex);
+        MaterialTile.SetShaderParameter("tRMM1",      XB.Resources.Terrain1RMTex);
+        MaterialTile.SetShaderParameter("tNormalM1",  XB.Resources.Terrain1NTex );
+        MaterialTile.SetShaderParameter("tHeightM1",  XB.Resources.Terrain1HTex );
+        MaterialTile.SetShaderParameter("tAlbedoM2",  XB.Resources.Terrain2CATex);
+        MaterialTile.SetShaderParameter("tRMM2",      XB.Resources.Terrain2RMTex);
+        MaterialTile.SetShaderParameter("tNormalM2",  XB.Resources.Terrain2NTex );
+        MaterialTile.SetShaderParameter("tHeightM2",  XB.Resources.Terrain2HTex );
         // visualization colors initially represent somewhat of a gradient 
         // but will quickly get shuffled around as MeshContainers get reused
         float r = 1.0f - XB.Utils.LerpF(0.0f, 1.0f, -lerpRAmount);

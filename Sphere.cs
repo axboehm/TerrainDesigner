@@ -2,7 +2,7 @@
 namespace XB { // namespace open
 using SysCG = System.Collections.Generic;
 public partial class Sphere : Godot.CharacterBody3D {
-    [Godot.Export] private Godot.NodePath        _sphereMesh;
+    [Godot.Export] private Godot.NodePath        _sphereMeshNode;
                    private Godot.MeshInstance3D  _meshInstSphere;
                    private Godot.ShaderMaterial  _shellMat;
                    private Godot.ShaderMaterial  _screenMat;
@@ -48,6 +48,7 @@ public partial class Sphere : Godot.CharacterBody3D {
 
     private Godot.Collections.Array _meshDataCone;
     private Godot.ArrayMesh         _arrMesh;
+    private Godot.ShaderMaterial    _materialCone;
     private Godot.Vector3[]         _verticesCone;
     private Godot.Vector2[]         _uvsCone;
     private Godot.Vector3[]         _normalsCone;
@@ -73,7 +74,14 @@ public partial class Sphere : Godot.CharacterBody3D {
         TexSt          = XB.SphereTexSt.Inactive;
         _linkedSpheres = new SysCG.List<XB.Sphere>();
 
-        _meshInstSphere = GetNode<Godot.MeshInstance3D>(_sphereMesh);
+        _meshInstSphere = GetNode<Godot.MeshInstance3D>(_sphereMeshNode);
+
+        _materialCone = new Godot.ShaderMaterial();
+        _materialCone.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.ConeDamShader);
+        _materialCone.SetShaderParameter("cTopInner", XB.Col.ConeTI);
+        _materialCone.SetShaderParameter("cTopOuter", XB.Col.ConeTO);
+        _materialCone.SetShaderParameter("cBotUpper", XB.Col.ConeBU);
+        _materialCone.SetShaderParameter("cBotLower", XB.Col.ConeBL);
 
         _meshInstCone  = new Godot.MeshInstance3D();
         AddChild(_meshInstCone);
@@ -122,46 +130,38 @@ public partial class Sphere : Godot.CharacterBody3D {
             _normalsCone[i] = v3;
         }
 
-        _shellMat        = new Godot.ShaderMaterial();
-        _shellMat.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.SpShellShader);
-        _shellMat.ResourceLocalToScene = true;
-        _shellMat.SetShaderParameter ("tAlbedo",       XB.ResourcePaths.SpShellCATex);
-        _shellMat.SetShaderParameter ("tRM",           XB.ResourcePaths.SpShellRMTex);
-        _shellMat.SetShaderParameter ("tNormal",       XB.ResourcePaths.SpShellNTex);
-        _shellMat.SetShaderParameter ("tEmission",     XB.ResourcePaths.SpShellETex);
-        _shellMat.SetShaderParameter ("tMask",         XB.ResourcePaths.SpEMaskTex);
+        //NOTE[ALEX]: instantiating this scene creates shallow copies and creating materials
+        //            like this does not create independent materials correctly
+        //_shellMat        = new Godot.ShaderMaterial();
+        //_shellMat.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.SpShellShader);
+        //_shellMat.ResourceLocalToScene = true;
+        _shellMat = (Godot.ShaderMaterial)_meshInstSphere.GetSurfaceOverrideMaterial(0);
+        _shellMat.SetShaderParameter ("tAlbedo",       XB.Resources.SpShellCA);
+        _shellMat.SetShaderParameter ("tRM",           XB.Resources.SpShellRM);
+        _shellMat.SetShaderParameter ("tNormal",       XB.Resources.SpShellN);
+        _shellMat.SetShaderParameter ("tEmission",     XB.Resources.SpShellE);
+        _shellMat.SetShaderParameter ("tMask",         XB.Resources.SpEMask);
         _shellMat.SetShaderParameter ("highlightMult", 0.0f);
         _shellMat.SetShaderParameter ("emissionStr",   _sphEmitStr);
-        Godot.GD.Print("lll");
-        Godot.GD.Print(_meshInstSphere.Mesh.SurfaceGetMaterial(0));
-        _meshInstSphere.Mesh.SurfaceSetMaterial(0, _shellMat);
-        Godot.GD.Print(_meshInstSphere.Mesh.SurfaceGetMaterial(0));
+        //_meshInstSphere.Mesh.SurfaceSetMaterial(0, _shellMat);
 
-        _screenMat        = new Godot.ShaderMaterial();
-        _screenMat.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.SpScreenShader);
-        _screenMat.ResourceLocalToScene = true;
-        _screenMat.SetShaderParameter("tAlbedo",     XB.ResourcePaths.SpScreenCATex);
-        _screenMat.SetShaderParameter("tRM",         XB.ResourcePaths.SpScreenRMTex);
-        _screenMat.SetShaderParameter("tNormal",     XB.ResourcePaths.SpScreenNTex);
-        _screenMat.SetShaderParameter("tEmission",   XB.ResourcePaths.SpScreenETex);
-        _screenMat.SetShaderParameter("scrollSpeed", _sphScrSpeed);
-        _screenMat.SetShaderParameter("emissionStr", _sphEmitStr);
-
-        _scrGhostMat        = new Godot.ShaderMaterial();
-        _scrGhostMat.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.SpScrGhostShader);
-        _scrGhostMat.ResourceLocalToScene = true;
-        _scrGhostMat.SetShaderParameter("tAlbedo",     XB.ResourcePaths.SpScreenCATex);
-        _scrGhostMat.SetShaderParameter("tRM",         XB.ResourcePaths.SpScreenRMTex);
-        _scrGhostMat.SetShaderParameter("tNormal",     XB.ResourcePaths.SpScreenNTex);
-        _scrGhostMat.SetShaderParameter("tEmission",   XB.ResourcePaths.SpScreenETex);
+        _scrGhostMat = (Godot.ShaderMaterial)_meshInstSphere.GetSurfaceOverrideMaterial(1);
+        _scrGhostMat.SetShaderParameter("tAlbedo",     XB.Resources.SpScreenCA);
+        _scrGhostMat.SetShaderParameter("tRM",         XB.Resources.SpScreenRM);
+        _scrGhostMat.SetShaderParameter("tNormal",     XB.Resources.SpScreenN);
+        _scrGhostMat.SetShaderParameter("tEmission",   XB.Resources.SpScreenE);
         _scrGhostMat.SetShaderParameter("scrollSpeed", _sphScrSpeed);
         _scrGhostMat.SetShaderParameter("emissionStr", _sphEmitStr);
         _scrGhostMat.SetShaderParameter("fresnelPow" , _fresnelPower);
         _scrGhostMat.RenderPriority = -1; // draw main screen material behind "ghost" material
-        _scrGhostMat.NextPass = _screenMat;
-        _meshInstSphere.Mesh.SurfaceSetMaterial(1, _scrGhostMat);
-        
-        //TODO[ALEX]: materials are not assigned properly (somehow things get overwritten or something silly like  that
+
+        _screenMat = (Godot.ShaderMaterial)_scrGhostMat.NextPass;
+        _screenMat.SetShaderParameter("tAlbedo",     XB.Resources.SpScreenCA);
+        _screenMat.SetShaderParameter("tRM",         XB.Resources.SpScreenRM);
+        _screenMat.SetShaderParameter("tNormal",     XB.Resources.SpScreenN);
+        _screenMat.SetShaderParameter("tEmission",   XB.Resources.SpScreenE);
+        _screenMat.SetShaderParameter("scrollSpeed", _sphScrSpeed);
+        _screenMat.SetShaderParameter("emissionStr", _sphEmitStr);
 
         _imgScrolling = Godot.Image.Create(_dimScrollX, _dimScrollY, false, Godot.Image.Format.Rgba8);
         _imgScrolling.Fill(XB.Col.Black);
@@ -327,7 +327,6 @@ public partial class Sphere : Godot.CharacterBody3D {
         var debug = new XB.DebugTimedBlock(XB.D.SphereUnlinkFromAllSpheres);
 #endif
 
-        Godot.GD.Print("unlinkall");
         if (!Linked) { return; }
 
         foreach (XB.Sphere lS in _linkedSpheres) { lS.UnlinkSphere(this); }
@@ -349,7 +348,6 @@ public partial class Sphere : Godot.CharacterBody3D {
         var debug = new XB.DebugTimedBlock(XB.D.SphereRemoveSphere);
 #endif
 
-        Godot.GD.Print("remove");
         UnlinkFromAllSpheres();
         _animPl.Play("expand");
         _animPl.Stop(); // stop animation at beginning of expand animation (contracted state)
@@ -486,6 +484,7 @@ public partial class Sphere : Godot.CharacterBody3D {
         _verticesCone[0] = new Godot.Vector3(0.0f, 0.0f, 0.0f);
         var dir    = new Godot.Vector3(Radius, 0.0f, 0.0f);
         var dirAng =              dir.Rotated(Godot.Vector3.Forward, Angle*XB.Constants.Deg2Rad);
+            dirAng = dirAng.Normalized();
         var nrmAng = Godot.Vector3.Up.Rotated(Godot.Vector3.Forward, Angle*XB.Constants.Deg2Rad);
         for (int i = 0; i <= _circleSteps; i++) {
             float rotAmnt = (i/(float)_circleSteps)*XB.Constants.Tau;
@@ -505,8 +504,7 @@ public partial class Sphere : Godot.CharacterBody3D {
         _arrMesh.AddSurfaceFromArrays(Godot.Mesh.PrimitiveType.Triangles, _meshDataCone);
         
         _meshInstCone.Mesh = _arrMesh;
-        //TODO[ALEX]: cone material
-        //_meshInstCone.Mesh.SurfaceSetMaterial(0, xx);
+        _meshInstCone.Mesh.SurfaceSetMaterial(0, _materialCone);
 
 #if XBDEBUG
         debug.End();

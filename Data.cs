@@ -56,6 +56,15 @@ public struct Col {
     public static Godot.Color SpHl     = new Godot.Color(0.6f, 1.0f, 0.6f, 1.0f);
     public static Godot.Color SpHlLink = new Godot.Color(1.0f, 0.68f, 0.0f, 1.0f);
     public static Godot.Color SpLink   = new Godot.Color(1.0f, 0.43f, 0.0f, 1.0f);
+    // cone dam colors
+    public static Godot.Color ConeTI = new Godot.Color(0.0f, 0.01f, 0.03f, 1.0f);
+    public static Godot.Color ConeTO = new Godot.Color(0.0f, 0.55f, 0.66f, 1.0f);
+    public static Godot.Color ConeBU = new Godot.Color(0.84f, 0.4f, 0.0f, 1.0f);
+    public static Godot.Color ConeBL = new Godot.Color(0.084f, 0.04f, 0.0f, 1.0f);
+    public static Godot.Color DamTI  = new Godot.Color(0.0f, 0.005f, 0.015f, 1.0f);
+    public static Godot.Color DamTO  = new Godot.Color(0.0f, 0.275f, 0.33f, 1.0f);
+    public static Godot.Color DamBU  = new Godot.Color(0.42f, 0.2f, 0.0f, 1.0f);
+    public static Godot.Color DamBL  = new Godot.Color(0.042f, 0.02f, 0.0f, 1.0f);
 }
 
 public struct ResourcePaths {
@@ -79,14 +88,72 @@ public struct ResourcePaths {
     public static string SpScreenShader   = "res://code/shaders/sphereScreen.gdshader";
     public static string SpScrGhostShader = "res://code/shaders/sphereScreenBehind.gdshader";
     public static string SpShellCATex     = "res://assets/sphere/data/sphereLP_C.png";
-    public static string SpScreenCATex    = "res://assets/sphere/data/sphereLP_C_1.png";
     public static string SpShellRMTex     = "res://assets/sphere/data/sphereLP_RM.png";
-    public static string SpScreenRMTex    = "res://assets/sphere/data/sphereLP_RM_3.png";
     public static string SpShellNTex      = "res://assets/sphere/data/sphereLP_NOpenGL.png";
-    public static string SpScreenNTex     = "res://assets/sphere/data/sphereLP_NOpenGL_2.png";
     public static string SpShellETex      = "res://assets/sphere/data/sphereLP_E.png";
+    public static string SpScreenCATex    = "res://assets/sphere/data/sphereLP_C_1.png";
+    public static string SpScreenRMTex    = "res://assets/sphere/data/sphereLP_RM_3.png";
+    public static string SpScreenNTex     = "res://assets/sphere/data/sphereLP_NOpenGL_2.png";
     public static string SpScreenETex     = "res://assets/sphere/data/sphereLP_E_4.png";
     public static string SpEMaskTex       = "res://assets/sphere/data/sphereEmissionMask.png";
+    public static string ConeDamShader    = "res://code/shaders/spConeDam.gdshader";
+}
+
+public struct Resources {
+    public static Godot.Texture SpShellCA;
+    public static Godot.Texture SpShellRM;
+    public static Godot.Texture SpShellN;
+    public static Godot.Texture SpShellE;
+    public static Godot.Texture SpScreenCA;
+    public static Godot.Texture SpScreenRM;
+    public static Godot.Texture SpScreenN;
+    public static Godot.Texture SpScreenE;
+    public static Godot.Texture SpEMask;
+
+    public static int                  NoiseRes      = 256; // resolution of large scale noise
+                                                            // texture for texture bombing
+    public static Godot.NoiseTexture2D NoiseBombing;
+    public static Godot.Texture        BlockTex;
+    public static Godot.Texture        Terrain1CATex;
+    public static Godot.Texture        Terrain1RMTex;
+    public static Godot.Texture        Terrain1NTex;
+    public static Godot.Texture        Terrain1HTex;
+    public static Godot.Texture        Terrain2CATex;
+    public static Godot.Texture        Terrain2RMTex;
+    public static Godot.Texture        Terrain2NTex;
+    public static Godot.Texture        Terrain2HTex;
+
+    public static void InitializeTerrainTextures() {
+        var fastNoise = new Godot.FastNoiseLite();
+            fastNoise.NoiseType = Godot.FastNoiseLite.NoiseTypeEnum.Perlin;
+        NoiseBombing = new Godot.NoiseTexture2D();
+        NoiseBombing.Noise           = fastNoise;
+        NoiseBombing.Height          = NoiseRes;
+        NoiseBombing.Width           = NoiseRes;
+        NoiseBombing.Normalize       = true;
+        NoiseBombing.Seamless        = true;
+        NoiseBombing.GenerateMipmaps = true;
+        Terrain1CATex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain1CATex);
+        Terrain1RMTex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain1RMTex);
+        Terrain1NTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain1NTex);
+        Terrain1HTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain1HTex);
+        Terrain2CATex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain2CATex);
+        Terrain2RMTex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain2RMTex);
+        Terrain2NTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain2NTex);
+        Terrain2HTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain2HTex);
+    }
+
+    public static void InitializeSphereTextures() {
+        SpShellCA  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.SpShellCATex);
+        SpShellRM  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.SpShellRMTex);
+        SpShellN   = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.SpShellNTex);
+        SpShellE   = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.SpShellETex);
+        SpScreenCA = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.SpScreenCATex);
+        SpScreenRM = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.SpScreenRMTex);
+        SpScreenN  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.SpScreenNTex);
+        SpScreenE  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.SpScreenETex);
+        SpEMask    = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.SpEMaskTex);
+    }
 }
 
 public class WorldData {
@@ -107,27 +174,14 @@ public class WorldData {
     public static float[,]       TerrainHeights;        // height value for each vertex
     public static float[,]       TerrainHeightsMod;     // stores calculated values to add to terrain
 
-    public static float                BlockStrength = 0.6f;
-    public static int                  NoiseRes      = 256; // resolution of large scale noise
-                                                            // texture for texture bombing
-    public static float                AlbedoMult    = 0.6f;
-    public static float                Mat1UVScale   = 1.0f/4.0f; // empirical value
-    public static float                Mat2UVScale   = 1.0f/4.0f; // empirical value
-    public static float                NoisePScale   = 0.1f;  // perlin noise for bombing
-    public static float                BlockUVScale  = 1.0f/(2.0f*10.0f); 
-                                                            // block texture has 2x2 large squares
+    public static float BlockStrength = 0.6f;
+    public static float AlbedoMult    = 0.6f;
+    public static float Mat1UVScale   = 1.0f/4.0f;          // empirical value
+    public static float Mat2UVScale   = 1.0f/4.0f;          // empirical value
+    public static float NoisePScale   = 0.1f;               // perlin noise for bombing
+    public static float BlockUVScale  = 1.0f/(2.0f*10.0f);  // block texture has 2x2 large squares
                                                             // with 10 subdivisions each per tile
-    public static float                BlendDepth    = 0.2f; // height blending edge
-    public static Godot.NoiseTexture2D NoiseBombing;
-    public static Godot.Texture        BlockTex;
-    public static Godot.Texture        Terrain1CATex;
-    public static Godot.Texture        Terrain1RMTex;
-    public static Godot.Texture        Terrain1NTex;
-    public static Godot.Texture        Terrain1HTex;
-    public static Godot.Texture        Terrain2CATex;
-    public static Godot.Texture        Terrain2RMTex;
-    public static Godot.Texture        Terrain2NTex;
-    public static Godot.Texture        Terrain2HTex;
+    public static float BlendDepth    = 0.2f;               // height blending edge
 
 
     //TODO[ALEX]: z direction edges are off, x direction is correct
@@ -138,24 +192,6 @@ public class WorldData {
 
         float sizeX = System.MathF.Pow(2, expX);
         float sizeZ = System.MathF.Pow(2, expZ);
-
-        var fastNoise = new Godot.FastNoiseLite();
-            fastNoise.NoiseType = Godot.FastNoiseLite.NoiseTypeEnum.Perlin;
-        NoiseBombing = new Godot.NoiseTexture2D();
-        NoiseBombing.Noise           = fastNoise;
-        NoiseBombing.Height          = NoiseRes;
-        NoiseBombing.Width           = NoiseRes;
-        NoiseBombing.Normalize       = true;
-        NoiseBombing.Seamless        = true;
-        NoiseBombing.GenerateMipmaps = true;
-        Terrain1CATex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain1CATex);
-        Terrain1RMTex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain1RMTex);
-        Terrain1NTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain1NTex);
-        Terrain1HTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain1HTex);
-        Terrain2CATex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain2CATex);
-        Terrain2RMTex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain2RMTex);
-        Terrain2NTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain2NTex);
-        Terrain2HTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain2HTex);
 
         WorldRes          = 8.0f;
         WorldDim          = new Godot.Vector2(sizeX, sizeZ);
@@ -241,6 +277,8 @@ public class WorldData {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.WorldDataApplyDamSegment);
 #endif
+        //NOTE[ALEX]: when multiple dam segments are applied, their intersection is not solved
+        //            properly with this method
 
         Godot.GD.Print("ApplyDamSegment with p1: " + pos1 + ", r1: " + radius1 + ", a1: " + angle1
                        + ", p2: " + pos2 + ", r2: " + radius2 + ", a2: " + angle2                 );

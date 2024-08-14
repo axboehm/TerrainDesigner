@@ -19,6 +19,9 @@ public partial class Initialize : Godot.Node3D {
         XB.AData.MainLight   = _mainLight;
         XB.Random.InitializeRandom(XB.AData.InitialSeed); // fixed startup seed for reproducable runs
 
+        XB.Resources.InitializeTerrainTextures();
+        XB.Resources.InitializeSphereTextures();
+
         Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Captured;
         GetTree().Paused = false;
     }

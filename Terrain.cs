@@ -165,10 +165,10 @@ public class Terrain {
             }
         }
 
-        Godot.GD.Print("Cone at: " + centerX + "m " + centerZ + "m, of "
-                       + worldSizeX + "m " + worldSizeZ + "m, tip height: " + height + "m, radius: "
-                       + radius + "m, angle: " + angle*XB.Constants.Rad2Deg + "deg, direction: "
-                       + direction + ", xStep: " + xStep + ", zStep: " + zStep);
+        // Godot.GD.Print("Cone at: " + centerX + "m " + centerZ + "m, of "
+        //                + worldSizeX + "m " + worldSizeZ + "m, tip height: " + height + "m, radius: "
+        //                + radius + "m, angle: " + angle*XB.Constants.Rad2Deg + "deg, direction: "
+        //                + direction + ", xStep: " + xStep + ", zStep: " + zStep);
 
 #if XBDEBUG
         debug.End();
@@ -254,14 +254,14 @@ public class Terrain {
             }
         }
 
-        Godot.GD.Print("Uneven Capsule with world size: " + worldSizeX + "m, " + worldSizeZ 
-                       + "m, direction: " + direction + ", xStep: " + xStep + ", zStep: " + zStep
-                       + "\nP1: " + center1X + "m " + center1Z
-                       + "m, point height: " + height1 + "m, radius: " + radius1 +  "m, angle: "
-                       + angle1*XB.Constants.Rad2Deg + "deg."
-                       + "\nP2: " + center2X + "m " + center2Z
-                       + "m, point height: " + height2 + "m, radius: " + radius2 +  "m, angle: "
-                       + angle2*XB.Constants.Rad2Deg + "deg.")                                   ;
+        // Godot.GD.Print("Uneven Capsule with world size: " + worldSizeX + "m, " + worldSizeZ 
+        //                + "m, direction: " + direction + ", xStep: " + xStep + ", zStep: " + zStep
+        //                + "\nP1: " + center1X + "m " + center1Z
+        //                + "m, point height: " + height1 + "m, radius: " + radius1 +  "m, angle: "
+        //                + angle1*XB.Constants.Rad2Deg + "deg."
+        //                + "\nP2: " + center2X + "m " + center2Z
+        //                + "m, point height: " + height2 + "m, radius: " + radius2 +  "m, angle: "
+        //                + angle2*XB.Constants.Rad2Deg + "deg.")                                   ;
 
 #if XBDEBUG
         debug.End();
