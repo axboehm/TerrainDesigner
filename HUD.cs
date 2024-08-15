@@ -86,6 +86,8 @@ public partial class HUD : Godot.Control {
     private const int          _dimMMGY = 16;
     private const int          _dimMMPl = 10;
     private const int          _dimMMSp = 6;
+    private const float        _playerTriWidth  = 6.0f;
+    private const float        _playerTriHeight = 10.0f;
     private const string       _heightFormat = "F2";
 
     private        float       _t            = 0.0f;
@@ -222,7 +224,6 @@ public partial class HUD : Godot.Control {
 #endif 
     }
 
-    //TODO[ALEX]: is this used when new terrain gets generated?
     public void UpdateMiniMap(float low, float high) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.HUDUpdateMiniMap);
@@ -422,19 +423,21 @@ public partial class HUD : Godot.Control {
         //            but the axes in world space go in negative direction
         float posX = -XB.PController.PModel.GlobalPosition.X/XB.WorldData.WorldDim.X;
         float posZ = -XB.PController.PModel.GlobalPosition.Z/XB.WorldData.WorldDim.Y;
-        int   x    = (int)(posX*(float)_dimMMX);
-        int   z    = (int)(posZ*(float)_dimMMY);
-        XB.Utils.PointRectangles(x, z, _dimMMPl, ref _rects, ref _rSize, ref _vect);
-        for (int i = 0; i < _rSize; i++) { _imgMiniMapO.FillRect(_rects[i], XB.Col.MPlayer); }
+        float x    = posX * (float)_dimMMX;
+        float z    = posZ * (float)_dimMMY;
+        float xDir = XB.PController.CCtrH.GlobalTransform.Basis.Z.X; // X coordinate of Z basis vector
+        float yDir = XB.PController.CCtrH.GlobalTransform.Basis.Z.Z;
+        XB.Utils.RotatedTrianglePixels(x, z, xDir, yDir, _playerTriWidth, _playerTriHeight,
+                                       ref _imgMiniMapO, XB.Col.MPlayer, XB.Col.Transp     );
 
         for (int i = 0; i < XB.ManagerSphere.Spheres.Length; i++) {
             if (!XB.ManagerSphere.Spheres[i].Active) { continue; }
 
-            posX = XB.ManagerSphere.Spheres[i].GlobalPosition.X/XB.WorldData.WorldDim.X;
-            posZ = XB.ManagerSphere.Spheres[i].GlobalPosition.Z/XB.WorldData.WorldDim.Y;
-            x    = (int)((1.0f-posX)*(float)_dimMMX);
-            z    = (int)((1.0f-posZ)*(float)_dimMMY);
-            XB.Utils.PointRectangles(x, z, _dimMMSp, ref _rects, ref _rSize, ref _vect);
+            posX = -XB.ManagerSphere.Spheres[i].GlobalPosition.X/XB.WorldData.WorldDim.X;
+            posZ = -XB.ManagerSphere.Spheres[i].GlobalPosition.Z/XB.WorldData.WorldDim.Y;
+            x    = posX * (float)_dimMMX;
+            z    = posZ * (float)_dimMMY;
+            XB.Utils.PointRectangles((int)x, (int)z, _dimMMSp, ref _rects, ref _rSize, ref _vect);
 
             Godot.Color spColor = new Godot.Color(0.0f, 0.0f, 0.0f, 0.0f);
             switch (XB.ManagerSphere.Spheres[i].TexSt) {

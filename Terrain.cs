@@ -176,6 +176,7 @@ public class Terrain {
     }
 
     // signed distance field based on: https://iquilezles.org/articles/distfunctions2d/
+    //
     // flip signs for point differences because world is in negative coordinates
     public static void UnevenCapsule(ref float[,] tHeights, int amountX, int amountZ,
                                      float worldSizeX, float worldSizeZ, 

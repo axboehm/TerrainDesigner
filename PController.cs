@@ -25,7 +25,7 @@ public partial class PController : Godot.CharacterBody3D {
     [Godot.Export] private Godot.NodePath       _cameraNode;
                    private Godot.Camera3D       _cam;                 // camera object
     [Godot.Export] private Godot.NodePath       _cameraRotationHNode; // camera's rot ctr horizontally
-                   private Godot.Node3D         CCtrH;
+             public static Godot.Node3D         CCtrH;
     [Godot.Export] private Godot.NodePath       _cameraRotationVNode; // camera's rot ctr vertically
                    private Godot.Node3D         _cCtrV;
     [Godot.Export] private Godot.NodePath       _playerRiggedNode;
@@ -52,7 +52,7 @@ public partial class PController : Godot.CharacterBody3D {
 
     private       bool          _thirdP           = true;
     private       bool          _canShoot         = false;
-    private const float         _respawnOff       = 0.5f;  // distance to ground when respawning
+    private const float         _respawnOff       = 0.1f;  // distance to ground when respawning
     private const float         _sphereSpawnDist  = 2.0f;  // distance to newly placed sphere in meter
     private       bool          _spawn            = false; // spawn player delayed for raycast to work
     private       Godot.Vector2 _spawnPos         = new Godot.Vector2(0.0f, 0.0f);

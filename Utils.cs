@@ -353,6 +353,8 @@ public class Utils {
         var debug = new XB.DebugTimedBlock(XB.D.UtilsPointRectangles);
 #endif
 
+        // Godot.GD.Print("PointRectangles around: " + xPos + ", " + yPos);
+
         rectSize = 3;
         int ws = (int)(0.4f*(float)d);
         int wl = (int)(0.8f*(float)d);
@@ -363,6 +365,119 @@ public class Utils {
 #if XBDEBUG
         debug.End();
 #endif 
+    }
+
+    // takes position of triangle (halfway up the height of the triangle)
+    // and direction to tip from position as well as width and height
+    // along with the color of the triangle and of the surrounding area
+    // and the image into which the triangle should be drawn
+    public static void RotatedTrianglePixels(float xPos, float yPos, float xDir, float yDir,
+                                             float width, float height,
+                                             ref Godot.Image img, Godot.Color colIn,
+                                             Godot.Color colOut                         ) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.UtilsRotatedTriangle);
+#endif
+
+        // construct triangle with tip T0, bottom left T1, bottom right T2
+        float xDirW = yDir; // sideways direction rotated to the right 90 deg
+        float yDirW = -xDir;
+
+        height = height/2.0f; // half height and width since the position given is in the center
+        width  = width/2.0f;
+
+        float xT0 = xPos + height*xDir;
+        float yT0 = yPos + height*yDir;
+        float xT1 = xPos - height*xDir - width*xDirW;
+        float yT1 = yPos - height*yDir - width*yDirW;
+        float xT2 = xPos - height*xDir + width*xDirW;
+        float yT2 = yPos - height*yDir + width*yDirW;
+
+        // Godot.GD.Print("Triangle: Dir: " + xDir + ", " + yDir + ", H: " + 2*height 
+        //                + ", W: " + 2*width + ", Ctr: " + xPos + ", " + yPos + ", T0: " + xT0 
+        //                + ", " + yT0 + ", T1: " + xT1 + ", " + yT1 + ", T2: " + xT2 + ", " + yT2);
+
+        float dimMax = XB.Utils.MaxF(width, height);
+        for (int i = XB.Utils.MaxI(0,              (int)(xPos - dimMax - 1.0f));
+                 i < XB.Utils.MinI(img.GetWidth(), (int)(xPos + dimMax + 1.0f));
+                 i++                                                            ) {
+            for (int j = XB.Utils.MaxI(0,               (int)(yPos - dimMax - 1.0f));
+                     j < XB.Utils.MinI(img.GetHeight(), (int)(yPos + dimMax + 1.0f));
+                     j++                                                             ) {
+                if (TriangleSDF((float)i, (float)j, xT0, yT0, xT1, yT1, xT2, yT2) < 0.0f) {
+                    img.SetPixel(i, j, colIn);
+                } else {
+                    img.SetPixel(i, j, colOut);
+                }
+            }
+        }
+
+#if XBDEBUG
+        debug.End();
+#endif 
+    }
+
+    // signed distance field based on: https://iquilezles.org/articles/distfunctions2d/
+    //
+    // triangle defined by three points P0, P1, P2
+    public static float TriangleSDF(float xIn, float yIn, float xP0, float yP0,
+                                    float xP1, float yP1, float xP2, float yP2 ) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.UtilsTriangleSDF);
+#endif
+
+        float xE0 = xP1 - xP0;
+        float yE0 = yP1 - yP0;
+        float xE1 = xP2 - xP1;
+        float yE1 = yP2 - yP1;
+        float xE2 = xP0 - xP2;
+        float yE2 = yP0 - yP2;
+
+        float xV0 = xIn - xP0;
+        float yV0 = yIn - yP0;
+        float xV1 = xIn - xP1;
+        float yV1 = yIn - yP1;
+        float xV2 = xIn - xP2;
+        float yV2 = yIn - yP2;
+
+        float dotEV0 = xV0*xE0 + yV0*yE0;
+        float dotEV1 = xV1*xE1 + yV1*yE1;
+        float dotEV2 = xV2*xE2 + yV2*yE2;
+
+        float dotE0 = xE0*xE0 + yE0*yE0;
+        float dotE1 = xE1*xE1 + yE1*yE1;
+        float dotE2 = xE2*xE2 + yE2*yE2;
+
+        float clamp0 = XB.Utils.ClampF(dotEV0/dotE0, 0.0f, 1.0f);
+        float clamp1 = XB.Utils.ClampF(dotEV1/dotE1, 0.0f, 1.0f);
+        float clamp2 = XB.Utils.ClampF(dotEV2/dotE2, 0.0f, 1.0f);
+
+        float xPQ0 = xV0 - xE0*clamp0;
+        float yPQ0 = yV0 - yE0*clamp0;
+        float xPQ1 = xV1 - xE1*clamp1;
+        float yPQ1 = yV1 - yE1*clamp1;
+        float xPQ2 = xV2 - xE2*clamp2;
+        float yPQ2 = yV2 - yE2*clamp2;
+
+        float s = xE0*yE2 - yE0*xE2;
+
+        float dotPQ0 = xPQ0*xPQ0 + yPQ0*yPQ0;
+        float dotPQ1 = xPQ1*xPQ1 + yPQ1*yPQ1;
+        float dotPQ2 = xPQ2*xPQ2 + yPQ2*yPQ2;
+
+        float xD = XB.Utils.MinF(XB.Utils.MinF(dotPQ0, dotPQ1), dotPQ2);
+        float yD = XB.Utils.MinF(XB.Utils.MinF(s*(xV0*yE0 - yV0*xE0),
+                                               s*(xV1*yE1 - yV1*xE1)),
+                                               s*(xV2*yE2 - yV2*xE2));
+
+        float dist = -1.0f*System.MathF.Sqrt(xD);
+        if (yD < 0.0f) { dist *= -1.0f; }
+
+#if XBDEBUG
+        debug.End();
+#endif 
+
+        return dist;
     }
 }
 } // namespace close

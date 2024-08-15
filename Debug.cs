@@ -279,6 +279,8 @@ public enum D { // unique debug identifier, naming scheme: "ClassFunction"
     UtilsPointRectangles,
     UtilsRaycast,
     UtilsRectangleOutline,
+    UtilsRotatedTriangle,
+    UtilsTriangleSDF,
     UtilsUpdateRect2I,
     WorldDataApplyDamSegment,
     WorldDataApplySphereCone,
