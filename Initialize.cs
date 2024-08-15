@@ -42,7 +42,9 @@ public partial class Initialize : Godot.Node3D {
 
         // world dimensions given in exponent for power of 2:
         // 1 - 2m, 2 - 4m, 3 - 8m, 4 - 16m, 5 - 32m, 6 - 64m, 7 - 128m, 8 - 256m, 9 - 512m
-        XB.WorldData.InitializeTerrainMesh(6, 6);
+        int worldSizeExpX = 6; // 64m
+        int worldSizeExpZ = 6; // 64m
+        XB.WorldData.InitializeTerrainMesh(worldSizeExpX, worldSizeExpZ);
         XB.WorldData.GenerateRandomTerrain();
         XB.WorldData.UpdateTerrain(true);
 

@@ -8,26 +8,19 @@ public enum SphereTexSt {
 }
 
 public partial class HUD : Godot.Control {
-    [Godot.Export] private        Godot.NodePath       _labelInteractPromptNode;
-                   public  static Godot.Label          LbInterAct;
-    [Godot.Export] private        Godot.NodePath       _labelInteractKeyNode;
-                   public  static Godot.Label          LbInterKey;
-    [Godot.Export] private        Godot.NodePath       _labelMessageNode;
-                   private        Godot.Label          _lbMessage;
-    [Godot.Export] private        Godot.NodePath       _labelMessage2Node;
-                   private        Godot.Label          _lbMessage2;
     [Godot.Export] private        Godot.NodePath       _matHudEffectsNode;
                    private        Godot.ShaderMaterial _matHudEff;
-    [Godot.Export] private        Godot.NodePath       _textureRectCrosshairsNode;
-                   private        Godot.TextureRect    _trCrosshairs;
 
     private Godot.Label       _lbFps;
+    private Godot.TextureRect _trCrosshairs;
     private Godot.TextureRect _trLinking;
     private Godot.TextureRect _trSpheres;
+    private Godot.TextureRect _trSpheresBG;
     private Godot.TextureRect _trMiniMap;
     private Godot.TextureRect _trMiniMapO;
     private Godot.TextureRect _trMiniMapG;
     private Godot.TextureRect _trMiniMapBG;
+    private Godot.TextureRect _trGuideBG;
     private Godot.Label       _lbHeightL;
     private Godot.Label       _lbHeightH;
 
@@ -62,6 +55,8 @@ public partial class HUD : Godot.Control {
     private const int          _offsetT = 52; // offset from top screen edge (at base res 1920x1080)
     private const int          _offsetH = 4;  // horizontal offset from side screen edges
 
+    private const int          _dimCrosshairs = 8;
+
     private Godot.Image        _imgLinking;
     private Godot.ImageTexture _texLinking;
     private const int          _dimLinkBorderX = 128;
@@ -73,6 +68,8 @@ public partial class HUD : Godot.Control {
 
     private Godot.Image        _imgSpheres;
     private Godot.ImageTexture _texSpheres;
+    private Godot.Image        _imgSpheresBG;
+    private Godot.ImageTexture _texSpheresBG;
     private int                _texMaxY  = 1024;
     private int                _dimSpX   = 0;
     private int                _dimSpY   = 0;
@@ -100,10 +97,9 @@ public partial class HUD : Godot.Control {
     private const int          _gradLbFontSize  = 16;
     private const int          _gradLbOutlSize  = 2;
 
-    private        float       _t        = 0.0f;
-    private        float       _msgDur   = 3.0f;
-    private static bool        _receivedMsg;
-    private static string[]    _messages = new string[2];
+    private Godot.Image        _imgGuideBG;
+    private Godot.ImageTexture _texGuideBG;
+    //TODO[ALEX]: on screen guide
 
     public void InitializeHud() {
 #if XBDEBUG
@@ -111,34 +107,29 @@ public partial class HUD : Godot.Control {
 #endif
 
         var font = Godot.ResourceLoader.Load<Godot.Font>(XB.ResourcePaths.FontLibMono);
-        //TODO[ALEX]: style other labels, etc
 
-        LbInterAct    =                       GetNode<Godot.Label>      (_labelInteractPromptNode);
-        LbInterKey    =                       GetNode<Godot.Label>      (_labelInteractKeyNode);
-        _lbMessage    =                       GetNode<Godot.Label>      (_labelMessageNode);
-        _lbMessage2   =                       GetNode<Godot.Label>      (_labelMessage2Node);
-        _trCrosshairs =                       GetNode<Godot.TextureRect>(_textureRectCrosshairsNode);
         _matHudEff    = (Godot.ShaderMaterial)GetNode<Godot.TextureRect>(_matHudEffectsNode).Material;
-        LbInterAct.Hide();
-        LbInterKey.Hide();
-        _lbMessage.Text  = "";
-        _lbMessage2.Text = "";
 
-        _trLinking   = new Godot.TextureRect();
-        _trSpheres   = new Godot.TextureRect();
-        _trMiniMap   = new Godot.TextureRect();
-        _trMiniMapO  = new Godot.TextureRect();
-        _trMiniMapG  = new Godot.TextureRect();
-        _trMiniMapBG = new Godot.TextureRect();
-        // the first one added will be the most back layer
+        _trCrosshairs = new Godot.TextureRect();
+        _trLinking    = new Godot.TextureRect();
+        _trSpheres    = new Godot.TextureRect();
+        _trSpheresBG  = new Godot.TextureRect();
+        _trMiniMap    = new Godot.TextureRect();
+        _trMiniMapO   = new Godot.TextureRect();
+        _trMiniMapG   = new Godot.TextureRect();
+        _trMiniMapBG  = new Godot.TextureRect();
+        // order matters (back to front)
         AddChild(_trLinking);
+        AddChild(_trSpheresBG);
         AddChild(_trSpheres);
         AddChild(_trMiniMapBG);
         AddChild(_trMiniMap);
         AddChild(_trMiniMapO);
         AddChild(_trMiniMapG);
+        AddChild(_trCrosshairs);
         _texLinking   = new Godot.ImageTexture();
         _texSpheres   = new Godot.ImageTexture();
+        _texSpheresBG = new Godot.ImageTexture();
         TexMiniMap    = new Godot.ImageTexture();
         _texMiniMapO  = new Godot.ImageTexture();
         _texMiniMapG  = new Godot.ImageTexture();
@@ -152,16 +143,25 @@ public partial class HUD : Godot.Control {
 
         for (int i = 0; i < _rects.Length; i++) { _rects[i] = new Godot.Rect2I(0, 0, 0, 0); }
 
+        var texCrosshairs = Godot.ResourceLoader.Load<Godot.Texture2D>(XB.ResourcePaths.CrosshairsTex);
+        _trCrosshairs.Texture     = texCrosshairs;
+        var crosshairsSize = new Godot.Vector2I(_dimCrosshairs, _dimCrosshairs);
+        _trCrosshairs.Position    = new Godot.Vector2I(XB.AData.BaseResX/2 - crosshairsSize.X/2,
+                                                       XB.AData.BaseResY/2 - crosshairsSize.Y/2);
+        _trCrosshairs.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
+        _trCrosshairs.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
+        _trCrosshairs.Size        = crosshairsSize;
+
         int sizeLinkingX = XB.AData.BaseResX-2*_dimLinkBorderX;
         int sizeLinkingY = XB.AData.BaseResY-2*_dimLinkBorderY;
         _imgLinking = Godot.Image.Create(sizeLinkingX, sizeLinkingY,
                                          false, Godot.Image.Format.Rgba8);
         _texLinking.SetImage(_imgLinking);
         _trLinking.Position    = new Godot.Vector2I(_dimLinkBorderX, _dimLinkBorderY);
-        _trLinking.Size        = new Godot.Vector2I(sizeLinkingX, sizeLinkingY);
-        _trLinking.Texture     = _texLinking;
         _trLinking.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
         _trLinking.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
+        _trLinking.Size        = new Godot.Vector2I(sizeLinkingX, sizeLinkingY);
+        _trLinking.Texture     = _texLinking;
         CreateLinkingTexture(_dimLinkThick, _dimLinkShadow,
                              (int)((float)sizeLinkingX*_dimLinkCorX),
                              (int)((float)sizeLinkingY*_dimLinkCorY), 
@@ -175,14 +175,24 @@ public partial class HUD : Godot.Control {
         if (rows%1.0f > 0.0f) { _rows += 1; }
         _dimSpX = _dimSp*_columns;
         _dimSpY = _dimSp*_rows;
-        _imgSpheres = Godot.Image.Create(_dimSpX, _dimSpY, false, Godot.Image.Format.Rgba8);
+        _imgSpheres   = Godot.Image.Create(_dimSpX, _dimSpY, false, Godot.Image.Format.Rgba8);
         _imgSpheres.Fill(XB.Col.Transp);
-        _trSpheres.Position    = new Godot.Vector2I(XB.AData.BaseResX-_offsetH-_dimSpX, _offsetT);
-        _trSpheres.Size        = new Godot.Vector2I(_dimSpX, _dimSpY);
-        _trSpheres.Texture     = _texSpheres;
-        _trSpheres.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
-        _trSpheres.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
+        _imgSpheresBG = Godot.Image.Create(_dimSpX, _dimSpY, false, Godot.Image.Format.Rgba8);
+        _imgSpheresBG.Fill(XB.Col.BG);
+        var spheresPosition = new Godot.Vector2I(XB.AData.BaseResX - 2*_offsetH - _dimSpX,
+                                                 _offsetT - _offsetH                      );
+        _trSpheres.Position      = spheresPosition;
+        _trSpheresBG.Position    = spheresPosition - new Godot.Vector2I(_offsetH, _offsetH);
+        _trSpheres.ExpandMode    = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
+        _trSpheresBG.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
+        _trSpheres.StretchMode   = Godot.TextureRect.StretchModeEnum.Scale;
+        _trSpheresBG.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
+        _trSpheres.Size          = new Godot.Vector2I(_dimSpX, _dimSpY);
+        _trSpheresBG.Size        = _trSpheres.Size + new Godot.Vector2I(2*_offsetH, 2*_offsetH);
+        _trSpheres.Texture       = _texSpheres;
+        _trSpheresBG.Texture     = _texSpheresBG;
         _texSpheres.SetImage(_imgSpheres);
+        _texSpheresBG.SetImage(_imgSpheresBG);
         CreateSphereTexture(_dimSpY, _dimSp, _columns, _dimBord, _dimThick,
                             ref _imgSpheres, ref _texSpheres, ref _vect, ref _rects, ref _rSize);
 
@@ -194,19 +204,11 @@ public partial class HUD : Godot.Control {
         int dimMMBGY  = _dimMMY + 2*_offsetH + 3*_dimMMSp + _dimMMGY + _gradLbFontSize;
         _imgMiniMapBG = Godot.Image.Create(dimMMBGX, dimMMBGY, false, Godot.Image.Format.Rgba8);
         _imgMiniMapBG.Fill(XB.Col.BG);
-        var miniMapPosition = new Godot.Vector2I(_offsetH, XB.AData.BaseResY/2 - dimMMBGY/2);
+        var miniMapPosition = new Godot.Vector2I(2*_offsetH, XB.AData.BaseResY/2 - dimMMBGY/2);
         _trMiniMap.Position      = miniMapPosition;
         _trMiniMapO.Position     = miniMapPosition;
         _trMiniMapG.Position     = miniMapPosition + new Godot.Vector2I(0, _dimMMY + _dimMMSp);
         _trMiniMapBG.Position    = miniMapPosition - new Godot.Vector2I(_offsetH, _offsetH);
-        _trMiniMap.Size          = new Godot.Vector2I(_dimMMX, _dimMMY);
-        _trMiniMapO.Size         = new Godot.Vector2I(_dimMMX, _dimMMY);
-        _trMiniMapG.Size         = new Godot.Vector2I(_dimMMX, _dimMMGY);
-        _trMiniMapBG.Size        = new Godot.Vector2I(dimMMBGX, dimMMBGY);
-        _trMiniMap.Texture       = TexMiniMap;
-        _trMiniMapO.Texture      = _texMiniMapO;
-        _trMiniMapG.Texture      = _texMiniMapG;
-        _trMiniMapBG.Texture     = _texMiniMapBG;
         _trMiniMap.ExpandMode    = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
         _trMiniMapO.ExpandMode   = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
         _trMiniMapG.ExpandMode   = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
@@ -215,6 +217,14 @@ public partial class HUD : Godot.Control {
         _trMiniMapO.StretchMode  = Godot.TextureRect.StretchModeEnum.Scale;
         _trMiniMapG.StretchMode  = Godot.TextureRect.StretchModeEnum.Scale;
         _trMiniMapBG.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
+        _trMiniMap.Size          = new Godot.Vector2I(_dimMMX, _dimMMY);
+        _trMiniMapO.Size         = new Godot.Vector2I(_dimMMX, _dimMMY);
+        _trMiniMapG.Size         = new Godot.Vector2I(_dimMMX, _dimMMGY);
+        _trMiniMapBG.Size        = new Godot.Vector2I(dimMMBGX, dimMMBGY);
+        _trMiniMap.Texture       = TexMiniMap;
+        _trMiniMapO.Texture      = _texMiniMapO;
+        _trMiniMapG.Texture      = _texMiniMapG;
+        _trMiniMapBG.Texture     = _texMiniMapBG;
         _texMiniMapO.SetImage (_imgMiniMapO);
         _texMiniMapG.SetImage (_imgMiniMapG);
         _texMiniMapBG.SetImage(_imgMiniMapBG);
@@ -257,12 +267,14 @@ public partial class HUD : Godot.Control {
         _trCrosshairs.Modulate = _colCross;
         _colSpheres.A          = _spheresAlpha;
         _trSpheres.Modulate    = _colSpheres;
+        _trSpheresBG.Modulate  = _colSpheres;
         _colLinking.A          = _linkingAlpha;
         _trLinking.Modulate    = _colLinking;
         _colMiniMap.A          = _miniMapAlpha;
         _trMiniMap.Modulate    = _colMiniMap;
         _trMiniMapO.Modulate   = _colMiniMap;
         _trMiniMapG.Modulate   = _colMiniMap;
+        _trMiniMapBG.Modulate  = _colMiniMap;
         _blockMultCur          = _blockMult;
         _qtreeMultCur          = _qtreeMult;
 
@@ -507,10 +519,6 @@ public partial class HUD : Godot.Control {
         _hudVisible = !_hudVisible;
     }
 
-    public void UpdateInteractKey() {
-        LbInterKey.Text = XB.AData.Input.InputActions[21].Key + " " + Tr("TO_INTERACT");
-    }
-
     public void UpdateHUD(float dt) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.HUDUpdateHUD);
@@ -544,6 +552,7 @@ public partial class HUD : Godot.Control {
         _lbFps.AddThemeColorOverride("font_color", _colFps);
         _colSpheres.A          = XB.Utils.LerpF(_colSpheres.A, _spheresAlpha, _hudSm*dt);
         _trSpheres.Modulate    = _colSpheres;
+        _trSpheresBG.Modulate  = _colSpheres;
         _colLinking.A          = XB.Utils.LerpF(_colLinking.A, _linkingAlpha, _hudSm*dt);
         _trLinking.Modulate    = _colLinking;
         _colMiniMap.A          = XB.Utils.LerpF(_colMiniMap.A, _miniMapAlpha, _hudSm*dt);
@@ -566,41 +575,9 @@ public partial class HUD : Godot.Control {
 
         _lbFps.Text = Godot.Engine.GetFramesPerSecond().ToString();
 
-        _t += dt;
-        if (_receivedMsg) {
-            if (_messages[1] != "") {
-                _lbMessage2.Text = _messages[0];
-                _messages[0]     = _messages[1];
-                _messages[1]     = "";
-            }
-            _t              = 0.0f;
-            _lbMessage.Text = _messages[0];
-            _receivedMsg    = false;
-        } 
-        if (_t > _msgDur) {
-            _lbMessage.Text  = "";
-            _lbMessage2.Text = "";
-            _messages[0]     = "";
-        }
-
-        // LbInterAct.Text = ""; //NOTE[ALEX]: placeholder for now
-        // LbInterAct.Show();
-        // LbInterKey.Show();
-
-        // if (!B.AData.Prompts) {
-        //     LbInterAct.Hide();
-        //     LbInterKey.Hide();
-        // }
-
 #if XBDEBUG
         debug.End();
 #endif 
-    }
-
-    public void AddMessage(string message) {
-        if (_messages[0] != "") _messages[1] = message;
-        else                    _messages[0] = message;
-        _receivedMsg = true;
     }
 }
 } // namespace close

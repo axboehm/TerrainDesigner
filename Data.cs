@@ -72,6 +72,7 @@ public struct ResourcePaths {
     public static string Player           = "res://assets/player/playerController.tscn";
     public static string ButtonAudio      = "res://assets/audio/soundButtonPress.tscn";
     public static string Sphere           = "res://assets/sphere/sphere.tscn";
+    public static string CrosshairsTex    = "res://assets/ui/crosshairsDot.png";
     public static string TerrainShader    = "res://code/shaders/terrain.gdshader";
     public static string TSkirtShader     = "res://code/shaders/terrainSkirt.gdshader";
     public static string BlueNoiseTex     = "res://materials/data/blueNoise64px.png";
@@ -187,7 +188,6 @@ public class WorldData {
     public static float BlendDepth    = 0.2f;               // height blending edge
 
 
-    //TODO[ALEX]: z direction edges are off, x direction is correct
     public static void InitializeTerrainMesh(int expX, int expZ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.WorldDataInitializeTerrainMesh);

@@ -255,7 +255,6 @@ public partial class Menu : Godot.Control {
                 Godot.InputMap.ActionEraseEvents(iAction.Name);
                 Godot.InputMap.ActionAddEvent(iAction.Name, @event);
 
-                _hud.UpdateInteractKey();
                 ShowMessage(Tr("KEYBINDINGS_UPDATED") + Tr(iAction.Description) + ".");
 
                 _chngMsg.Visible      = false;
