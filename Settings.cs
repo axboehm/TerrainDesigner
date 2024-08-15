@@ -49,6 +49,8 @@ public partial class Settings {
                 {"Res2",   (ulong)1 << 42},
                 {"Res3",   (ulong)1 << 43},
                 {"Res4",   (ulong)1 << 44},
+                {"SBlock", (ulong)1 << 45},
+                {"SQTree", (ulong)1 << 46},
             };
     private static ulong sFov  = (ulong)63  << 7+7+7+8+0;
     private static ulong sCamX = (ulong)127 <<   7+7+8+0;
@@ -56,11 +58,11 @@ public partial class Settings {
     private static ulong sVol  = (ulong)127 <<       8+0;
     private static ulong sShD  = (ulong)255 <<         0;
 
-    public static void UpdateSettingsTabs(Godot.Slider slCamHor, Godot.Label lbCamHor,
-            Godot.Slider slCamVer, Godot.Label lbCamVer,
+    public static void UpdateSettingsTabs(
+            Godot.Slider slCamHor, Godot.Label lbCamHor, Godot.Slider slCamVer, Godot.Label lbCamVer,
             Godot.Slider slFov, Godot.Label lbCamFov, Godot.Slider slFrame, Godot.Label lbFrame,
-            Godot.OptionButton obRes, 
-            Godot.OptionButton obMode, Godot.Button cbFps, Godot.Button cbVSync,
+            Godot.OptionButton obRes, Godot.OptionButton obMode,
+            Godot.Button cbFps, Godot.Button cbVSync, Godot.Button cbBlock, Godot.Button cbQTVis,
             Godot.OptionButton obMSAA, Godot.OptionButton obSSAA,
             Godot.Button cbTAA, Godot.Button cbDebanding,
             Godot.Label lbShdwSize, Godot.Slider slShdwSize, Godot.OptionButton obShdwFilter,
@@ -68,9 +70,7 @@ public partial class Settings {
             Godot.Label lbLOD, Godot.Slider slLOD,
             Godot.OptionButton obSSAO, Godot.Button cbSSAOHalf,
             Godot.OptionButton obSSIL, Godot.Button cbSSILHalf,
-            Godot.Button cbSSR,
-            Godot.Slider slVolume, Godot.Label lbVolume,
-            Godot.OptionButton obLang) {
+            Godot.Button cbSSR, Godot.Slider slVolume, Godot.Label lbVolume, Godot.OptionButton obLang) {
         slCamHor.Value = XB.AData.CamXSens*CamSliderMult;
         lbCamHor.Text  = slCamHor.Value.ToString();
         slCamVer.Value = XB.AData.CamYSens*CamSliderMult;
@@ -100,6 +100,8 @@ public partial class Settings {
         }
         cbVSync.ButtonPressed     = XB.AData.VSync;
         cbFps.ButtonPressed       = XB.AData.ShowFps;
+        cbBlock.ButtonPressed     = XB.AData.BlockGrid;
+        cbQTVis.ButtonPressed     = XB.AData.QTreeVis;
         cbTAA.ButtonPressed       = XB.AData.TAA;
         cbDebanding.ButtonPressed = XB.AData.Debanding;
         cbSSAOHalf.ButtonPressed  = XB.AData.SSAOHalf;
@@ -184,14 +186,26 @@ public partial class Settings {
 
     public static string ToggleShowFPS() {
         XB.AData.ShowFps = !XB.AData.ShowFps;
-        if (XB.AData.ShowFps) return XB.AData.TR.Tr("TURNED_FPS_OFF");
-        else                  return XB.AData.TR.Tr("TURNED_FPS_ON");
+        if (XB.AData.ShowFps) return XB.AData.TR.Tr("TURNED_FPS_ON");
+        else                  return XB.AData.TR.Tr("TURNED_FPS_OFF");
     }
 
     public static string ToggleVSync() {
         XB.AData.VSync = !XB.AData.VSync;
-        if (XB.AData.VSync) return XB.AData.TR.Tr("TURNED_VSYNC_OFF");
-        else                return XB.AData.TR.Tr("TURNED_VSYNC_ON");
+        if (XB.AData.VSync) return XB.AData.TR.Tr("TURNED_VSYNC_ON");
+        else                return XB.AData.TR.Tr("TURNED_VSYNC_OFF");
+    }
+
+    public static string ToggleBlockGrid() {
+        XB.AData.BlockGrid = !XB.AData.BlockGrid;
+        if (XB.AData.BlockGrid) return XB.AData.TR.Tr("TURNED_BLOCKGRID_ON");
+        else                    return XB.AData.TR.Tr("TURNED_BLOCKGRID_OFF");
+    }
+
+    public static string ToggleQuadTreeVis() {
+        XB.AData.QTreeVis = !XB.AData.QTreeVis;
+        if (XB.AData.QTreeVis) return XB.AData.TR.Tr("TURNED_QTREEVIS_ON");
+        else                   return XB.AData.TR.Tr("TURNED_QTREEVIS_OFF");
     }
 
     public static string ChangeShadowDistance(Godot.Slider slShdwDist) {
@@ -264,16 +278,18 @@ public partial class Settings {
         ulong codeL = 0;
 
         // right side (booleans and arrays)
-        // booleans (9 bits)
-        if (XB.AData.Controller) { codeR |= sPos["Cont"];  }
-        if (XB.AData.ShowFps)    { codeR |= sPos["SFps"];  }
-        if (XB.AData.FullScreen) { codeR |= sPos["Full"];  }
-        if (XB.AData.VSync)      { codeR |= sPos["VSync"]; }
-        if (XB.AData.TAA)        { codeR |= sPos["TAA"];   }
-        if (XB.AData.Debanding)  { codeR |= sPos["Deba"];  }
-        if (XB.AData.SSAOHalf)   { codeR |= sPos["SSAOH"]; }
-        if (XB.AData.SSILHalf)   { codeR |= sPos["SSILH"]; }
-        if (XB.AData.SSR)        { codeR |= sPos["SSR"];   }
+        // booleans (11 bits)
+        if (XB.AData.Controller) { codeR |= sPos["Cont"];   }
+        if (XB.AData.ShowFps)    { codeR |= sPos["SFps"];   }
+        if (XB.AData.BlockGrid)  { codeR |= sPos["SBlock"]; }
+        if (XB.AData.QTreeVis)   { codeR |= sPos["SQTree"]; }
+        if (XB.AData.FullScreen) { codeR |= sPos["Full"];   }
+        if (XB.AData.VSync)      { codeR |= sPos["VSync"];  }
+        if (XB.AData.TAA)        { codeR |= sPos["TAA"];    }
+        if (XB.AData.Debanding)  { codeR |= sPos["Deba"];   }
+        if (XB.AData.SSAOHalf)   { codeR |= sPos["SSAOH"];  }
+        if (XB.AData.SSILHalf)   { codeR |= sPos["SSILH"];  }
+        if (XB.AData.SSR)        { codeR |= sPos["SSR"];    }
         // arrays (36 bits)
         if (XB.AData.Fps == XB.AData.FpsOptions[0])             { codeR |= sPos["Fps0"];   }
         if (XB.AData.Fps == XB.AData.FpsOptions[1])             { codeR |= sPos["Fps1"];   }
@@ -345,25 +361,29 @@ public partial class Settings {
         ulong codeL = XB.Utils.BitStringToULong(bitStringL, XB.AData.SetCodeLengthL);
 
         // right side (booleans and arrays)
-        // booleans (9 bits)
-        if ((codeR & sPos["Cont"]) > 0)  { XB.AData.Controller = true;  }
-        else                             { XB.AData.Controller = false; }
-        if ((codeR & sPos["SFps"]) > 0)  { XB.AData.ShowFps = true;  }
-        else                             { XB.AData.ShowFps = false; }
-        if ((codeR & sPos["Full"]) > 0)  { XB.AData.FullScreen = true;  }
-        else                             { XB.AData.FullScreen = false; }
-        if ((codeR & sPos["VSync"]) > 0) { XB.AData.VSync = true;  }
-        else                             { XB.AData.VSync = false; }
-        if ((codeR & sPos["TAA"]) > 0)   { XB.AData.TAA = true;  }
-        else                             { XB.AData.TAA = false; }
-        if ((codeR & sPos["Deba"]) > 0)  { XB.AData.Debanding = true;  }
-        else                             { XB.AData.Debanding = false; }
-        if ((codeR & sPos["SSAOH"]) > 0) { XB.AData.SSAOHalf = true;  }
-        else                             { XB.AData.SSAOHalf = false; }
-        if ((codeR & sPos["SSILH"]) > 0) { XB.AData.SSILHalf = true;  }
-        else                             { XB.AData.SSILHalf = false; }
-        if ((codeR & sPos["SSR"]) > 0)   { XB.AData.SSR = true;  }
-        else                             { XB.AData.SSR = false; }
+        // booleans (11 bits)
+        if ((codeR & sPos["Cont"]) > 0)   { XB.AData.Controller = true;  }
+        else                              { XB.AData.Controller = false; }
+        if ((codeR & sPos["SFps"]) > 0)   { XB.AData.ShowFps = true;  }
+        else                              { XB.AData.ShowFps = false; }
+        if ((codeR & sPos["SBlock"]) > 0) { XB.AData.BlockGrid = true;  }
+        else                              { XB.AData.BlockGrid = false; }
+        if ((codeR & sPos["SQTree"]) > 0) { XB.AData.QTreeVis = true;  }
+        else                              { XB.AData.QTreeVis = false; }
+        if ((codeR & sPos["Full"]) > 0)   { XB.AData.FullScreen = true;  }
+        else                              { XB.AData.FullScreen = false; }
+        if ((codeR & sPos["VSync"]) > 0)  { XB.AData.VSync = true;  }
+        else                              { XB.AData.VSync = false; }
+        if ((codeR & sPos["TAA"]) > 0)    { XB.AData.TAA = true;  }
+        else                              { XB.AData.TAA = false; }
+        if ((codeR & sPos["Deba"]) > 0)   { XB.AData.Debanding = true;  }
+        else                              { XB.AData.Debanding = false; }
+        if ((codeR & sPos["SSAOH"]) > 0)  { XB.AData.SSAOHalf = true;  }
+        else                              { XB.AData.SSAOHalf = false; }
+        if ((codeR & sPos["SSILH"]) > 0)  { XB.AData.SSILHalf = true;  }
+        else                              { XB.AData.SSILHalf = false; }
+        if ((codeR & sPos["SSR"]) > 0)    { XB.AData.SSR = true;  }
+        else                              { XB.AData.SSR = false; }
         // arrays (36 bits)
         if      ((codeR & sPos["Fps0"]) > 0)   { XB.AData.Fps = XB.AData.FpsOptions[0]; }
         else if ((codeR & sPos["Fps1"]) > 0)   { XB.AData.Fps = XB.AData.FpsOptions[1]; }

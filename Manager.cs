@@ -1540,7 +1540,23 @@ public class ManagerTerrain {
 
         for (int i = 0; i < _terrainMeshes.Count; i++) {
             if (_terrainMeshes[i].InUse) {
-                _terrainMeshes[i].SetShaderAttribute("blockStr", multiplier*WorldData.BlockStrength);
+                _terrainMeshes[i].SetShaderAttribute("blockStr", multiplier*XB.WorldData.BlockStrength);
+            }
+        }
+
+#if XBDEBUG
+        debug.End();
+#endif 
+    }
+
+    public static void UpdateQTreeStrength(float multiplier) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainUpdateQTreeStrength);
+#endif
+
+        for (int i = 0; i < _terrainMeshes.Count; i++) {
+            if (_terrainMeshes[i].InUse) {
+                _terrainMeshes[i].SetShaderAttribute("albVisStr", multiplier*XB.WorldData.QTreeStrength);
             }
         }
 

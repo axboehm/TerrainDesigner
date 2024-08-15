@@ -227,6 +227,7 @@ public enum D { // unique debug identifier, naming scheme: "ClassFunction"
     ManagerTerrainUpdateBlockStrength,
     ManagerTerrainUpdateQNodeMesh,
     ManagerTerrainUpdateQTreeMeshes,
+    ManagerTerrainUpdateQTreeStrength,
     MeshContainerAdjustWorldEdgeSkirt,
     MeshContainerApplyToMesh,
     MeshContainerReleaseMesh,

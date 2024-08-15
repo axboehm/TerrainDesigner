@@ -60,6 +60,8 @@ public partial class Menu : Godot.Control {
     [Godot.Export] private Godot.Slider       _slFrame;
     [Godot.Export] private Godot.Button       _cbFps;
     [Godot.Export] private Godot.Button       _cbVSync;
+    [Godot.Export] private Godot.Button       _cbBlock;
+    [Godot.Export] private Godot.Button       _cbQTVis;
         // performance
     [Godot.Export] private Godot.ScrollContainer _scrPerf;
     [Godot.Export] private Godot.OptionButton    _obMSAA;
@@ -138,9 +140,11 @@ public partial class Menu : Godot.Control {
         foreach (var windowMode in XB.AData.WindowModes) { _obMode.AddItem(windowMode); }
         XB.Settings.AddSeparators(_obMode);
         _obMode.ItemSelected += OptionButtonModeOnItemSelected;
-        _cbFps.Pressed     += ButtonShowFPSOnPressed;
-        _cbVSync.Pressed   += ButtonVSyncOnPressed;
-        _slFrame.DragEnded += SliderFrameRateOnDragEnded;
+        _cbFps.Pressed       += ButtonShowFPSOnPressed;
+        _cbVSync.Pressed     += ButtonVSyncOnPressed;
+        _cbBlock.Pressed     += ButtonBlockGridOnPressed;
+        _cbQTVis.Pressed     += ButtonQuadTreeVisOnPressed;
+        _slFrame.DragEnded   += SliderFrameRateOnDragEnded;
         // performance
         _scrPerf.ScrollVertical = 0;
         _cbTAA.Pressed         += ButtonTAAOnPressed;
@@ -440,15 +444,18 @@ public partial class Menu : Godot.Control {
     }
 
     private void UpdateSettingsTab() {
-        XB.Settings.UpdateSettingsTabs(_slCamHor, _lbCamHor, _slCamVer, _lbCamVer, _slFov, _lbFov, 
-                                       _slFrame, _lbFrame, _obRes, _obMode, _cbFps,
-                                       _cbVSync, 
-                                       _obMSAA, _obSSAA, _cbTAA, _cbDebanding,
+        XB.Settings.UpdateSettingsTabs(_slCamHor, _lbCamHor, _slCamVer, _lbCamVer,
+                                       _slFov, _lbFov, _slFrame, _lbFrame,
+                                       _obRes, _obMode,
+                                       _cbFps, _cbVSync, _cbBlock, _cbQTVis,
+                                       _obMSAA, _obSSAA,
+                                       _cbTAA, _cbDebanding,
                                        _lbShdwSize, _slShdwSize, _obShdwFilter,
                                        _lbShdwDist, _slShdwDist,
-                                       _lbLOD, _slLOD, _obSSAO, _cbSSAOHalf, _obSSIL, _cbSSILHalf,
-                                       _cbSSR,
-                                       _slVolume, _lbVolume, _obLanguage);
+                                       _lbLOD, _slLOD,
+                                       _obSSAO, _cbSSAOHalf,
+                                       _obSSIL, _cbSSILHalf,
+                                       _cbSSR, _slVolume, _lbVolume, _obLanguage  );
     }
 
     private void UpdateSettingsSliders() {
@@ -565,13 +572,23 @@ public partial class Menu : Godot.Control {
         ApplySettings();
     }
 
+    public void ButtonShowFPSOnPressed() {
+        ShowMessage(XB.Settings.ToggleShowFPS());
+        ApplySettings();
+    }
+
     public void ButtonVSyncOnPressed() {
         ShowMessage(XB.Settings.ToggleVSync());
         ApplySettings();
     }
 
-    public void ButtonShowFPSOnPressed() {
-        ShowMessage(XB.Settings.ToggleShowFPS());
+    public void ButtonBlockGridOnPressed() {
+        ShowMessage(XB.Settings.ToggleBlockGrid());
+        ApplySettings();
+    }
+
+    public void ButtonQuadTreeVisOnPressed() {
+        ShowMessage(XB.Settings.ToggleQuadTreeVis());
         ApplySettings();
     }
 

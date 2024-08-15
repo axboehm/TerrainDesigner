@@ -52,6 +52,7 @@ public struct Col {
     public static Godot.Color InAct   = new Godot.Color(0.2f, 0.2f, 0.2f, 0.3f);
     public static Godot.Color Msg     = new Godot.Color(0.2f, 0.2f, 0.2f, 1.0f);
     public static Godot.Color MsgFade = new Godot.Color(0.1f, 0.1f, 0.1f, 0.0f);
+    public static Godot.Color BG      = new Godot.Color(0.0f, 0.0f, 0.0f, 0.34f);
     // sphere colors
     public static Godot.Color SpHl     = new Godot.Color(0.6f, 1.0f, 0.6f, 1.0f);
     public static Godot.Color SpHlLink = new Godot.Color(1.0f, 0.68f, 0.0f, 1.0f);
@@ -133,6 +134,7 @@ public struct Resources {
         NoiseBombing.Normalize       = true;
         NoiseBombing.Seamless        = true;
         NoiseBombing.GenerateMipmaps = true;
+        BlockTex      = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.BlockTexture);
         Terrain1CATex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain1CATex);
         Terrain1RMTex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain1RMTex);
         Terrain1NTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain1NTex);
@@ -174,7 +176,8 @@ public class WorldData {
     public static float[,]       TerrainHeights;        // height value for each vertex
     public static float[,]       TerrainHeightsMod;     // stores calculated values to add to terrain
 
-    public static float BlockStrength = 0.6f;
+    public static float BlockStrength = 0.8f; // for visualizing grid
+    public static float QTreeStrength = 0.6f; // for visualizing quad tree tiles
     public static float AlbedoMult    = 0.6f;
     public static float Mat1UVScale   = 1.0f/4.0f;          // empirical value
     public static float Mat2UVScale   = 1.0f/4.0f;          // empirical value
@@ -313,12 +316,14 @@ public class AData {
     public static float      CamCollDist    = 0.2f;     // distance from camera to colliders
     public static ulong      SetCodeR       = 0;
     public static ulong      SetCodeL       = 0;
-    public static int        SetCodeLengthR = 45;
+    public static int        SetCodeLengthR = 47;
     public static int        SetCodeLengthL = 35;
     public static bool       Controller     = false;
     public static int        Fps            = 60;
     public static int[]      FpsOptions     = new int[] {30, 60, 120, 0};
     public static bool       ShowFps        = false;
+    public static bool       BlockGrid      = false;
+    public static bool       QTreeVis       = false;
     public static float      FovDef         = 0.0f; // camera fov when not aiming (in mm)
     public static float      FovAim         = 0.0f; // when aiming
     public static float      FovMin         = 12.0f;
@@ -413,13 +418,11 @@ public class PersistData {
         viewport.UseDebanding = XB.AData.Debanding;
         viewport.UseTaa       = XB.AData.TAA;
 
-        //NOTE[ALEX]: I could not figure out the c# naming of the msaa enums in Godot, so I am casting ints:
-        //            0 -> disabled, 1 -> 2x, 2 -> 4x, 3 -> 8x
         switch (XB.AData.MSAASel) {
-            case "DISABLED": viewport.Msaa3D = (Godot.Viewport.Msaa)0; break;
-            case "MSAA2":    viewport.Msaa3D = (Godot.Viewport.Msaa)1; break;
-            case "MSAA4":    viewport.Msaa3D = (Godot.Viewport.Msaa)2; break;
-            case "MSAA8":    viewport.Msaa3D = (Godot.Viewport.Msaa)3; break;
+            case "DISABLED": viewport.Msaa3D = Godot.Viewport.Msaa.Disabled; break;
+            case "MSAA2":    viewport.Msaa3D = Godot.Viewport.Msaa.Msaa2X;  break;
+            case "MSAA4":    viewport.Msaa3D = Godot.Viewport.Msaa.Msaa4X;  break;
+            case "MSAA8":    viewport.Msaa3D = Godot.Viewport.Msaa.Msaa8X;  break;
         }
 
         switch (XB.AData.SSAASel) {
@@ -478,6 +481,10 @@ public class PersistData {
 
         if (XB.AData.ShowFps) XB.PController.Hud.FpsVisible = true;
         else                  XB.PController.Hud.FpsVisible = false;
+        if (XB.AData.BlockGrid) XB.PController.Hud.BlockGridVisible = true;
+        else                    XB.PController.Hud.BlockGridVisible = false;
+        if (XB.AData.QTreeVis) XB.PController.Hud.QTreeVisible = true;
+        else                   XB.PController.Hud.QTreeVisible = false;
 
         XB.AData.Environment.SsrEnabled = XB.AData.SSR;
     }
@@ -488,6 +495,8 @@ public class PersistData {
         XB.AData.Resolution = XB.AData.BaseResolution;
         XB.AData.Fps        = 60;
         XB.AData.ShowFps    = false;
+        XB.AData.BlockGrid  = false;
+        XB.AData.QTreeVis   = false;
         UpdateFov(_fovDef);
         XB.AData.CamXSens   = 2.0f;
         XB.AData.CamYSens   = 2.0f;

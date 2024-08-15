@@ -20,13 +20,13 @@ uniform sampler2D tNoiseP : source_color, filter_linear,        repeat_enable;
 uniform vec3  albVis    : source_color;
 uniform float albVisStr = 0.0;
 
-uniform float     scaleX      = 1.0;
-uniform float     scaleY      = 1.0;
-uniform float     blockScale  = 1.0;
-uniform float     noisePScale = 0.1;
-uniform float     blockStr    = 1.0;
-uniform float     albedoMult  = 0.8;
-uniform float     blendDepth  = 0.2;
+uniform float scaleX      = 1.0;
+uniform float scaleY      = 1.0;
+uniform float blockScale  = 1.0;
+uniform float noisePScale = 0.1;
+uniform float blockStr    = 1.0;
+uniform float albedoMult  = 0.8;
+uniform float blendDepth  = 0.2;
 
 float v3Sum(vec3 v) {
     return (v.x + v.y + v.z);

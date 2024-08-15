@@ -16,38 +16,44 @@ public partial class HUD : Godot.Control {
                    private        Godot.Label          _lbMessage;
     [Godot.Export] private        Godot.NodePath       _labelMessage2Node;
                    private        Godot.Label          _lbMessage2;
-    [Godot.Export] private        Godot.NodePath       _labelFpsNode;
-                   public         Godot.Label          _lbFps;
     [Godot.Export] private        Godot.NodePath       _matHudEffectsNode;
                    private        Godot.ShaderMaterial _matHudEff;
     [Godot.Export] private        Godot.NodePath       _textureRectCrosshairsNode;
                    private        Godot.TextureRect    _trCrosshairs;
 
+    private Godot.Label       _lbFps;
     private Godot.TextureRect _trLinking;
     private Godot.TextureRect _trSpheres;
     private Godot.TextureRect _trMiniMap;
     private Godot.TextureRect _trMiniMapO;
     private Godot.TextureRect _trMiniMapG;
+    private Godot.TextureRect _trMiniMapBG;
     private Godot.Label       _lbHeightL;
     private Godot.Label       _lbHeightH;
 
-    private bool        _hudVisible    = true;
-    public  bool        CrossVisible   = true;
-    public  bool        FpsVisible     = false;
-    public  bool        SpheresVisible = true;
-    private float       _hudSm         = 16.0f;
-    private float       _crossAlpha    = 0.0f;
-    private Godot.Color _colCross      = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
-    private float       _fpsAlpha      = 0.0f;
-    private Godot.Color _colFps        = new Godot.Color(0.6f, 0.6f, 0.6f, 1.0f);
-    private float       _spheresAlpha  = 0.0f;
-    private Godot.Color _colSpheres    = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
-    private float       _linkingAlpha  = 0.0f;
-    private Godot.Color _colLinking    = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
-    private float       _miniMapAlpha  = 0.0f;
-    private Godot.Color _colMiniMap    = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
-    private float       _blockMultCur  = 1.0f;
-    private float       _blockMult     = 0.0f;
+    private bool        _hudVisible      = true;
+    public  bool        CrossVisible     = true;
+    public  bool        FpsVisible       = false;
+    public  bool        BlockGridVisible = false;
+    public  bool        QTreeVisible     = false;
+    public  bool        SpheresVisible   = true;
+    private float       _hudSm           = 16.0f;
+    private float       _crossAlpha      = 0.0f;
+    private Godot.Color _colCross        = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
+    private float       _fpsAlpha        = 0.0f;
+    private Godot.Color _colFps          = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
+    private Godot.Color _colMMLegend     = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
+    private Godot.Color _colMMLegendOut  = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
+    private float       _spheresAlpha    = 0.0f;
+    private Godot.Color _colSpheres      = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
+    private float       _linkingAlpha    = 0.0f;
+    private Godot.Color _colLinking      = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
+    private float       _miniMapAlpha    = 0.0f;
+    private Godot.Color _colMiniMap      = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
+    private float       _blockMultCur    = 1.0f;
+    private float       _blockMult       = 0.0f;
+    private float       _qtreeMultCur    = 1.0f;
+    private float       _qtreeMult       = 0.0f;
 
     private Godot.Vector2I _vect  = new Godot.Vector2I(0, 0); // reusable vector for Rect2I
     private Godot.Rect2I[] _rects = new Godot.Rect2I[XB.Utils.MaxRectSize];
@@ -81,6 +87,8 @@ public partial class HUD : Godot.Control {
     private Godot.ImageTexture _texMiniMapO;
     private Godot.Image        _imgMiniMapG;
     private Godot.ImageTexture _texMiniMapG;
+    private Godot.Image        _imgMiniMapBG;
+    private Godot.ImageTexture _texMiniMapBG;
     private const int          _dimMMX  = 256;
     private const int          _dimMMY  = 256;
     private const int          _dimMMGY = 16;
@@ -88,28 +96,31 @@ public partial class HUD : Godot.Control {
     private const int          _dimMMSp = 6;
     private const float        _playerTriWidth  = 6.0f;
     private const float        _playerTriHeight = 10.0f;
-    private const string       _heightFormat = "F2";
+    private const string       _heightFormat    = "F2";
+    private const int          _gradLbFontSize  = 16;
+    private const int          _gradLbOutlSize  = 2;
 
-    private        float       _t            = 0.0f;
-    private        float       _msgDur       = 3.0f;
+    private        float       _t        = 0.0f;
+    private        float       _msgDur   = 3.0f;
     private static bool        _receivedMsg;
-    private static string[]    _messages     = new string[2];
+    private static string[]    _messages = new string[2];
 
     public void InitializeHud() {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.HUDInitializeHud);
 #endif
 
+        var font = Godot.ResourceLoader.Load<Godot.Font>(XB.ResourcePaths.FontLibMono);
+        //TODO[ALEX]: style other labels, etc
+
         LbInterAct    =                       GetNode<Godot.Label>      (_labelInteractPromptNode);
         LbInterKey    =                       GetNode<Godot.Label>      (_labelInteractKeyNode);
         _lbMessage    =                       GetNode<Godot.Label>      (_labelMessageNode);
         _lbMessage2   =                       GetNode<Godot.Label>      (_labelMessage2Node);
-        _lbFps        =                       GetNode<Godot.Label>      (_labelFpsNode);
         _trCrosshairs =                       GetNode<Godot.TextureRect>(_textureRectCrosshairsNode);
         _matHudEff    = (Godot.ShaderMaterial)GetNode<Godot.TextureRect>(_matHudEffectsNode).Material;
         LbInterAct.Hide();
         LbInterKey.Hide();
-        _lbFps.Hide();
         _lbMessage.Text  = "";
         _lbMessage2.Text = "";
 
@@ -118,20 +129,26 @@ public partial class HUD : Godot.Control {
         _trMiniMap   = new Godot.TextureRect();
         _trMiniMapO  = new Godot.TextureRect();
         _trMiniMapG  = new Godot.TextureRect();
+        _trMiniMapBG = new Godot.TextureRect();
+        // the first one added will be the most back layer
         AddChild(_trLinking);
         AddChild(_trSpheres);
+        AddChild(_trMiniMapBG);
         AddChild(_trMiniMap);
         AddChild(_trMiniMapO);
         AddChild(_trMiniMapG);
-        _texLinking  = new Godot.ImageTexture();
-        _texSpheres  = new Godot.ImageTexture();
-        TexMiniMap   = new Godot.ImageTexture();
-        _texMiniMapO = new Godot.ImageTexture();
-        _texMiniMapG = new Godot.ImageTexture();
-        _lbHeightL   = new Godot.Label();
-        _lbHeightH   = new Godot.Label();
+        _texLinking   = new Godot.ImageTexture();
+        _texSpheres   = new Godot.ImageTexture();
+        TexMiniMap    = new Godot.ImageTexture();
+        _texMiniMapO  = new Godot.ImageTexture();
+        _texMiniMapG  = new Godot.ImageTexture();
+        _texMiniMapBG = new Godot.ImageTexture();
+        _lbHeightL    = new Godot.Label();
+        _lbHeightH    = new Godot.Label();
+        _lbFps        = new Godot.Label();
         AddChild(_lbHeightL);
         AddChild(_lbHeightH);
+        AddChild(_lbFps);
 
         for (int i = 0; i < _rects.Length; i++) { _rects[i] = new Godot.Rect2I(0, 0, 0, 0); }
 
@@ -169,28 +186,38 @@ public partial class HUD : Godot.Control {
         CreateSphereTexture(_dimSpY, _dimSp, _columns, _dimBord, _dimThick,
                             ref _imgSpheres, ref _texSpheres, ref _vect, ref _rects, ref _rSize);
 
-        _imgMiniMapO = Godot.Image.Create(_dimMMX, _dimMMY, false, Godot.Image.Format.Rgba8);
+        _imgMiniMapO  = Godot.Image.Create(_dimMMX, _dimMMY, false, Godot.Image.Format.Rgba8);
         _imgMiniMapO.Fill(XB.Col.Transp);
-        _imgMiniMapG = Godot.Image.Create(_dimMMX, _dimMMGY, false, Godot.Image.Format.L8);
+        _imgMiniMapG  = Godot.Image.Create(_dimMMX, _dimMMGY, false, Godot.Image.Format.L8);
         _imgMiniMapG.Fill(XB.Col.Black);
-        var miniMapPosition = new Godot.Vector2I(_offsetH, XB.AData.BaseResY/2 - _dimMMY/2);
-        _trMiniMap.Position     = miniMapPosition;
-        _trMiniMapO.Position    = miniMapPosition;
-        _trMiniMapG.Position    = miniMapPosition + new Godot.Vector2I(0, _dimMMY + _dimMMSp);
-        _trMiniMap.Size         = new Godot.Vector2I(_dimMMX, _dimMMY);
-        _trMiniMapO.Size        = new Godot.Vector2I(_dimMMX, _dimMMY);
-        _trMiniMapG.Size        = new Godot.Vector2I(_dimMMX, _dimMMGY);
-        _trMiniMap.Texture      = TexMiniMap;
-        _trMiniMapO.Texture     = _texMiniMapO;
-        _trMiniMapG.Texture     = _texMiniMapG;
-        _trMiniMap.ExpandMode   = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
-        _trMiniMapO.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
-        _trMiniMapG.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
-        _trMiniMap.StretchMode  = Godot.TextureRect.StretchModeEnum.Scale;
-        _trMiniMapO.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
-        _trMiniMapG.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
-        _texMiniMapO.SetImage(_imgMiniMapO);
-        _texMiniMapG.SetImage(_imgMiniMapG);
+        int dimMMBGX  = _dimMMX + 2*_offsetH;
+        int dimMMBGY  = _dimMMY + 2*_offsetH + 3*_dimMMSp + _dimMMGY + _gradLbFontSize;
+        _imgMiniMapBG = Godot.Image.Create(dimMMBGX, dimMMBGY, false, Godot.Image.Format.Rgba8);
+        _imgMiniMapBG.Fill(XB.Col.BG);
+        var miniMapPosition = new Godot.Vector2I(_offsetH, XB.AData.BaseResY/2 - dimMMBGY/2);
+        _trMiniMap.Position      = miniMapPosition;
+        _trMiniMapO.Position     = miniMapPosition;
+        _trMiniMapG.Position     = miniMapPosition + new Godot.Vector2I(0, _dimMMY + _dimMMSp);
+        _trMiniMapBG.Position    = miniMapPosition - new Godot.Vector2I(_offsetH, _offsetH);
+        _trMiniMap.Size          = new Godot.Vector2I(_dimMMX, _dimMMY);
+        _trMiniMapO.Size         = new Godot.Vector2I(_dimMMX, _dimMMY);
+        _trMiniMapG.Size         = new Godot.Vector2I(_dimMMX, _dimMMGY);
+        _trMiniMapBG.Size        = new Godot.Vector2I(dimMMBGX, dimMMBGY);
+        _trMiniMap.Texture       = TexMiniMap;
+        _trMiniMapO.Texture      = _texMiniMapO;
+        _trMiniMapG.Texture      = _texMiniMapG;
+        _trMiniMapBG.Texture     = _texMiniMapBG;
+        _trMiniMap.ExpandMode    = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
+        _trMiniMapO.ExpandMode   = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
+        _trMiniMapG.ExpandMode   = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
+        _trMiniMapBG.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
+        _trMiniMap.StretchMode   = Godot.TextureRect.StretchModeEnum.Scale;
+        _trMiniMapO.StretchMode  = Godot.TextureRect.StretchModeEnum.Scale;
+        _trMiniMapG.StretchMode  = Godot.TextureRect.StretchModeEnum.Scale;
+        _trMiniMapBG.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
+        _texMiniMapO.SetImage (_imgMiniMapO);
+        _texMiniMapG.SetImage (_imgMiniMapG);
+        _texMiniMapBG.SetImage(_imgMiniMapBG);
         CreateGradientTexture(ref _imgMiniMapG, ref _texMiniMapG, ref _vect, ref _rects);
 
         var mmLabelPosition = miniMapPosition + new Godot.Vector2I(0, _dimMMY + 2*_dimMMSp + _dimMMGY);
@@ -205,7 +232,26 @@ public partial class HUD : Godot.Control {
         _lbHeightL.VerticalAlignment   = Godot.VerticalAlignment.Top;
         _lbHeightL.Text = "low";
         _lbHeightH.Text = "high";
-        //TODO[ALEX]: style gradient legend
+        _lbHeightL.AddThemeFontOverride    ("font",               font           );
+        _lbHeightH.AddThemeFontOverride    ("font",               font           );
+        _lbHeightL.AddThemeFontSizeOverride("font_size",          _gradLbFontSize);
+        _lbHeightH.AddThemeFontSizeOverride("font_size",          _gradLbFontSize);
+        _lbHeightL.AddThemeConstantOverride("outline_size",       _gradLbOutlSize);
+        _lbHeightH.AddThemeConstantOverride("outline_size",       _gradLbOutlSize);
+        _colMMLegend    = XB.Col.White;
+        _colMMLegendOut = XB.Col.Black;
+        _lbHeightL.AddThemeColorOverride   ("font_color",         _colMMLegend   );
+        _lbHeightH.AddThemeColorOverride   ("font_color",         _colMMLegend   );
+        _lbHeightL.AddThemeColorOverride   ("font_outline_color", _colMMLegendOut);
+        _lbHeightH.AddThemeColorOverride   ("font_outline_color", _colMMLegendOut);
+
+        _lbFps.Position = new Godot.Vector2I(_offsetH, _offsetT);
+        _lbFps.Size     = new Godot.Vector2I(_dimMMX, _gradLbFontSize);
+        _lbFps.HorizontalAlignment = Godot.HorizontalAlignment.Left;
+        _lbFps.VerticalAlignment   = Godot.VerticalAlignment.Top;
+        _colFps   = XB.Col.White;
+        _colFps.A = 0.0f;
+        _lbFps.AddThemeColorOverride("font_color", _colFps);
 
         _colCross.A            = _crossAlpha;
         _trCrosshairs.Modulate = _colCross;
@@ -218,6 +264,7 @@ public partial class HUD : Godot.Control {
         _trMiniMapO.Modulate   = _colMiniMap;
         _trMiniMapG.Modulate   = _colMiniMap;
         _blockMultCur          = _blockMult;
+        _qtreeMultCur          = _qtreeMult;
 
 #if XBDEBUG
         debug.End();
@@ -476,9 +523,12 @@ public partial class HUD : Godot.Control {
             else              { _fpsAlpha   = 0.0f; }
             if (XB.ManagerSphere.Linking) { _linkingAlpha = 1.0f; }
             else                          { _linkingAlpha = 0.0f; }
+            if (BlockGridVisible) { _blockMult = 1.0f; }
+            else                  { _blockMult = 0.0f; }
+            if (QTreeVisible)     { _qtreeMult = 1.0f; }
+            else                  { _qtreeMult = 0.0f; }
             _spheresAlpha = 1.0f;
             _miniMapAlpha = 1.0f;
-            _blockMult    = 1.0f;
         } else {
             _crossAlpha   = 0.0f;
             _fpsAlpha     = 0.0f;
@@ -500,8 +550,17 @@ public partial class HUD : Godot.Control {
         _trMiniMap.Modulate    = _colMiniMap;
         _trMiniMapO.Modulate   = _colMiniMap;
         _trMiniMapG.Modulate   = _colMiniMap;
+        _trMiniMapBG.Modulate  = _colMiniMap;
+        _colMMLegend.A         = XB.Utils.LerpF(_colMMLegend.A,    _miniMapAlpha, _hudSm*dt);
+        _colMMLegendOut.A      = XB.Utils.LerpF(_colMMLegendOut.A, _miniMapAlpha, _hudSm*dt);
+        _lbHeightL.AddThemeColorOverride   ("font_color",         _colMMLegend   );
+        _lbHeightH.AddThemeColorOverride   ("font_color",         _colMMLegend   );
+        _lbHeightL.AddThemeColorOverride   ("font_outline_color", _colMMLegendOut);
+        _lbHeightH.AddThemeColorOverride   ("font_outline_color", _colMMLegendOut);
         _blockMultCur          = XB.Utils.LerpF(_blockMultCur, _blockMult, _hudSm*dt); 
+        _qtreeMultCur          = XB.Utils.LerpF(_qtreeMultCur, _qtreeMult, _hudSm*dt); 
         XB.ManagerTerrain.UpdateBlockStrength(_blockMultCur);
+        XB.ManagerTerrain.UpdateQTreeStrength(_qtreeMultCur);
 
         UpdateMiniMapOverlayTexture();
 
