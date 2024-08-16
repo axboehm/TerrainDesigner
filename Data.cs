@@ -177,6 +177,32 @@ public class WorldData {
     public static float[,]       TerrainHeights;        // height value for each vertex
     public static float[,]       TerrainHeightsMod;     // stores calculated values to add to terrain
 
+    public static int   GenSeedMaxLength = 8;
+    public static float GenHeightMin     = 0.0f;
+    public static float GenHeightMax     = 100.0f;
+    public static float GenHeightDef     = 18.0f;
+    public static float GenScaleMin      = 0.0001f;
+    public static float GenScaleMax      = 0.1f;
+    public static float GenScaleDef      = 0.0174f;
+    public static float GenOffXMin       = 0.0f;
+    public static float GenOffXMax       = 1.0f;
+    public static float GenOffXDef       = 0.0f;
+    public static float GenOffZMin       = 0.0f;
+    public static float GenOffZMax       = 1.0f;
+    public static float GenOffZDef       = 0.0f;
+    public static int   GenOctMin        = 1;
+    public static int   GenOctMax        = 10;
+    public static int   GenOctDef        = 8;
+    public static float GenPersMin       = 0.0f;
+    public static float GenPersMax       = 5.0f;
+    public static float GenPersDef       = 0.9f;
+    public static float GenLacMin        = 0.0f;
+    public static float GenLacMax        = 8.0f;
+    public static float GenLacDef        = 2.2f;
+    public static float GenExpMin        = 0.0f;
+    public static float GenExpMax        = 16.0f;
+    public static float GenExpDef        = 7.5f;
+
     public static float BlockStrength = 0.8f; // for visualizing grid
     public static float QTreeStrength = 0.6f; // for visualizing quad tree tiles
     public static float AlbedoMult    = 0.6f;
@@ -218,8 +244,9 @@ public class WorldData {
 
         XB.Terrain.Flat(ref TerrainHeights, WorldVerts.X, WorldVerts.Y, 0.0f); // initialize to flat
 
-        XB.Terrain.SetTerrainParameters(18.0f, 0.0174f, 0.0f, 0.0f, 8, 0.9f, 2.2f, 7.5f);
-        XB.Terrain.FBM(WorldVerts.X, WorldVerts.Y, WorldDim.X, WorldDim.Y);
+        XB.Terrain.FBM(WorldVerts.X, WorldVerts.Y, WorldDim.X, WorldDim.Y,
+                       GenHeightDef, GenScaleDef, GenOffXDef, GenOffZDef,
+                       GenOctDef, GenPersDef, GenLacDef, GenExpDef        );
         XB.Terrain.HeightReplace(ref TerrainHeights, ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y);
 
         Godot.GD.Print("Generate Terrain: LP: " + LowestPoint + ", HP: " + HighestPoint);

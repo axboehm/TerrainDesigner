@@ -33,10 +33,9 @@ public partial class Menu : Godot.Control {
     private const int _tConCon = 1;
 
     // pause tab
-    [Godot.Export] private Godot.Button   _bQuit;
-    [Godot.Export] private Godot.Button   _bGenerate;
-    [Godot.Export] private Godot.LineEdit _leGenSeed;
-    [Godot.Export] private Godot.Button   _bApplySpheres;
+    [Godot.Export] private Godot.Button _bQuit;
+    [Godot.Export] private Godot.Button _bGenerate;
+    [Godot.Export] private Godot.Button _bApplySpheres;
 
     // system tab
     [Godot.Export] private Godot.TabContainer _tabSys;
@@ -96,13 +95,43 @@ public partial class Menu : Godot.Control {
                    private bool               _mouseRelease = false;
                    private int                _setKeyID     = 0;
 
-    // confirmation popup
-    [Godot.Export] private Godot.Control _ctrlPopup;
-    [Godot.Export] private Godot.Label   _lbPopup;
-    [Godot.Export] private Godot.Button  _bPopCancel;
+    // popup quit
+    [Godot.Export] private Godot.Control _ctrlPopupQ;
+    [Godot.Export] private Godot.Button  _bPopQuitCancel;
     [Godot.Export] private Godot.Button  _bPopQuit;
 
-    public override void _Ready() {
+    // popup generation
+    [Godot.Export] private Godot.Control  _ctrlPopupG;
+    [Godot.Export] private Godot.Button   _bPopGenCancel;
+    [Godot.Export] private Godot.Button   _bPopGenApply;
+    [Godot.Export] private Godot.LineEdit _leGenSeed;
+    [Godot.Export] private Godot.Button   _bGenSeedApply;
+    [Godot.Export] private Godot.Label    _lbGenHeight;
+    [Godot.Export] private Godot.Slider   _slGenHeight;
+    [Godot.Export] private Godot.Label    _lbGenScale;
+    [Godot.Export] private Godot.Slider   _slGenScale;
+    [Godot.Export] private Godot.Label    _lbGenOffX;
+    [Godot.Export] private Godot.Slider   _slGenOffX;
+    [Godot.Export] private Godot.Label    _lbGenOffZ;
+    [Godot.Export] private Godot.Slider   _slGenOffZ;
+    [Godot.Export] private Godot.Label    _lbGenOct;
+    [Godot.Export] private Godot.Slider   _slGenOct;
+    [Godot.Export] private Godot.Label    _lbGenPers;
+    [Godot.Export] private Godot.Slider   _slGenPers;
+    [Godot.Export] private Godot.Label    _lbGenLac;
+    [Godot.Export] private Godot.Slider   _slGenLac;
+    [Godot.Export] private Godot.Label    _lbGenExp;
+    [Godot.Export] private Godot.Slider   _slGenExp;
+    [Godot.Export] private Godot.Button   _cbGenUpd;
+    [Godot.Export] private Godot.TextureRect  _trGenMap;
+                   private Godot.Image        _imgGenMap;
+                   private Godot.ImageTexture _texGenMap;
+                   private const int          _sizeGenMap   = 512;
+                   private const string       _valueFormat  = "F2";
+                   private       bool         _updateGenTex = true;
+
+
+    public void InitializeMenu() {
         ProcessMode = ProcessModeEnum.WhenPaused;
 
         _tabCont.CurrentTab = _tPau;
@@ -115,8 +144,6 @@ public partial class Menu : Godot.Control {
         // pause tab
         _bQuit.Pressed         += ButtonPopupQuitOnPressed;
         _bGenerate.Pressed     += ButtonGenerateTerrainOnPressed;
-        _leGenSeed.TextChanged += LineEditGenerateSeedOnTextChanged;
-        _leGenSeed.MaxLength    = 8;
         _bApplySpheres.Pressed += ButtonApplySpheresOnPressed;
 
         // system tab
@@ -205,10 +232,56 @@ public partial class Menu : Godot.Control {
         _bDefaultsCK.Pressed += ButtonDefaultsCKOnPressed;
         _chngMsg.Visible      = false;
 
-        // confirmation popup
-        _bPopCancel.Pressed += ButtonPopupCancelOnPressed;
-        _bPopQuit.Pressed   += ButtonQuitOnPressed;
-        _ctrlPopup.Hide();
+        // popup quit
+        _bPopQuitCancel.Pressed += ButtonPopupCancelOnPressed;
+        _bPopQuit.Pressed       += ButtonQuitOnPressed;
+        _ctrlPopupQ.Hide();
+
+        // popup generation
+        _bPopGenCancel.Pressed += ButtonPopupCancelOnPressed;
+        _bPopGenApply.Pressed  += ButtonPopupGenApplyOnPressed;
+        _leGenSeed.TextChanged += LineEditGenerateSeedOnTextChanged;
+        _bGenSeedApply.Pressed += ButtonGenSeedApplyOnPressed;
+        _leGenSeed.MaxLength    = XB.WorldData.GenSeedMaxLength;
+        _slGenHeight.MinValue   = XB.WorldData.GenHeightMin;
+        _slGenHeight.MaxValue   = XB.WorldData.GenHeightMax;
+        _slGenHeight.DragEnded += SliderGenHeightOnDragEnded;
+        _slGenHeight.Step       = 0;
+        _slGenScale.MinValue    = XB.WorldData.GenScaleMin;
+        _slGenScale.MaxValue    = XB.WorldData.GenScaleMax;
+        _slGenScale.DragEnded  += SliderGenScaleOnDragEnded;
+        _slGenScale.Step        = 0;
+        _slGenOffX.MinValue     = XB.WorldData.GenOffXMin;
+        _slGenOffX.MaxValue     = XB.WorldData.GenOffXMax;
+        _slGenOffX.DragEnded   += SliderGenOffXOnDragEnded;
+        _slGenOffX.Step         = 0;
+        _slGenOffZ.MinValue     = XB.WorldData.GenOffZMin;
+        _slGenOffZ.MaxValue     = XB.WorldData.GenOffZMax;
+        _slGenOffZ.DragEnded   += SliderGenOffZOnDragEnded;
+        _slGenOffZ.Step         = 0;
+        _slGenOct.MinValue      = XB.WorldData.GenOctMin;
+        _slGenOct.MaxValue      = XB.WorldData.GenOctMax;
+        _slGenOct.DragEnded    += SliderGenOctOnDragEnded;
+        _slGenOct.Step          = 1;
+        _slGenPers.MinValue     = XB.WorldData.GenPersMin;
+        _slGenPers.MaxValue     = XB.WorldData.GenPersMax;
+        _slGenPers.DragEnded   += SliderGenPersOnDragEnded;
+        _slGenPers.Step         = 0;
+        _slGenLac.MinValue      = XB.WorldData.GenLacMin;
+        _slGenLac.MaxValue      = XB.WorldData.GenLacMax;
+        _slGenLac.DragEnded    += SliderGenLacOnDragEnded;
+        _slGenLac.Step          = 0;
+        _slGenExp.MinValue      = XB.WorldData.GenExpMin;
+        _slGenExp.MaxValue      = XB.WorldData.GenExpMax;
+        _slGenExp.DragEnded    += SliderGenExpOnDragEnded;
+        _slGenExp.Step          = 0;
+        _cbGenUpd.Pressed      += ButtonGenUpdOnPressed;
+        _imgGenMap = Godot.Image.Create(_sizeGenMap, _sizeGenMap, false, Godot.Image.Format.L8);
+        _imgGenMap.Fill(XB.Col.Black);
+        _texGenMap = new Godot.ImageTexture();
+        _texGenMap.SetImage(_imgGenMap);
+        _trGenMap.Texture = _texGenMap;
+        _ctrlPopupG.Hide();
     }
 
     // handling input before any other node to reassign controls
@@ -277,6 +350,17 @@ public partial class Menu : Godot.Control {
         }
 
         XB.AData.Input.GetInputs();
+
+#if XBDEBUG
+         _player.DebugHud.UpdateDebugHUD((float)delta);
+
+        // DEBUG BUTTONS
+        if (XB.AData.Input.Debug1) { _player.DebugHud.Debug1(); }
+        if (XB.AData.Input.Debug2) { _player.DebugHud.Debug2(); }
+        if (XB.AData.Input.Debug3) { _player.DebugHud.Debug3(); }
+        if (XB.AData.Input.Debug4) { _player.DebugHud.Debug4(); }
+        if (XB.AData.Input.Debug5) { _player.DebugHud.Debug5(); }
+#endif
 
         _t     += (float)delta;
 
@@ -373,6 +457,10 @@ public partial class Menu : Godot.Control {
                 UpdateControlTabContainer();
                 break;
             }
+        }
+
+        if (_ctrlPopupG.Visible) {
+            UpdateGenLabels();
         }
     }
 
@@ -476,7 +564,7 @@ public partial class Menu : Godot.Control {
         _crMsg.Color = XB.Col.Msg;
     }
 
-    public void ButtonResumeOnPressed() {
+    private void ButtonResumeOnPressed() {
         XB.Utils.PlayUISound(XB.ResourcePaths.ButtonAudio);
         Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Captured;
         GetTree().Paused      = false;
@@ -484,155 +572,155 @@ public partial class Menu : Godot.Control {
         _menuType = XB.MenuType.None;
     }
 
-    public void ButtonQuitOnPressed() {
+    private void ButtonQuitOnPressed() {
         GetTree().Quit();
     }
 
-    public void SliderShadowDistanceOnDragEnded(bool valueChanged) {
+    private void SliderShadowDistanceOnDragEnded(bool valueChanged) {
         if (!valueChanged) return;
         ShowMessage(XB.Settings.ChangeShadowDistance(_slShdwDist));
         ApplySettings();
     }
 
-    public void SliderFovOnDragEnded(bool valueChanged) {
+    private void SliderFovOnDragEnded(bool valueChanged) {
         if (!valueChanged) return;
         ShowMessage(XB.Settings.ChangeFov(_slFov));
         ApplySettings();
     }
 
-    public void SliderCamHorOnDragEnded(bool valueChanged) {
+    private void SliderCamHorOnDragEnded(bool valueChanged) {
         if (!valueChanged) return;
         ShowMessage(XB.Settings.ChangeSensitivityHorizontal(_slCamHor));
         ApplySettings();
     }
 
-    public void SliderCamVerOnDragEnded(bool valueChanged) {
+    private void SliderCamVerOnDragEnded(bool valueChanged) {
         if (!valueChanged) return;
         ShowMessage(XB.Settings.ChangeSensitivityVertical(_slCamVer));
         ApplySettings();
     }
 
-    public void SliderVolumeOnDragEnded(bool valueChanged) {
+    private void SliderVolumeOnDragEnded(bool valueChanged) {
         if (!valueChanged) return;
         ShowMessage(XB.Settings.ChangeVolume(_slVolume));
         ApplySettings();
     }
 
-    public void SliderFrameRateOnDragEnded(bool valueChanged) {
+    private void SliderFrameRateOnDragEnded(bool valueChanged) {
         UpdateSettingsSliders();
         ApplySettings();
     }
 
-    public void SliderShadowSizeOnDragEnded(bool valueChanged) {
+    private void SliderShadowSizeOnDragEnded(bool valueChanged) {
         UpdateSettingsSliders();
         ApplySettings();
     }
 
-    public void SliderLODOnDragEnded(bool valueChanged) {
+    private void SliderLODOnDragEnded(bool valueChanged) {
         UpdateSettingsSliders();
         ApplySettings();
     }
 
-    public void ButtonAppDefaultsOnPressed() {
+    private void ButtonAppDefaultsOnPressed() {
         XB.Utils.PlayUISound(XB.ResourcePaths.ButtonAudio);
         ShowMessage(XB.Settings.ApplicationDefaults());
         ApplySettings();
     }
 
-    public void ButtonApplyOnPressed () {
+    private void ButtonApplyOnPressed () {
         XB.Utils.PlayUISound(XB.ResourcePaths.ButtonAudio);
         string preset = _obPresets.GetItemText(_obPresets.GetSelectedId());
         ShowMessage(XB.Settings.PresetSettings(XB.AData.Presets[preset]));
         ApplySettings();
     }
 
-    public void ButtonTAAOnPressed() {
+    private void ButtonTAAOnPressed() {
         ShowMessage(XB.Settings.ToggleTAA());
         ApplySettings();
     }
 
-    public void ButtonDebandingOnPressed() {
+    private void ButtonDebandingOnPressed() {
         ShowMessage(XB.Settings.ToggleDebanding());
         ApplySettings();
     }
 
-    public void ButtonSSAOHalfOnPressed() {
+    private void ButtonSSAOHalfOnPressed() {
         ShowMessage(XB.Settings.ToggleSSAOHalf());
         ApplySettings();
     }
 
-    public void ButtonSSILHalfOnPressed() {
+    private void ButtonSSILHalfOnPressed() {
         ShowMessage(XB.Settings.ToggleSSILHalf());
         ApplySettings();
     }
 
-    public void ButtonSSROnPressed() {
+    private void ButtonSSROnPressed() {
         ShowMessage(XB.Settings.ToggleSSR());
         ApplySettings();
     }
 
-    public void ButtonShowFPSOnPressed() {
+    private void ButtonShowFPSOnPressed() {
         ShowMessage(XB.Settings.ToggleShowFPS());
         ApplySettings();
     }
 
-    public void ButtonVSyncOnPressed() {
+    private void ButtonVSyncOnPressed() {
         ShowMessage(XB.Settings.ToggleVSync());
         ApplySettings();
     }
 
-    public void ButtonBlockGridOnPressed() {
+    private void ButtonBlockGridOnPressed() {
         ShowMessage(XB.Settings.ToggleBlockGrid());
         ApplySettings();
     }
 
-    public void ButtonQuadTreeVisOnPressed() {
+    private void ButtonQuadTreeVisOnPressed() {
         ShowMessage(XB.Settings.ToggleQuadTreeVis());
         ApplySettings();
     }
 
-    public void ButtonPopupCancelOnPressed() {
+    private void ButtonPopupCancelOnPressed() {
         XB.Utils.PlayUISound(XB.ResourcePaths.ButtonAudio);
-        _ctrlPopup.Hide();
+        _ctrlPopupQ.Hide();
+        _ctrlPopupG.Hide();
     }
 
-    public void ButtonPopupQuitOnPressed() {
+    private void ButtonPopupQuitOnPressed() {
         XB.Utils.PlayUISound(XB.ResourcePaths.ButtonAudio);
-        _ctrlPopup.Show();
-        _lbPopup.Text = Tr("QUIT_QUESTION");
+        _ctrlPopupQ.Show();
     }
 
-    public void ButtonDefaultsCKOnPressed() {
+    private void ButtonDefaultsCKOnPressed() {
         XB.Utils.PlayUISound(XB.ResourcePaths.ButtonAudio);
         ShowMessage(Tr("DEFAULT_KEYBINDINGS"));
         XB.AData.Input.DefaultInputActions();
         UpdateControlTab();
     }
 
-    public void ButtonCK00OnPressed() {ControlsChange( 0);}
-    public void ButtonCK01OnPressed() {ControlsChange( 1);}
-    public void ButtonCK02OnPressed() {ControlsChange( 2);}
-    public void ButtonCK03OnPressed() {ControlsChange( 3);}
-    public void ButtonCK04OnPressed() {ControlsChange( 4);}
-    public void ButtonCK05OnPressed() {ControlsChange( 5);}
-    public void ButtonCK06OnPressed() {ControlsChange( 6);}
-    public void ButtonCK07OnPressed() {ControlsChange( 7);}
-    public void ButtonCK08OnPressed() {ControlsChange( 8);}
-    public void ButtonCK09OnPressed() {ControlsChange( 9);}
-    public void ButtonCK10OnPressed() {ControlsChange(10);}
-    public void ButtonCK11OnPressed() {ControlsChange(11);}
-    public void ButtonCK12OnPressed() {ControlsChange(12);}
-    public void ButtonCK13OnPressed() {ControlsChange(13);}
-    public void ButtonCK14OnPressed() {ControlsChange(14);}
-    public void ButtonCK15OnPressed() {ControlsChange(15);}
-    public void ButtonCK16OnPressed() {ControlsChange(16);}
-    public void ButtonCK17OnPressed() {ControlsChange(17);}
-    public void ButtonCK18OnPressed() {ControlsChange(18);}
-    public void ButtonCK19OnPressed() {ControlsChange(19);}
-    public void ButtonCK20OnPressed() {ControlsChange(20);}
-    public void ButtonCK21OnPressed() {ControlsChange(21);}
-    public void ButtonCK22OnPressed() {ControlsChange(22);}
-    public void ButtonCK23OnPressed() {ControlsChange(23);}
+    private void ButtonCK00OnPressed() {ControlsChange( 0);}
+    private void ButtonCK01OnPressed() {ControlsChange( 1);}
+    private void ButtonCK02OnPressed() {ControlsChange( 2);}
+    private void ButtonCK03OnPressed() {ControlsChange( 3);}
+    private void ButtonCK04OnPressed() {ControlsChange( 4);}
+    private void ButtonCK05OnPressed() {ControlsChange( 5);}
+    private void ButtonCK06OnPressed() {ControlsChange( 6);}
+    private void ButtonCK07OnPressed() {ControlsChange( 7);}
+    private void ButtonCK08OnPressed() {ControlsChange( 8);}
+    private void ButtonCK09OnPressed() {ControlsChange( 9);}
+    private void ButtonCK10OnPressed() {ControlsChange(10);}
+    private void ButtonCK11OnPressed() {ControlsChange(11);}
+    private void ButtonCK12OnPressed() {ControlsChange(12);}
+    private void ButtonCK13OnPressed() {ControlsChange(13);}
+    private void ButtonCK14OnPressed() {ControlsChange(14);}
+    private void ButtonCK15OnPressed() {ControlsChange(15);}
+    private void ButtonCK16OnPressed() {ControlsChange(16);}
+    private void ButtonCK17OnPressed() {ControlsChange(17);}
+    private void ButtonCK18OnPressed() {ControlsChange(18);}
+    private void ButtonCK19OnPressed() {ControlsChange(19);}
+    private void ButtonCK20OnPressed() {ControlsChange(20);}
+    private void ButtonCK21OnPressed() {ControlsChange(21);}
+    private void ButtonCK22OnPressed() {ControlsChange(22);}
+    private void ButtonCK23OnPressed() {ControlsChange(23);}
 
     private void ControlsChange(int id) {
         XB.Utils.PlayUISound(XB.ResourcePaths.ButtonAudio);
@@ -712,19 +800,28 @@ public partial class Menu : Godot.Control {
     }
 
     private void ButtonGenerateTerrainOnPressed() {
-        uint seed = 0;
-        if (System.UInt32.TryParse(_leGenSeed.Text, out seed)) {
-        } else {
-            seed = (uint)System.DateTime.Now.GetHashCode();
-        }
-        XB.Random.InitializeRandom(seed);
-        XB.WorldData.GenerateRandomTerrain();
-        XB.WorldData.UpdateTerrain(false);
-
-        _player.SpawnPlayer(new Godot.Vector2(-XB.WorldData.WorldDim.X/2.0f,
-                                              -XB.WorldData.WorldDim.Y/2.0f));
-        ShowMessage(Tr("GENERATED_TERRAIN"));
-        ButtonResumeOnPressed();
+        XB.Utils.PlayUISound(XB.ResourcePaths.ButtonAudio);
+        _ctrlPopupG.Show();
+        // restore values to defaults
+        _slGenHeight.Value = XB.WorldData.GenHeightDef;
+        _lbGenHeight.Text  = _slGenHeight.Value.ToString();
+        _slGenScale.Value  = XB.WorldData.GenScaleDef;
+        _lbGenScale.Text   = _slGenScale.Value.ToString();
+        _slGenOffX.Value   = XB.WorldData.GenOffXDef;
+        _lbGenOffX.Text    = _slGenOffX.Value.ToString();
+        _slGenOffZ.Value   = XB.WorldData.GenOffZDef;
+        _lbGenOffZ.Text    = _slGenOffZ.Value.ToString();
+        _slGenOct.Value    = XB.WorldData.GenOctDef;
+        _lbGenOct.Text     = _slGenOct.Value.ToString();
+        _slGenPers.Value   = XB.WorldData.GenPersDef;
+        _lbGenPers.Text    = _slGenPers.Value.ToString();
+        _slGenLac.Value    = XB.WorldData.GenLacDef;
+        _lbGenLac.Text     = _slGenLac.Value.ToString();
+        _slGenExp.Value    = XB.WorldData.GenExpDef;
+        _lbGenExp.Text     = _slGenExp.Value.ToString();
+        _updateGenTex      = true;
+        _cbGenUpd.ButtonPressed = _updateGenTex;
+        GenerateTerrainHeights();
     }
 
     private void ButtonApplySpheresOnPressed() {
@@ -736,14 +833,98 @@ public partial class Menu : Godot.Control {
         ButtonResumeOnPressed();
     }
 
+    private void ButtonPopupGenApplyOnPressed() {
+        if (!_updateGenTex) { GenerateTerrainHeights(); } // only if heightmap has not been generated yet
+        XB.Terrain.HeightReplace(ref XB.WorldData.TerrainHeights,
+                                 ref XB.WorldData.TerrainHeightsMod,
+                                 XB.WorldData.WorldVerts.X, XB.WorldData.WorldVerts.Y);
+        XB.WorldData.UpdateTerrain(false);
+        _player.SpawnPlayer(new Godot.Vector2(-XB.WorldData.WorldDim.X/2.0f,
+                                              -XB.WorldData.WorldDim.Y/2.0f));
+        ShowMessage(Tr("GENERATED_TERRAIN"));
+        _ctrlPopupG.Hide();
+        ButtonResumeOnPressed();
+    }
+
     private void LineEditGenerateSeedOnTextChanged(string text) {
         uint seed = 0;
-        if (System.UInt32.TryParse(_leGenSeed.Text, out seed)) {
-            ShowMessage(Tr("SEED_VALID"));
-        } else {
-            ShowMessage(Tr("SEED_INVALID"));
-            _leGenSeed.Text = ((uint)System.DateTime.Now.GetHashCode()).ToString();
+        if (_leGenSeed.Text != "" && !System.UInt32.TryParse(_leGenSeed.Text, out seed)) {
+            seed = (uint)System.DateTime.Now.GetHashCode();
+            _leGenSeed.Text = seed.ToString();
         }
+    }
+
+    private void ButtonGenSeedApplyOnPressed() {
+        uint seed = 0;
+        if (_leGenSeed.Text != "") { seed = System.UInt32.Parse(_leGenSeed.Text); }
+        XB.Random.InitializeRandom(seed);
+        if (_updateGenTex) { GenerateTerrainHeights(); }
+    }
+
+    private void SliderGenHeightOnDragEnded(bool valueChanged) {
+        if (_updateGenTex) { GenerateTerrainHeights(); }
+    }
+
+    private void SliderGenScaleOnDragEnded(bool valueChanged) {
+        if (_updateGenTex) { GenerateTerrainHeights(); }
+    }
+
+    private void SliderGenOffXOnDragEnded(bool valueChanged) {
+        if (_updateGenTex) { GenerateTerrainHeights(); }
+    }
+
+    private void SliderGenOffZOnDragEnded(bool valueChanged) {
+        if (_updateGenTex) { GenerateTerrainHeights(); }
+    }
+
+    private void SliderGenOctOnDragEnded(bool valueChanged) {
+        if (_updateGenTex) { GenerateTerrainHeights(); }
+    }
+
+    private void SliderGenPersOnDragEnded(bool valueChanged) {
+        if (_updateGenTex) { GenerateTerrainHeights(); }
+    }
+
+    private void SliderGenLacOnDragEnded(bool valueChanged) {
+        if (_updateGenTex) { GenerateTerrainHeights(); }
+    }
+
+    private void SliderGenExpOnDragEnded(bool valueChanged) {
+        if (_updateGenTex) { GenerateTerrainHeights(); }
+    }
+
+    private void ButtonGenUpdOnPressed() {
+        _updateGenTex = !_updateGenTex;
+        if (_updateGenTex) { GenerateTerrainHeights(); }
+    }
+
+    private void GenerateTerrainHeights() {
+        XB.Terrain.FBM(XB.WorldData.WorldVerts.X, XB.WorldData.WorldVerts.Y,
+                       XB.WorldData.WorldDim.X, XB.WorldData.WorldDim.Y,
+                       (float)_slGenHeight.Value, (float)_slGenScale.Value,
+                       (float)_slGenOffX.Value, (float)_slGenOffZ.Value,
+                       (int)_slGenOct.Value, (float)_slGenPers.Value,
+                       (float)_slGenLac.Value, (float)_slGenExp.Value       );
+        float lowest  = 0.0f;
+        float highest = 0.0f;
+        XB.Terrain.FindLowestHighest(ref XB.WorldData.TerrainHeightsMod, 
+                                     XB.WorldData.WorldVerts.X, XB.WorldData.WorldVerts.Y,
+                                     ref lowest, ref highest                              );
+        XB.Terrain.UpdateHeightMap(ref XB.WorldData.TerrainHeightsMod,
+                                   lowest, highest, ref _imgGenMap    );
+        _texGenMap.Update(_imgGenMap);
+    }
+
+    // to have the labels show the slider values while sliding, they have to be updated every frame
+    private void UpdateGenLabels() {
+        _lbGenHeight.Text = _slGenHeight.Value.ToString(_valueFormat);
+        _lbGenScale.Text  = _slGenScale.Value.ToString("F4"); // more precision for scale
+        _lbGenOffX.Text   = _slGenOffX.Value.ToString(_valueFormat);
+        _lbGenOffZ.Text   = _slGenOffZ.Value.ToString(_valueFormat);
+        _lbGenOct.Text    = _slGenOct.Value.ToString();
+        _lbGenPers.Text   = _slGenPers.Value.ToString(_valueFormat);
+        _lbGenLac.Text    = _slGenLac.Value.ToString(_valueFormat);
+        _lbGenExp.Text    = _slGenExp.Value.ToString(_valueFormat);
     }
 }
 } // namespace close 

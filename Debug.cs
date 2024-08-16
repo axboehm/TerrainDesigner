@@ -156,6 +156,29 @@ public partial class DebugHUD : Godot.Control {
                                              _imgMiniMapO.GetWidth()/XB.WorldData.WorldDim.X);
         _texMiniMapO.Update(_imgMiniMapO);
         _texMiniMap.Update(XB.WorldData.ImgMiniMap);
+        _texBlueNoise.Update(XB.Random.BlueNoise);
+    }
+
+    public void Debug1() {
+        Godot.GD.Print("Debug1 - Toggle DebugHUD");
+        ToggleDebugHUD();
+    }
+
+    public void Debug2() {
+        Godot.GD.Print("Debug2 - Toggle PauseDebug");
+        TogglePauseDebug();
+    }
+
+    public void Debug3() {
+        Godot.GD.Print("Debug3");
+    }
+
+    public void Debug4() {
+        Godot.GD.Print("Debug4");
+    }
+
+    public void Debug5() {
+        Godot.GD.Print("Debug5");
     }
 
     public void ToggleDebugHUD() {
@@ -261,6 +284,7 @@ public enum D { // unique debug identifier, naming scheme: "ClassFunction"
     TerrainCalculateNormals,
     TerrainCone,
     TerrainFBM,
+    TerrainFindLowestHighest,
     TerrainFlat,
     TerrainGradientX,
     TerrainGradientY,
@@ -269,7 +293,6 @@ public enum D { // unique debug identifier, naming scheme: "ClassFunction"
     TerrainHeightMin,
     TerrainHeightReplace,
     TerrainResetLowestHighest,
-    TerrainSetTerrainParameters,
     TerrainUnevenCapsule,
     TerrainUpdateHeightMap,
     TerrainUpdateLowestHighest,

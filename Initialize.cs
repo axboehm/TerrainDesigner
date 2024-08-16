@@ -38,6 +38,7 @@ public partial class Initialize : Godot.Node3D {
 
         _player.InitializePController();
         _player.InitializeHud();
+        _player.InitializeMenu();
         XB.PersistData.UpdateScreen();
 
         // world dimensions given in exponent for power of 2:

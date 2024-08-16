@@ -8,8 +8,8 @@ public enum SphereTexSt {
 }
 
 public partial class HUD : Godot.Control {
-    [Godot.Export] private        Godot.NodePath       _matHudEffectsNode;
-                   private        Godot.ShaderMaterial _matHudEff;
+    [Godot.Export] private Godot.NodePath       _matHudEffectsNode;
+                   private Godot.ShaderMaterial _matHudEff;
 
     private Godot.Label       _lbFps;
     private Godot.TextureRect _trCrosshairs;

@@ -107,7 +107,7 @@ public partial class PController : Godot.CharacterBody3D {
 
     private Godot.Transform3D _camTransPrev = new Godot.Transform3D();
 #if XBDEBUG
-    private XB.DebugHUD _debugHud;
+    public XB.DebugHUD DebugHud;
 #endif
 
     public void InitializePController() {
@@ -161,11 +161,15 @@ public partial class PController : Godot.CharacterBody3D {
         Hud.InitializeHud();
     }
 
+    public void InitializeMenu() {
+        Menu.InitializeMenu();
+    }
+
 #if XBDEBUG
     public void InitializeDebugHud() {
-        _debugHud = new XB.DebugHUD();
-        AddChild(_debugHud);
-        _debugHud.InitializeDebugHUD();
+        DebugHud = new XB.DebugHUD();
+        AddChild(DebugHud);
+        DebugHud.InitializeDebugHUD();
     }
 #endif 
 
@@ -205,7 +209,7 @@ public partial class PController : Godot.CharacterBody3D {
                                             ref XB.WorldData.ImgMiniMap                         );
         var spaceSt = RequestSpaceState(); // get spacestate for raycasting
 #if XBDEBUG
-         _debugHud.UpdateDebugHUD(dt);
+         DebugHud.UpdateDebugHUD(dt);
 #endif
         if (GetTree().Paused) {
 #if XBDEBUG
@@ -639,24 +643,11 @@ public partial class PController : Godot.CharacterBody3D {
 
 #if XBDEBUG
         // DEBUG BUTTONS
-        if (XB.AData.Input.Debug1) {
-            Godot.GD.Print("Debug1 - Toggle DebugHUD");
-            _debugHud.ToggleDebugHUD();
-        }
-        if (XB.AData.Input.Debug2) {
-            Godot.GD.Print("Debug2 - Toggle PauseDebug");
-            _debugHud.TogglePauseDebug();
-        }
-        if (XB.AData.Input.Debug3) {
-            Godot.GD.Print("Debug3");
-            SpawnPlayer(new Godot.Vector2(GlobalPosition.X, GlobalPosition.Z));
-        }
-        if (XB.AData.Input.Debug4) {
-            Godot.GD.Print("Debug4");
-        }
-        if (XB.AData.Input.Debug5) {
-            Godot.GD.Print("Debug5");
-        }
+        if (XB.AData.Input.Debug1) { DebugHud.Debug1(); }
+        if (XB.AData.Input.Debug2) { DebugHud.Debug2(); }
+        if (XB.AData.Input.Debug3) { DebugHud.Debug3(); }
+        if (XB.AData.Input.Debug4) { DebugHud.Debug4(); }
+        if (XB.AData.Input.Debug5) { DebugHud.Debug5(); }
 #endif
 
 

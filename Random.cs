@@ -11,24 +11,28 @@ public class Random {
     public  static Godot.Image BlueNoise;            // square noise texture
     private static int         _blueNoiseSize = 64;  // pixels on one side (height = width), mult of 4
 
-    public static void InitializeRandom(uint start) {
+    //TODO[ALEX]: make this always return the same texture with the same seed, even after startup
+    public static void InitializeRandom(uint seed) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.RandomInitializeRandom);
 #endif
 
-        _x            = start;
-        _y            = _x + (_x/2);
-        _z            = _y/2;
-        _w            = _w/4;
+        _rVPosition   = 0;
+        _x            = (uint)1 << (int)seed;
+        _y            = (uint)1 << (int)(_x+1);
+        _z            = (uint)1 << (int)(_y+1);
+        _w            = (uint)1 << (int)(_z+1);
         _randomValues = Xorshift();
         _rVPosition   = 0;
+            Godot.GD.Print(seed + " " + _randomValues[0] + " " + _randomValues[1] + " "
+                        + _randomValues[2] + " " + _randomValues[3]);
 
 #if BLUENOISETEXTURE
         BlueNoise      = Godot.Image.LoadFromFile(XB.ScenePaths.BlueNoiseTex);
         _blueNoiseSize = BlueNoise.GetWidth();
 #else
         BlueNoise = Godot.Image.Create(_blueNoiseSize, _blueNoiseSize,
-                                        false, Godot.Image.Format.L8   );
+                                        false, Godot.Image.Format.L8  );
         var  randomColor = new Godot.Color(0.0f, 0.0f, 0.0f, 0.0f);
         for (int i = 0; i < _blueNoiseSize; i ++) {
             for (int j = 0; j < _blueNoiseSize; j ++) {
