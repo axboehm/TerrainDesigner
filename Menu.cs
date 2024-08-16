@@ -242,7 +242,6 @@ public partial class Menu : Godot.Control {
         _bPopGenApply.Pressed  += ButtonPopupGenApplyOnPressed;
         _leGenSeed.TextChanged += LineEditGenerateSeedOnTextChanged;
         _bGenSeedApply.Pressed += ButtonGenSeedApplyOnPressed;
-        _leGenSeed.MaxLength    = XB.WorldData.GenSeedMaxLength;
         _slGenHeight.MinValue   = XB.WorldData.GenHeightMin;
         _slGenHeight.MaxValue   = XB.WorldData.GenHeightMax;
         _slGenHeight.DragEnded += SliderGenHeightOnDragEnded;
@@ -569,6 +568,8 @@ public partial class Menu : Godot.Control {
         Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Captured;
         GetTree().Paused      = false;
         Hide();
+        _ctrlPopupG.Hide();
+        _ctrlPopupQ.Hide();
         _menuType = XB.MenuType.None;
     }
 
@@ -821,6 +822,9 @@ public partial class Menu : Godot.Control {
         _lbGenExp.Text     = _slGenExp.Value.ToString();
         _updateGenTex      = true;
         _cbGenUpd.ButtonPressed = _updateGenTex;
+        uint seed = (uint)System.DateTime.Now.GetHashCode();
+        _leGenSeed.Text = seed.ToString();
+        XB.Random.InitializeRandom(seed);
         GenerateTerrainHeights();
     }
 
@@ -857,6 +861,8 @@ public partial class Menu : Godot.Control {
     private void ButtonGenSeedApplyOnPressed() {
         uint seed = 0;
         if (_leGenSeed.Text != "") { seed = System.UInt32.Parse(_leGenSeed.Text); }
+        else                       { seed = (uint)System.DateTime.Now.GetHashCode(); }
+        _leGenSeed.Text = seed.ToString();
         XB.Random.InitializeRandom(seed);
         if (_updateGenTex) { GenerateTerrainHeights(); }
     }
