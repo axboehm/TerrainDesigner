@@ -359,6 +359,9 @@ public class AData {
     public static float      CamAimDist     = 0.0f;
     public static float      CamXSens       = 2.0f;
     public static float      CamYSens       = 2.0f;
+    public static float      CamZoom        = 0.0f;
+    public static float      CamZoomSens    = 0.5f;
+    public static float      CamZoomMax     = 16.0f;
     public static float      Volume         = 0.0f; // audio master volume
     public static string[]   WindowModes    = new string[] {"WINDOWED", "FULLSCREEN"};
     public static bool       FullScreen     = false;
@@ -416,8 +419,12 @@ public class PersistData {
         XB.AData.FovDef     = value;
         XB.AData.FovAim     = value*_fovAimM;
         XB.AData.FovAim     = XB.Utils.ClampF(XB.AData.FovAim, XB.AData.FovMin, XB.AData.FovMax);
-        XB.AData.CamMaxDist = value*(1.0f/28.0f)*4.2f;
-        XB.AData.CamAimDist = value*(1.0f/28.0f)*1.0f;
+        UpdateCamDistance();
+    }
+
+    public static void UpdateCamDistance() {
+        XB.AData.CamMaxDist = XB.AData.FovDef*(1.0f/28.0f)*(4.2f+XB.AData.CamZoom);
+        XB.AData.CamAimDist = XB.AData.FovDef*(1.0f/28.0f)*1.0f;
     }
 
     public static void UpdateScreen() {
@@ -526,6 +533,7 @@ public class PersistData {
         UpdateFov(_fovDef);
         XB.AData.CamXSens   = 2.0f;
         XB.AData.CamYSens   = 2.0f;
+        XB.AData.CamZoom    = 0.0f;
         XB.AData.Volume     = -30.0f;
         XB.AData.VSync      = false;
         XB.AData.Language   = "en";

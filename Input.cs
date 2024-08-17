@@ -18,13 +18,14 @@ public class InputAction {
 //            when the game or a level is initialized, the input node is attached to the root
 //            when the scene gets changed, it gets de-attached but not deleted
 public partial class Input : Godot.Node {
-    public const int Amount = 24;       // number of total input slots
+    public const int Amount = 26;   // number of total input slots
 
     public bool  Start  = false;
     public bool  Select = false;
     public float CamX   = 0.0f;     // holds x camera input (horizontal)
     public float CamY   = 0.0f;     // holds y camera input (vertical)
     public bool  LIn    = false;    // left stick push in
+    public float Zoom   = 0.0f;     // holds camera zoom input
     public float MoveX  = 0.0f;     // holds x movement input (left to right)
     public float MoveY  = 0.0f;     // holds y movement input (forwards and backwards)
     public bool  RIn    = false;    // right stick push in
@@ -67,6 +68,8 @@ public partial class Input : Godot.Node {
             "SLBot",
             "SRTop",
             "SRBot",
+            "ZoomIn",
+            "ZoomOut",
         };
     public string[] InputDescriptions = new string[Amount] {
             "INP_START",
@@ -93,6 +96,8 @@ public partial class Input : Godot.Node {
             "INP_SLBOT",
             "INP_SRTOP",
             "INP_SLBOT",
+            "INP_ZOOMIN",
+            "INP_ZOOMOUT",
         };
 
 #if XBDEBUG
@@ -111,36 +116,39 @@ public partial class Input : Godot.Node {
         ConsumeAllInputs();
 
         // menu buttons
-        if (Godot.Input.IsActionJustPressed("Start"))  { Start   = true; }  // system menu
-        if (Godot.Input.IsActionJustPressed("Select")) { Select  = true; }  // toggle HUD
+        if (Godot.Input.IsActionJustPressed("Start"))   { Start   = true; }  // system menu
+        if (Godot.Input.IsActionJustPressed("Select"))  { Select  = true; }  // toggle HUD
         // left analog stick
-        if (Godot.Input.IsActionPressed    ("LUp"))    { MoveY  += 1.0f; }  // movement
-        if (Godot.Input.IsActionPressed    ("LDown"))  { MoveY  -= 1.0f; }
-        if (Godot.Input.IsActionPressed    ("LLeft"))  { MoveX  += 1.0f; }
-        if (Godot.Input.IsActionPressed    ("LRight")) { MoveX  -= 1.0f; }
-        if (Godot.Input.IsActionJustPressed("LIn"))    { LIn     = true; }  // toggle walk/run
+        if (Godot.Input.IsActionPressed    ("LUp"))     { MoveY  += 1.0f; }  // movement
+        if (Godot.Input.IsActionPressed    ("LDown"))   { MoveY  -= 1.0f; }
+        if (Godot.Input.IsActionPressed    ("LLeft"))   { MoveX  += 1.0f; }
+        if (Godot.Input.IsActionPressed    ("LRight"))  { MoveX  -= 1.0f; }
+        if (Godot.Input.IsActionJustPressed("LIn"))     { LIn     = true; }  // unused
         // right analog stick
-        if (Godot.Input.IsActionPressed    ("RUp"))    { CamY   += 1.0f; }  // camera
-        if (Godot.Input.IsActionPressed    ("RDown"))  { CamY   -= 1.0f; }
-        if (Godot.Input.IsActionPressed    ("RLeft"))  { CamX   += 1.0f; }
-        if (Godot.Input.IsActionPressed    ("RRight")) { CamX   -= 1.0f; }
-        if (Godot.Input.IsActionJustPressed("RIn"))    { RIn     = true; }  // unused
+        if (Godot.Input.IsActionPressed    ("RUp"))     { CamY   += 1.0f; }  // camera
+        if (Godot.Input.IsActionPressed    ("RDown"))   { CamY   -= 1.0f; }
+        if (Godot.Input.IsActionPressed    ("RLeft"))   { CamX   += 1.0f; }
+        if (Godot.Input.IsActionPressed    ("RRight"))  { CamX   -= 1.0f; }
+        if (Godot.Input.IsActionJustPressed("RIn"))     { RIn     = true; }  // unused
         // d pad
-        if (Godot.Input.IsActionJustPressed("DUp"))    { DUp     = true; }  // unused
-        if (Godot.Input.IsActionJustPressed("DDown"))  { DDown   = true; }  // toggle 1st/3rd person
-        if (Godot.Input.IsActionPressed    ("DLeft"))  { DLeft   = true; }  // sphere radius modifier
-        if (Godot.Input.IsActionPressed    ("DRight")) { DRight  = true; }  // sphere angle modifier
+        if (Godot.Input.IsActionJustPressed("DUp"))     { DUp     = true; }  // toggle walk/run
+        if (Godot.Input.IsActionJustPressed("DDown"))   { DDown   = true; }  // toggle 1st/3rd person
+        if (Godot.Input.IsActionPressed    ("DLeft"))   { DLeft   = true; }  // sphere radius modifier
+        if (Godot.Input.IsActionPressed    ("DRight"))  { DRight  = true; }  // sphere angle modifier
         // face buttons
-        if (Godot.Input.IsActionJustPressed("FUp"))    { FUp     = true; }  // link
-        if (Godot.Input.IsActionJustPressed("FDown"))  { FDown   = true; }  // jump
-        if (Godot.Input.IsActionJustPressed("FLeft"))  { FLeft   = true; }  // unlink highlighted
-        if (Godot.Input.IsActionJustPressed("FRight")) { FRight  = true; }  // toggle linking
+        if (Godot.Input.IsActionJustPressed("FUp"))     { FUp     = true; }  // link
+        if (Godot.Input.IsActionJustPressed("FDown"))   { FDown   = true; }  // jump
+        if (Godot.Input.IsActionJustPressed("FLeft"))   { FLeft   = true; }  // unlink highlighted
+        if (Godot.Input.IsActionJustPressed("FRight"))  { FRight  = true; }  // toggle linking
         // left shoulder buttons
-        if (Godot.Input.IsActionJustPressed("SLTop"))  { SLTop   = true; }  // place sphere
-        if (Godot.Input.IsActionPressed    ("SLBot"))  { SLBot   = true; }  // aim
+        if (Godot.Input.IsActionJustPressed("SLTop"))   { SLTop   = true; }  // place sphere
+        if (Godot.Input.IsActionPressed    ("SLBot"))   { SLBot   = true; }  // aim
         // right shoulder buttons
-        if (Godot.Input.IsActionJustPressed("SRTop"))  { SRTop   = true; }  // remove sphere
-        if (Godot.Input.IsActionPressed    ("SRBot"))  { SRBot   = true; }  // drag sphere
+        if (Godot.Input.IsActionJustPressed("SRTop"))   { SRTop   = true; }  // remove sphere
+        if (Godot.Input.IsActionPressed    ("SRBot"))   { SRBot   = true; }  // move/modify sphere
+        // zooming
+        if (Godot.Input.IsActionJustReleased("ZoomIn"))  { Zoom   -= 1.0f; }
+        if (Godot.Input.IsActionJustReleased("ZoomOut")) { Zoom   += 1.0f; }
 
 
 #if XBDEBUG
@@ -183,6 +191,18 @@ public partial class Input : Godot.Node {
                 Godot.InputMap.ActionAddEvent(name, iEvent);
                 key = iEvent.AsText();
                 InputActions[i] = new XB.InputAction(name, desc, key, iEvent);
+            } else if (name == "ZoomIn") { // mouse wheel up
+                var iEvent = new Godot.InputEventMouseButton();
+                iEvent.ButtonIndex = Godot.MouseButton.WheelUp;
+                Godot.InputMap.ActionAddEvent(name, iEvent);
+                key = iEvent.AsText();
+                InputActions[i] = new XB.InputAction(name, desc, key, iEvent);
+            } else if (name == "ZoomOut") { // mouse wheel down
+                var iEvent = new Godot.InputEventMouseButton();
+                iEvent.ButtonIndex = Godot.MouseButton.WheelDown;
+                Godot.InputMap.ActionAddEvent(name, iEvent);
+                key = iEvent.AsText();
+                InputActions[i] = new XB.InputAction(name, desc, key, iEvent);
             } else { // keyboard keys
                 var iEvent = new Godot.InputEventKey();
                 switch (name) {
@@ -205,7 +225,7 @@ public partial class Input : Godot.Node {
                         iEvent.Keycode = Godot.Key.D;
                     } break;
                     case "LIn": {
-                        iEvent.Keycode = Godot.Key.Shift;
+                        iEvent.Keycode = Godot.Key.Shift; //TODO[ALEX]: change
                     } break;
                     case "RUp": {
                         iEvent.Keycode = Godot.Key.Up;
@@ -285,11 +305,12 @@ public partial class Input : Godot.Node {
     public void ConsumeAllInputs() {
         Start  = false;
         Select = false;
-        MoveY  = 0.0f;
-        MoveX  = 0.0f;
-        LIn    = false;
         CamY   = 0.0f;
         CamX   = 0.0f;
+        LIn    = false;
+        Zoom   = 0.0f;
+        MoveY  = 0.0f;
+        MoveX  = 0.0f;
         RIn    = false;
         DUp    = false;
         DDown  = false;

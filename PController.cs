@@ -53,7 +53,7 @@ public partial class PController : Godot.CharacterBody3D {
     private       bool          _thirdP           = true;
     private       bool          _canShoot         = false;
     private const float         _respawnOff       = 0.1f;  // distance to ground when respawning
-    private const float         _sphereSpawnDist  = 2.0f;  // distance to newly placed sphere in meter
+    private const float         _sphereSpawnDist  = 6.0f;  // distance to newly placed sphere in meter
     private       bool          _spawn            = false; // spawn player delayed for raycast to work
     private       Godot.Vector2 _spawnPos         = new Godot.Vector2(0.0f, 0.0f);
     private       int           _spawnAttempts    = 0;
@@ -208,16 +208,17 @@ public partial class PController : Godot.CharacterBody3D {
                                             XB.WorldData.LowestPoint, XB.WorldData.HighestPoint,
                                             ref XB.WorldData.ImgMiniMap                         );
         var spaceSt = RequestSpaceState(); // get spacestate for raycasting
+
 #if XBDEBUG
          DebugHud.UpdateDebugHUD(dt);
 #endif
+
         if (GetTree().Paused) {
 #if XBDEBUG
             debug.End();
 #endif
             return;
         }
-
 
         // SPAWNPLAYER
         if (_spawn) {
@@ -582,6 +583,12 @@ public partial class PController : Godot.CharacterBody3D {
         } else if (XB.AData.Input.Select) { // toggle HUD visibility
             Hud.ToggleHUD();
         } else {
+            // Zooming
+            if (XB.AData.Input.Zoom != 0.0f) {
+                float zoom = XB.AData.CamZoom + XB.AData.Input.Zoom*XB.AData.CamZoomSens;
+                XB.AData.CamZoom = XB.Utils.ClampF(zoom , 0.0f, XB.AData.CamZoomMax);
+                XB.PersistData.UpdateCamDistance();
+            }
             // DUp
             if (XB.AData.Input.DDown) { // swap between first and third person view
                 _thirdP = !_thirdP;
