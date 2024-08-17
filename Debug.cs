@@ -228,6 +228,7 @@ public enum D { // unique debug identifier, naming scheme: "ClassFunction"
     Initialize_Ready,
     ManagerSphereApplyTerrain,
     ManagerSphereChangeHighlightSphere,
+    ManagerSphereClearSpheres,
     ManagerSphereInitializeSpheres,
     ManagerSphereLinkSpheres,
     ManagerSphereRecycleDamSegment,

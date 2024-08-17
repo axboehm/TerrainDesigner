@@ -33,6 +33,7 @@ public partial class Menu : Godot.Control {
     [Godot.Export] private Godot.Button _bQuit;
     [Godot.Export] private Godot.Button _bGenerate;
     [Godot.Export] private Godot.Button _bApplySpheres;
+    [Godot.Export] private Godot.Button _bClearSpheres;
 
     // system tab
     [Godot.Export] private Godot.TabContainer _tabSys;
@@ -141,6 +142,7 @@ public partial class Menu : Godot.Control {
         _bQuit.Pressed         += ButtonPopupQuitOnPressed;
         _bGenerate.Pressed     += ButtonGenerateTerrainOnPressed;
         _bApplySpheres.Pressed += ButtonApplySpheresOnPressed;
+        _bClearSpheres.Pressed += ButtonClearSpheresOnPressed;
 
         // system tab
         _bApplyCode.Pressed    += ButtonApplyCodeOnPressed;
@@ -767,6 +769,12 @@ public partial class Menu : Godot.Control {
         _player.SpawnPlayer(new Godot.Vector2(_player.GlobalPosition.X,
                                               _player.GlobalPosition.Z));
         ShowMessage(Tr("APPLIED_SPHERES"));
+        ButtonResumeOnPressed();
+    }
+
+    private void ButtonClearSpheresOnPressed() {
+        XB.ManagerSphere.ClearSpheres();
+        ShowMessage(Tr("CLEARED_SPHERES"));
         ButtonResumeOnPressed();
     }
 

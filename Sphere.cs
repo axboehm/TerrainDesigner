@@ -25,6 +25,7 @@ public partial class Sphere : Godot.CharacterBody3D {
     public        bool  Linked       = false;
     public        bool  LinkedTo     = false;
     public        float Radius       = 0.0f;
+    private const float _radiusMin   = 0.001f;
     private const float _radiusMult  = 40.0f;  // empirical
     private const float _radiusReset = 1.0f;
     public        float Angle        = 0.0f;   // in degrees
@@ -445,7 +446,7 @@ public partial class Sphere : Godot.CharacterBody3D {
 #endif
 
         Radius += amount*_radiusMult; // mouse down will reduce radius
-        Radius  = XB.Utils.ClampF(Radius, 0.0f, XB.WorldData.WorldDim.X + XB.WorldData.WorldDim.Y);
+        Radius  = XB.Utils.ClampF(Radius, _radiusMin, XB.WorldData.WorldDim.X + XB.WorldData.WorldDim.Y);
         UpdateConeMesh();
         XB.ManagerSphere.UpdateDam(ID);
 

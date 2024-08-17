@@ -469,6 +469,26 @@ public class ManagerSphere {
             DamSegments[i].ReleaseMesh();
         }
         for (int i = 0; i < MaxSphereAmount; i++) {
+            if (!Spheres[i].Active) { continue; }
+            Spheres[i].RemoveSphere();
+        }
+
+#if XBDEBUG
+        debug.End();
+#endif 
+    }
+
+    public static void ClearSpheres() {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereClearSpheres);
+#endif
+
+        for (int i = 0; i < DamSegments.Count; i++) {
+            if (!DamSegments[i].InUse) { continue; }
+            DamSegments[i].ReleaseMesh();
+        }
+        for (int i = 0; i < MaxSphereAmount; i++) {
+            if (!Spheres[i].Active) { continue; }
             Spheres[i].RemoveSphere();
         }
 
