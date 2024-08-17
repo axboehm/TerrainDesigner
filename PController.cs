@@ -213,7 +213,7 @@ public partial class PController : Godot.CharacterBody3D {
 #endif
         if (GetTree().Paused) {
 #if XBDEBUG
-             debug.End();
+            debug.End();
 #endif
             return;
         }

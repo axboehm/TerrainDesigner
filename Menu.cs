@@ -15,7 +15,6 @@ public partial class Menu : Godot.Control {
                    private int                _tabPrev;
                    private XB.MenuType        _menuType;
                    private bool               _justOpened = true;
-                   private int                _scroll     = 100;  // amount to scroll (multiplier)
                    private float              _t          = 0.0f;
                    private float              _msgDur     = 2.0f; // in seconds
     [Godot.Export] private Godot.Button       _bResume;
@@ -29,8 +28,6 @@ public partial class Menu : Godot.Control {
     private const int _tSysAud = 3;
     private const int _tSysLan = 4;
     private const int _tCon    = 2;
-    private const int _tConKey = 0;
-    private const int _tConCon = 1;
 
     // pause tab
     [Godot.Export] private Godot.Button _bQuit;
@@ -86,7 +83,6 @@ public partial class Menu : Godot.Control {
     [Godot.Export] private Godot.OptionButton _obLanguage;
 
     // controls tab
-    [Godot.Export] private Godot.TabContainer _tabCtrl;
     [Godot.Export] private Godot.Button[]     _bCK          = new Godot.Button[XB.Input.Amount];
     [Godot.Export] private Godot.Button       _bDefaultsCK;
     [Godot.Export] private Godot.Control      _chngMsg;
@@ -128,6 +124,7 @@ public partial class Menu : Godot.Control {
                    private Godot.ImageTexture _texGenMap;
                    private const int          _sizeGenMap   = 512;
                    private const string       _valueFormat  = "F2";
+                   private const string       _scaleFormat  = "F4"; // more precision for scale
                    private       bool         _updateGenTex = true;
 
 
@@ -136,7 +133,6 @@ public partial class Menu : Godot.Control {
 
         _tabCont.CurrentTab = _tPau;
         _tabSys.CurrentTab  = _tSysCam;
-        _tabCtrl.CurrentTab = _tConKey;
         _tabPrev            = _tabCont.CurrentTab;
         _crMsg.Visible      = false;
         _bResume.Pressed   += ButtonResumeOnPressed;
@@ -148,7 +144,7 @@ public partial class Menu : Godot.Control {
 
         // system tab
         _bApplyCode.Pressed    += ButtonApplyCodeOnPressed;
-        // camera
+            // camera
         _slFov.MinValue        = XB.AData.FovMin;
         _slFov.MaxValue        = XB.AData.FovMax;
         _slFov.DragEnded      += SliderFovOnDragEnded;
@@ -160,7 +156,7 @@ public partial class Menu : Godot.Control {
         XB.Settings.AddSeparators(_obPresets);
         _obPresets.Select(1); // select default preset on startup
         _obPresets.ItemSelected += OptionButtonPresetsOnItemSelected;
-        // display
+            // display
         foreach (var resolution in XB.AData.Resolutions) { _obRes.AddItem(resolution.Key); }
         XB.Settings.AddSeparators(_obRes);
         _obRes.ItemSelected += OptionButtonResOnItemSelected;
@@ -172,7 +168,7 @@ public partial class Menu : Godot.Control {
         _cbBlock.Pressed     += ButtonBlockGridOnPressed;
         _cbQTVis.Pressed     += ButtonQuadTreeVisOnPressed;
         _slFrame.DragEnded   += SliderFrameRateOnDragEnded;
-        // performance
+            // performance
         _scrPerf.ScrollVertical = 0;
         _cbTAA.Pressed         += ButtonTAAOnPressed;
         _cbDebanding.Pressed   += ButtonDebandingOnPressed;
@@ -197,9 +193,9 @@ public partial class Menu : Godot.Control {
         _slShdwSize.DragEnded += SliderShadowSizeOnDragEnded;
         _slShdwDist.DragEnded += SliderShadowDistanceOnDragEnded;
         _slLOD.DragEnded      += SliderLODOnDragEnded;
-        // audio
+            // audio
         _slVolume.DragEnded += SliderVolumeOnDragEnded;
-        // language
+            // language
         foreach (var language in XB.AData.Languages) { _obLanguage.AddItem(language); }
         XB.Settings.AddSeparators(_obLanguage);
         _obLanguage.ItemSelected += OptionButtonLanguageOnItemSelected;
@@ -285,61 +281,56 @@ public partial class Menu : Godot.Control {
 
     // handling input before any other node to reassign controls
     public override void _Input(Godot.InputEvent @event) {
-        if (_tabCont.CurrentTab != _tCon || !_setKey) return;
-        if (!XB.AData.Controller) {
-            if        (!_mouseRelease && @event is Godot.InputEventMouseButton) {
-                _mouseRelease = true;
-            } else if (@event is Godot.InputEventKey || @event is Godot.InputEventMouseButton) {
-                _setKey       = false;
-                // NOTE[ALEX]: InputEventMouseButton is also triggered on release of the button
-                _mouseRelease = false;
+        if (_tabCont.CurrentTab != _tCon || !_setKey) { return; }
 
-                string key = "";
-                if (@event is Godot.InputEventKey) {
-                    string[] keyText = @event.AsText().Split(' ');
-                    key = keyText[0];
-                } else if (@event is Godot.InputEventMouseButton) {
-                    key = @event.AsText();
-                }
+        if        (!_mouseRelease && @event is Godot.InputEventMouseButton) {
+            _mouseRelease = true;
+        } else if (@event is Godot.InputEventKey || @event is Godot.InputEventMouseButton) {
+            _setKey       = false;
+            // NOTE[ALEX]: InputEventMouseButton is also triggered on release of the button
+            _mouseRelease = false;
 
-                if (@event is Godot.InputEventMouseButton // get rid of double clicks, etc.
-                        && key != "Left Mouse Button"
-                        && key != "Middle Mouse Button"
-                        && key != "Right Mouse Button") {
-                    ShowMessage(Tr("ILLEGAL_MOUSE_INPUT"));
+            string key = "";
+            if (@event is Godot.InputEventKey) {
+                string[] keyText = @event.AsText().Split(' ');
+                key = keyText[0];
+            } else if (@event is Godot.InputEventMouseButton) {
+                key = @event.AsText();
+            }
+
+            if (@event is Godot.InputEventMouseButton // get rid of double clicks, etc.
+                    && key != "Left Mouse Button"
+                    && key != "Middle Mouse Button"
+                    && key != "Right Mouse Button") {
+                ShowMessage(Tr("ILLEGAL_MOUSE_INPUT"));
+                _chngMsg.Visible      = false;
+                Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Visible;
+                return;
+            }
+
+            for (int i = 0; i < XB.Input.Amount; i++) {
+                if (XB.AData.Input.InputActions[i].Key == key) {
+                    ShowMessage(Tr("INPUT_ALREADY_USED"));
                     _chngMsg.Visible      = false;
                     Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Visible;
                     return;
                 }
-
-                for (int i = 0; i < XB.Input.Amount; i++) {
-                    if (XB.AData.Input.InputActions[i].Key == key) {
-                        ShowMessage(Tr("INPUT_ALREADY_USED"));
-                        _chngMsg.Visible      = false;
-                        Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Visible;
-                        return;
-                    }
-                }
-
-                var iAction       = XB.AData.Input.InputActions[_setKeyID];
-                    iAction.Event = @event;
-                    iAction.Key   = key;
-                Godot.InputMap.ActionEraseEvents(iAction.Name);
-                Godot.InputMap.ActionAddEvent(iAction.Name, @event);
-
-                ShowMessage(Tr("KEYBINDINGS_UPDATED") + Tr(iAction.Description) + ".");
-
-                _chngMsg.Visible      = false;
-                Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Visible;
-                UpdateControlTab();
-
-                XB.AData.Input.ConsumeAllInputs();
             }
-        } 
-        //TODO[ALEX]: implement controller keybinding
-        //            does this make sense for changing controls or 
-        //            does it not really matter and I do it by showing the available buttons 
-        //            and mapping actions to them
+
+            var iAction       = XB.AData.Input.InputActions[_setKeyID];
+                iAction.Event = @event;
+                iAction.Key   = key;
+            Godot.InputMap.ActionEraseEvents(iAction.Name);
+            Godot.InputMap.ActionAddEvent(iAction.Name, @event);
+
+            ShowMessage(Tr("KEYBINDINGS_UPDATED") + Tr(iAction.Description) + ".");
+
+            _chngMsg.Visible      = false;
+            Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Visible;
+            UpdateControlTab();
+
+            XB.AData.Input.ConsumeAllInputs();
+        }
     }
 
     public override void _PhysicsProcess(double delta) {
@@ -348,10 +339,12 @@ public partial class Menu : Godot.Control {
             return;
         }
 
+        float dt = (float)delta;
+
         XB.AData.Input.GetInputs();
 
 #if XBDEBUG
-         _player.DebugHud.UpdateDebugHUD((float)delta);
+         _player.DebugHud.UpdateDebugHUD(dt);
 
         // DEBUG BUTTONS
         if (XB.AData.Input.Debug1) { _player.DebugHud.Debug1(); }
@@ -361,7 +354,7 @@ public partial class Menu : Godot.Control {
         if (XB.AData.Input.Debug5) { _player.DebugHud.Debug5(); }
 #endif
 
-        _t     += (float)delta;
+        _t += dt;
 
         if (_t >= _msgDur) {
             _t          = 0.0f;
@@ -372,42 +365,20 @@ public partial class Menu : Godot.Control {
         }
 
         // player input
-        if        (XB.AData.Input.Start && !_lockInput) {
+        if (XB.AData.Input.Start && !_lockInput) {
             XB.AData.Input.ConsumeInputStart();
             if (_menuType == XB.MenuType.Pause) ButtonResumeOnPressed();
-        } else if (XB.AData.Input.CamY > 0.0f) {
-            //NOTE[ALEX]: reference for scrollcontainers
-            // _scrADesc.ScrollVertical -= XB.Utils.MaxI(1, (int)(delta*_scroll));
-            // _scrGDesc.ScrollVertical -= XB.Utils.MaxI(1, (int)(delta*_scroll));
-        } else if (XB.AData.Input.CamY < 0.0f) {
-            // _scrADesc.ScrollVertical += XB.Utils.MaxI(1, (int)(delta*_scroll));
-            // _scrGDesc.ScrollVertical += XB.Utils.MaxI(1, (int)(delta*_scroll));
-        } else {
-            if (XB.AData.Controller) {
-                int tabCount = _tabCont.GetTabCount();
-                if        (XB.AData.Input.SRTop || XB.AData.Input.SRBot) {
-                    if (_tabCont.CurrentTab < tabCount-1) _tabCont.CurrentTab += 1;
-                    else                                  _tabCont.CurrentTab  = 0;
-                } else if (XB.AData.Input.SLTop || XB.AData.Input.SLBot) {
-                    if (_tabCont.CurrentTab > 0)         _tabCont.CurrentTab -= 1;
-                    else                                 _tabCont.CurrentTab  = tabCount-1;
-                }
-            }
         }
-        //TODO[ALEX]: deal with full controller control (subtabs, etc)
         
         //NOTE[ALEX]: _lockInput is required in addition to _setKey for setting new input keys,
         //            otherwise the pressed input will be read again in this method's GetInputs()
         //            call because the input sticks longer than expected before being cleared
-        if (!_setKey && _lockInput) {
-            _lockInput = false;
-        }
+        if (!_setKey && _lockInput) { _lockInput = false; }
 
         // change tabs
         if (_tabCont.CurrentTab != _tabPrev) {
             switch (_tabCont.CurrentTab) {
                 case _tPau: { // pause
-                    _lbTab.Text = Tr("TAB_PAUSE");
                     UpdatePauseTab();
                     break;
                 }
@@ -417,7 +388,6 @@ public partial class Menu : Godot.Control {
                     break;
                 }
                 case _tCon: { // controls
-                    UpdateControlTabContainer();
                     UpdateControlTab();
                     break;
                 }
@@ -429,37 +399,16 @@ public partial class Menu : Godot.Control {
         // active tab
         switch (_tabCont.CurrentTab) {
             case _tPau: { // pause
+                if (_ctrlPopupG.Visible) { UpdateGenLabels(); }
                 break;
             }
             case _tSys: { // system
                 UpdateSystemTabContainer();
-                //NOTE[ALEX]: the dragEnded slider signal does not get emitted when
-                //            clicking a value on the slider (not dragging)
-                if (_slFov.Value != XB.AData.FovDef) {
-                    SliderFovOnDragEnded(true);
-                }
-                if ((float)_slCamHor.Value != XB.AData.CamXSens*XB.Settings.CamSliderMult) {
-                    SliderCamHorOnDragEnded(true);
-                }
-                if ((float)_slCamVer.Value != XB.AData.CamYSens*XB.Settings.CamSliderMult) {
-                    SliderCamVerOnDragEnded(true);
-                }
-                if ((float)_slVolume.Value != (float)Godot.AudioServer.GetBusVolumeDb(0)) {
-                    SliderVolumeOnDragEnded(true);
-                }
-                if (_slShdwDist.Value != XB.AData.ShadowDistance) {
-                    SliderShadowDistanceOnDragEnded(true);
-                }
                 break;
             }
             case _tCon: { // controls
-                UpdateControlTabContainer();
                 break;
             }
-        }
-
-        if (_ctrlPopupG.Visible) {
-            UpdateGenLabels();
         }
     }
 
@@ -467,9 +416,7 @@ public partial class Menu : Godot.Control {
         XB.AData.Input.ConsumeInputStart();
         _menuType   = XB.MenuType.Pause;
         _lbTab.Text = Tr("TAB_PAUSE");
-        _bResume.Show();
         _bResume.GrabFocus();
-        _tabCont.Show();
         _tabCont.CurrentTab   = _tPau;
         _justOpened           = true;
         Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Visible;
@@ -488,44 +435,35 @@ public partial class Menu : Godot.Control {
     }
 
     private void UpdatePauseTab() {
-        _leGenSeed.Text = ((uint)System.DateTime.Now.GetHashCode()).ToString();
+        _lbTab.Text = Tr("TAB_PAUSE");
     }
 
     private void UpdateTabNames() {
-        _tabCont.SetTabTitle (_tPau,    Tr("TAB_PAUSE"));
-        _tabCont.SetTabTitle (_tSys,    Tr("TAB_SYSTEM"));
-        _tabCont.SetTabTitle (_tCon,    Tr("TAB_CONTROLS"));
-        _tabSys.SetTabTitle  (_tSysCam, Tr("TAB_CAMERA"));
-        _tabSys.SetTabTitle  (_tSysDis, Tr("TAB_DISPLAY"));
-        _tabSys.SetTabTitle  (_tSysPer, Tr("TAB_PERFORMANCE"));
-        _tabSys.SetTabTitle  (_tSysAud, Tr("TAB_AUDIO"));
-        _tabSys.SetTabTitle  (_tSysLan, Tr("TAB_LANGUAGE"));
-        _tabCtrl.SetTabTitle (_tConKey, Tr("TAB_KEYBOARD"));
-        _tabCtrl.SetTabTitle (_tConCon, Tr("TAB_CONTROLLER"));
+        _tabCont.SetTabTitle(_tPau,    Tr("TAB_PAUSE"));
+        _tabCont.SetTabTitle(_tSys,    Tr("TAB_SYSTEM"));
+        _tabCont.SetTabTitle(_tCon,    Tr("TAB_CONTROLS"));
+        _tabSys.SetTabTitle (_tSysCam, Tr("TAB_CAMERA"));
+        _tabSys.SetTabTitle (_tSysDis, Tr("TAB_DISPLAY"));
+        _tabSys.SetTabTitle (_tSysPer, Tr("TAB_PERFORMANCE"));
+        _tabSys.SetTabTitle (_tSysAud, Tr("TAB_AUDIO"));
+        _tabSys.SetTabTitle (_tSysLan, Tr("TAB_LANGUAGE"));
     }
 
     private void UpdateSystemTabContainer() {
         switch (_tabSys.CurrentTab) {
-            case _tSysCam: _lbTab.Text = Tr("TAB_SYSTEM") + " | " + Tr("TAB_CAMERA");      break;
-            case _tSysDis: _lbTab.Text = Tr("TAB_SYSTEM") + " | " + Tr("TAB_DISPLAY");     break;
-            case _tSysPer: _lbTab.Text = Tr("TAB_SYSTEM") + " | " + Tr("TAB_PERFORMANCE"); break;
-            case _tSysAud: _lbTab.Text = Tr("TAB_SYSTEM") + " | " + Tr("TAB_AUDIO");       break;
-            case _tSysLan: _lbTab.Text = Tr("TAB_SYSTEM") + " | " + Tr("TAB_LANGUAGE");    break;
-            default:                                                                       break;
-        }
-    }
-
-    private void UpdateControlTabContainer() {
-        switch (_tabCtrl.CurrentTab) {
-            case _tConKey: _lbTab.Text = Tr("TAB_CONTROLS") + " | " + Tr("TAB_KEYBOARD");   break;
-            case _tConCon: _lbTab.Text = Tr("TAB_CONTROLS") + " | " + Tr("TAB_CONTROLLER"); break;
+            case _tSysCam: { _lbTab.Text = Tr("TAB_SYSTEM") + " | " + Tr("TAB_CAMERA");      break; }
+            case _tSysDis: { _lbTab.Text = Tr("TAB_SYSTEM") + " | " + Tr("TAB_DISPLAY");     break; }
+            case _tSysPer: { _lbTab.Text = Tr("TAB_SYSTEM") + " | " + Tr("TAB_PERFORMANCE"); break; }
+            case _tSysAud: { _lbTab.Text = Tr("TAB_SYSTEM") + " | " + Tr("TAB_AUDIO");       break; }
+            case _tSysLan: { _lbTab.Text = Tr("TAB_SYSTEM") + " | " + Tr("TAB_LANGUAGE");    break; }
+            default:       {                                                                 break; }
         }
     }
 
     private void UpdateControlTab() {
         for (int i = 0; i < XB.Input.Amount; i++) {
-            _bCK[i].Text = Tr(XB.AData.Input.InputActions[i].Description) + " - " + 
-                           XB.AData.Input.InputActions[i].Key;
+            _bCK[i].Text = Tr(XB.AData.Input.InputActions[i].Description) + " - "
+                           + XB.AData.Input.InputActions[i].Key;
         }
     }
 
@@ -578,31 +516,26 @@ public partial class Menu : Godot.Control {
     }
 
     private void SliderShadowDistanceOnDragEnded(bool valueChanged) {
-        if (!valueChanged) return;
         ShowMessage(XB.Settings.ChangeShadowDistance(_slShdwDist));
         ApplySettings();
     }
 
     private void SliderFovOnDragEnded(bool valueChanged) {
-        if (!valueChanged) return;
         ShowMessage(XB.Settings.ChangeFov(_slFov));
         ApplySettings();
     }
 
     private void SliderCamHorOnDragEnded(bool valueChanged) {
-        if (!valueChanged) return;
         ShowMessage(XB.Settings.ChangeSensitivityHorizontal(_slCamHor));
         ApplySettings();
     }
 
     private void SliderCamVerOnDragEnded(bool valueChanged) {
-        if (!valueChanged) return;
         ShowMessage(XB.Settings.ChangeSensitivityVertical(_slCamVer));
         ApplySettings();
     }
 
     private void SliderVolumeOnDragEnded(bool valueChanged) {
-        if (!valueChanged) return;
         ShowMessage(XB.Settings.ChangeVolume(_slVolume));
         ApplySettings();
     }
@@ -698,38 +631,38 @@ public partial class Menu : Godot.Control {
         UpdateControlTab();
     }
 
-    private void ButtonCK00OnPressed() {ControlsChange( 0);}
-    private void ButtonCK01OnPressed() {ControlsChange( 1);}
-    private void ButtonCK02OnPressed() {ControlsChange( 2);}
-    private void ButtonCK03OnPressed() {ControlsChange( 3);}
-    private void ButtonCK04OnPressed() {ControlsChange( 4);}
-    private void ButtonCK05OnPressed() {ControlsChange( 5);}
-    private void ButtonCK06OnPressed() {ControlsChange( 6);}
-    private void ButtonCK07OnPressed() {ControlsChange( 7);}
-    private void ButtonCK08OnPressed() {ControlsChange( 8);}
-    private void ButtonCK09OnPressed() {ControlsChange( 9);}
-    private void ButtonCK10OnPressed() {ControlsChange(10);}
-    private void ButtonCK11OnPressed() {ControlsChange(11);}
-    private void ButtonCK12OnPressed() {ControlsChange(12);}
-    private void ButtonCK13OnPressed() {ControlsChange(13);}
-    private void ButtonCK14OnPressed() {ControlsChange(14);}
-    private void ButtonCK15OnPressed() {ControlsChange(15);}
-    private void ButtonCK16OnPressed() {ControlsChange(16);}
-    private void ButtonCK17OnPressed() {ControlsChange(17);}
-    private void ButtonCK18OnPressed() {ControlsChange(18);}
-    private void ButtonCK19OnPressed() {ControlsChange(19);}
-    private void ButtonCK20OnPressed() {ControlsChange(20);}
-    private void ButtonCK21OnPressed() {ControlsChange(21);}
-    private void ButtonCK22OnPressed() {ControlsChange(22);}
-    private void ButtonCK23OnPressed() {ControlsChange(23);}
+    private void ButtonCK00OnPressed() { ControlsChange( 0); }
+    private void ButtonCK01OnPressed() { ControlsChange( 1); }
+    private void ButtonCK02OnPressed() { ControlsChange( 2); }
+    private void ButtonCK03OnPressed() { ControlsChange( 3); }
+    private void ButtonCK04OnPressed() { ControlsChange( 4); }
+    private void ButtonCK05OnPressed() { ControlsChange( 5); }
+    private void ButtonCK06OnPressed() { ControlsChange( 6); }
+    private void ButtonCK07OnPressed() { ControlsChange( 7); }
+    private void ButtonCK08OnPressed() { ControlsChange( 8); }
+    private void ButtonCK09OnPressed() { ControlsChange( 9); }
+    private void ButtonCK10OnPressed() { ControlsChange(10); }
+    private void ButtonCK11OnPressed() { ControlsChange(11); }
+    private void ButtonCK12OnPressed() { ControlsChange(12); }
+    private void ButtonCK13OnPressed() { ControlsChange(13); }
+    private void ButtonCK14OnPressed() { ControlsChange(14); }
+    private void ButtonCK15OnPressed() { ControlsChange(15); }
+    private void ButtonCK16OnPressed() { ControlsChange(16); }
+    private void ButtonCK17OnPressed() { ControlsChange(17); }
+    private void ButtonCK18OnPressed() { ControlsChange(18); }
+    private void ButtonCK19OnPressed() { ControlsChange(19); }
+    private void ButtonCK20OnPressed() { ControlsChange(20); }
+    private void ButtonCK21OnPressed() { ControlsChange(21); }
+    private void ButtonCK22OnPressed() { ControlsChange(22); }
+    private void ButtonCK23OnPressed() { ControlsChange(23); }
 
     private void ControlsChange(int id) {
         XB.Utils.PlayUISound(XB.ResourcePaths.ButtonAudio);
-        _setKeyID             = id;
-        _setKey               = true;
-        _lockInput            = true;
-        _mouseRelease         = false;
-        _chngMsg.Visible      = true;
+        _setKeyID        = id;
+        _setKey          = true;
+        _lockInput       = true;
+        _mouseRelease    = false;
+        _chngMsg.Visible = true;
         Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Captured;
     }
 
@@ -803,7 +736,7 @@ public partial class Menu : Godot.Control {
     private void ButtonGenerateTerrainOnPressed() {
         XB.Utils.PlayUISound(XB.ResourcePaths.ButtonAudio);
         _ctrlPopupG.Show();
-        // restore values to defaults
+        // restore values to defaults when opening the generation dialog
         _slGenHeight.Value = XB.WorldData.GenHeightDef;
         _lbGenHeight.Text  = _slGenHeight.Value.ToString();
         _slGenScale.Value  = XB.WorldData.GenScaleDef;
@@ -924,7 +857,7 @@ public partial class Menu : Godot.Control {
     // to have the labels show the slider values while sliding, they have to be updated every frame
     private void UpdateGenLabels() {
         _lbGenHeight.Text = _slGenHeight.Value.ToString(_valueFormat);
-        _lbGenScale.Text  = _slGenScale.Value.ToString("F4"); // more precision for scale
+        _lbGenScale.Text  = _slGenScale.Value.ToString(_scaleFormat);
         _lbGenOffX.Text   = _slGenOffX.Value.ToString(_valueFormat);
         _lbGenOffZ.Text   = _slGenOffZ.Value.ToString(_valueFormat);
         _lbGenOct.Text    = _slGenOct.Value.ToString();
