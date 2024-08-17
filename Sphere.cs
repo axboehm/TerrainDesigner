@@ -49,6 +49,7 @@ public partial class Sphere : Godot.CharacterBody3D {
     private Godot.Collections.Array _meshDataCone;
     private Godot.ArrayMesh         _arrMesh;
     private Godot.ShaderMaterial    _materialCone;
+    private Godot.ShaderMaterial    _materialConeU; // material in front (visible underground)
     private Godot.Vector3[]         _verticesCone;
     private Godot.Vector2[]         _uvsCone;
     private Godot.Vector3[]         _normalsCone;
@@ -82,6 +83,14 @@ public partial class Sphere : Godot.CharacterBody3D {
         _materialCone.SetShaderParameter("cTopOuter", XB.Col.ConeTO);
         _materialCone.SetShaderParameter("cBotUpper", XB.Col.ConeBU);
         _materialCone.SetShaderParameter("cBotLower", XB.Col.ConeBL);
+        _materialCone.RenderPriority = -1; // draw main material behind
+        _materialConeU = new Godot.ShaderMaterial();
+        _materialConeU.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.ConeDamUShader);
+        _materialConeU.SetShaderParameter("cTopInner", XB.Col.ConeTI);
+        _materialConeU.SetShaderParameter("cTopOuter", XB.Col.ConeTO);
+        _materialConeU.SetShaderParameter("cBotUpper", XB.Col.ConeBU);
+        _materialConeU.SetShaderParameter("cBotLower", XB.Col.ConeBL);
+        _materialCone.NextPass = _materialConeU;
 
         _meshInstCone  = new Godot.MeshInstance3D();
         AddChild(_meshInstCone);

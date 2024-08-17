@@ -9,6 +9,7 @@ public class DamSegment {
     public Godot.Collections.Array MeshDataDam;
     public Godot.ArrayMesh         ArrMesh;
     public Godot.ShaderMaterial    MaterialDam;
+    public Godot.ShaderMaterial    MaterialDamU;
     public Godot.Vector3[]         VerticesDam;
     public Godot.Vector2[]         UVsDam;
     public Godot.Vector3[]         NormalsDam;
@@ -41,6 +42,14 @@ public class DamSegment {
         MaterialDam.SetShaderParameter("cTopOuter", XB.Col.DamTO);
         MaterialDam.SetShaderParameter("cBotUpper", XB.Col.DamBU);
         MaterialDam.SetShaderParameter("cBotLower", XB.Col.DamBL);
+        MaterialDam.RenderPriority = -1; // draw main material behind
+        MaterialDamU = new Godot.ShaderMaterial();
+        MaterialDamU.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.ConeDamUShader);
+        MaterialDamU.SetShaderParameter("cTopInner", XB.Col.DamTI);
+        MaterialDamU.SetShaderParameter("cTopOuter", XB.Col.DamTO);
+        MaterialDamU.SetShaderParameter("cBotUpper", XB.Col.DamBU);
+        MaterialDamU.SetShaderParameter("cBotLower", XB.Col.DamBL);
+        MaterialDam.NextPass = MaterialDamU;
 
         MeshDataDam = new Godot.Collections.Array();
         MeshDataDam.Resize((int)Godot.Mesh.ArrayType.Max);

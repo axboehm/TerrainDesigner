@@ -62,10 +62,10 @@ public struct Col {
     public static Godot.Color ConeTO = new Godot.Color(0.0f, 0.55f, 0.66f, 1.0f);
     public static Godot.Color ConeBU = new Godot.Color(0.84f, 0.4f, 0.0f, 1.0f);
     public static Godot.Color ConeBL = new Godot.Color(0.084f, 0.04f, 0.0f, 1.0f);
-    public static Godot.Color DamTI  = new Godot.Color(0.0f, 0.005f, 0.015f, 1.0f);
-    public static Godot.Color DamTO  = new Godot.Color(0.0f, 0.275f, 0.33f, 1.0f);
-    public static Godot.Color DamBU  = new Godot.Color(0.42f, 0.2f, 0.0f, 1.0f);
-    public static Godot.Color DamBL  = new Godot.Color(0.042f, 0.02f, 0.0f, 1.0f);
+    public static Godot.Color DamTI  = new Godot.Color(0.0f, 0.01f, 0.03f, 1.0f);
+    public static Godot.Color DamTO  = new Godot.Color(0.0f, 0.55f, 0.66f, 1.0f);
+    public static Godot.Color DamBU  = new Godot.Color(0.84f, 0.4f, 0.0f, 1.0f);
+    public static Godot.Color DamBL  = new Godot.Color(0.084f, 0.04f, 0.0f, 1.0f);
 }
 
 public struct ResourcePaths {
@@ -99,6 +99,7 @@ public struct ResourcePaths {
     public static string SpScreenETex     = "res://assets/sphere/data/sphereLP_E_4.png";
     public static string SpEMaskTex       = "res://assets/sphere/data/sphereEmissionMask.png";
     public static string ConeDamShader    = "res://code/shaders/spConeDam.gdshader";
+    public static string ConeDamUShader   = "res://code/shaders/spConeDamU.gdshader";
 }
 
 public struct Resources {
