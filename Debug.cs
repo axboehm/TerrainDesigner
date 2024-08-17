@@ -4,12 +4,14 @@ public partial class DebugHUD : Godot.Control {
     private bool _visible    = false;
     private bool _pauseDebug = false;
 
-    private const int    _dimSpacer             = 16; //TODO[ALEX]: required?
+    private const int    _dimSpacer             = 16;
     private const int    _debugLabelSpacing     = 18; // between each line of text
     private const int    _debugLabelFontSize    = 18;
     private const int    _debugLabelOutlineSize = 4;
+    private const int    _edgeOff               = 100; // distance to right edge
     private Godot.Color  _debugLabelFontOutline = new Godot.Color(0.0f, 0.0f, 0.0f, 1.0f);
     private const string _timeFormat            = "F6";
+    private const string _playerPosFormat       = "F3";
 
     private SysCG.Dictionary<XB.D, Godot.Color> _debugColors
         = new SysCG.Dictionary<XB.D, Godot.Color>();
@@ -21,9 +23,10 @@ public partial class DebugHUD : Godot.Control {
 
     public void InitializeDebugHUD() {
         _trBlueNoise          = new Godot.TextureRect();
-        _trBlueNoise.Position = new Godot.Vector2I(_dimSpacer, _dimSpacer);
         Godot.Vector2I sizeBN = XB.Random.BlueNoise.GetSize();
         _trBlueNoise.Size     = sizeBN;
+        _trBlueNoise.Position = new Godot.Vector2I(XB.AData.BaseResX-_dimSpacer-_edgeOff-sizeBN.X,
+                                                   _dimSpacer);
         _texBlueNoise         = new Godot.ImageTexture();
         _texBlueNoise.SetImage(XB.Random.BlueNoise);
         _trBlueNoise.Texture  = _texBlueNoise;
@@ -51,7 +54,10 @@ public partial class DebugHUD : Godot.Control {
             _lbDebugStats[i] = new Godot.Label();
             _lbDebugStats[i].Text = "";
             var tPos = new Godot.Vector2I(_dimSpacer, 2*_dimSpacer+sizeBN.Y + _debugLabelSpacing*i);
+            _lbDebugStats[i].HorizontalAlignment = Godot.HorizontalAlignment.Right;
             _lbDebugStats[i].Position = tPos;
+            _lbDebugStats[i].Size     = new Godot.Vector2I(XB.AData.BaseResX-2*_dimSpacer-_edgeOff,
+                                                           _debugLabelSpacing+_debugLabelFontSize);
             _lbDebugStats[i].AddThemeFontOverride    ("font",               font                  );
             _lbDebugStats[i].AddThemeFontSizeOverride("font_size",          _debugLabelFontSize   );
             _lbDebugStats[i].AddThemeConstantOverride("outline_size",       _debugLabelOutlineSize);
@@ -60,7 +66,10 @@ public partial class DebugHUD : Godot.Control {
         }
 
         _lbPlayerPos = new Godot.Label();
-        _lbPlayerPos.Position = new Godot.Vector2I(2*_dimSpacer+sizeBN.X, _dimSpacer);
+        _lbPlayerPos.Position = new Godot.Vector2I(_dimSpacer, _dimSpacer);
+        _lbPlayerPos.Size     = new Godot.Vector2I((int)_trBlueNoise.Position.X - 2*_dimSpacer, 
+                                                   3*_debugLabelSpacing + 3*_debugLabelFontSize);
+        _lbPlayerPos.HorizontalAlignment = Godot.HorizontalAlignment.Right;
         _lbPlayerPos.AddThemeFontOverride    ("font",               font                  );
         _lbPlayerPos.AddThemeFontSizeOverride("font_size",          _debugLabelFontSize   );
         _lbPlayerPos.AddThemeConstantOverride("outline_size",       _debugLabelOutlineSize);
@@ -105,9 +114,9 @@ public partial class DebugHUD : Godot.Control {
         }
 
         // player position
-        string plPos  = "X: " + XB.PController.PModel.GlobalPosition.X.ToString() + '\n';
-               plPos += "Y: " + XB.PController.PModel.GlobalPosition.Y.ToString() + '\n';
-               plPos += "Z: " + XB.PController.PModel.GlobalPosition.Z.ToString() + '\n';
+        string plPos  = "X: " + (-XB.PController.PModel.GlobalPosition.X).ToString(_playerPosFormat) + '\n';
+               plPos += "Y: " + XB.PController.PModel.GlobalPosition.Y.ToString(_playerPosFormat) + '\n';
+               plPos += "Z: " + (-XB.PController.PModel.GlobalPosition.Z).ToString(_playerPosFormat) + '\n';
         _lbPlayerPos.Text = plPos;
 
         _texBlueNoise.Update(XB.Random.BlueNoise);
