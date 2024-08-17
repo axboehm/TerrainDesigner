@@ -17,6 +17,7 @@ public partial class HUD : Godot.Control {
     private Godot.TextureRect _trSpheres;
     private Godot.TextureRect _trSpheresBG;
     private Godot.TextureRect _trMiniMap;
+    private Godot.TextureRect _trMiniMapQT;
     private Godot.TextureRect _trMiniMapO;
     private Godot.TextureRect _trMiniMapG;
     private Godot.TextureRect _trMiniMapBG;
@@ -47,6 +48,7 @@ public partial class HUD : Godot.Control {
     private float       _blockMult       = 0.0f;
     private float       _qtreeMultCur    = 1.0f;
     private float       _qtreeMult       = 0.0f;
+    private Godot.Color _colMiniMapQT    = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
 
     private Godot.Vector2I _vect  = new Godot.Vector2I(0, 0); // reusable vector for Rect2I
     private Godot.Rect2I[] _rects = new Godot.Rect2I[XB.Utils.MaxRectSize];
@@ -80,6 +82,8 @@ public partial class HUD : Godot.Control {
     private int                _columns  = 0;
 
     public  Godot.ImageTexture TexMiniMap;
+    private Godot.Image        _imgMiniMapQT;
+    private Godot.ImageTexture _texMiniMapQT;
     private Godot.Image        _imgMiniMapO;
     private Godot.ImageTexture _texMiniMapO;
     private Godot.Image        _imgMiniMapG;
@@ -97,9 +101,10 @@ public partial class HUD : Godot.Control {
     private const int          _gradLbFontSize  = 16;
     private const int          _gradLbOutlSize  = 2;
 
+    //TODO[ALEX]: on screen guide
     private Godot.Image        _imgGuideBG;
     private Godot.ImageTexture _texGuideBG;
-    //TODO[ALEX]: on screen guide
+
 
     public void InitializeHud() {
 #if XBDEBUG
@@ -115,6 +120,7 @@ public partial class HUD : Godot.Control {
         _trSpheres    = new Godot.TextureRect();
         _trSpheresBG  = new Godot.TextureRect();
         _trMiniMap    = new Godot.TextureRect();
+        _trMiniMapQT  = new Godot.TextureRect();
         _trMiniMapO   = new Godot.TextureRect();
         _trMiniMapG   = new Godot.TextureRect();
         _trMiniMapBG  = new Godot.TextureRect();
@@ -124,6 +130,7 @@ public partial class HUD : Godot.Control {
         AddChild(_trSpheres);
         AddChild(_trMiniMapBG);
         AddChild(_trMiniMap);
+        AddChild(_trMiniMapQT);
         AddChild(_trMiniMapO);
         AddChild(_trMiniMapG);
         AddChild(_trCrosshairs);
@@ -131,6 +138,7 @@ public partial class HUD : Godot.Control {
         _texSpheres   = new Godot.ImageTexture();
         _texSpheresBG = new Godot.ImageTexture();
         TexMiniMap    = new Godot.ImageTexture();
+        _texMiniMapQT = new Godot.ImageTexture();
         _texMiniMapO  = new Godot.ImageTexture();
         _texMiniMapG  = new Godot.ImageTexture();
         _texMiniMapBG = new Godot.ImageTexture();
@@ -196,6 +204,8 @@ public partial class HUD : Godot.Control {
         CreateSphereTexture(_dimSpY, _dimSp, _columns, _dimBord, _dimThick,
                             ref _imgSpheres, ref _texSpheres, ref _vect, ref _rects, ref _rSize);
 
+        _imgMiniMapQT = Godot.Image.Create(_dimMMX, _dimMMY, false, Godot.Image.Format.Rgba8);
+        _imgMiniMapQT.Fill(XB.Col.Transp);
         _imgMiniMapO  = Godot.Image.Create(_dimMMX, _dimMMY, false, Godot.Image.Format.Rgba8);
         _imgMiniMapO.Fill(XB.Col.Transp);
         _imgMiniMapG  = Godot.Image.Create(_dimMMX, _dimMMGY, false, Godot.Image.Format.L8);
@@ -206,25 +216,31 @@ public partial class HUD : Godot.Control {
         _imgMiniMapBG.Fill(XB.Col.BG);
         var miniMapPosition = new Godot.Vector2I(2*_offsetH, XB.AData.BaseResY/2 - dimMMBGY/2);
         _trMiniMap.Position      = miniMapPosition;
+        _trMiniMapQT.Position    = miniMapPosition;
         _trMiniMapO.Position     = miniMapPosition;
         _trMiniMapG.Position     = miniMapPosition + new Godot.Vector2I(0, _dimMMY + _dimMMSp);
         _trMiniMapBG.Position    = miniMapPosition - new Godot.Vector2I(_offsetH, _offsetH);
         _trMiniMap.ExpandMode    = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
+        _trMiniMapQT.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
         _trMiniMapO.ExpandMode   = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
         _trMiniMapG.ExpandMode   = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
         _trMiniMapBG.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
         _trMiniMap.StretchMode   = Godot.TextureRect.StretchModeEnum.Scale;
+        _trMiniMapQT.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
         _trMiniMapO.StretchMode  = Godot.TextureRect.StretchModeEnum.Scale;
         _trMiniMapG.StretchMode  = Godot.TextureRect.StretchModeEnum.Scale;
         _trMiniMapBG.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
         _trMiniMap.Size          = new Godot.Vector2I(_dimMMX, _dimMMY);
+        _trMiniMapQT.Size        = new Godot.Vector2I(_dimMMX, _dimMMY);
         _trMiniMapO.Size         = new Godot.Vector2I(_dimMMX, _dimMMY);
         _trMiniMapG.Size         = new Godot.Vector2I(_dimMMX, _dimMMGY);
         _trMiniMapBG.Size        = new Godot.Vector2I(dimMMBGX, dimMMBGY);
         _trMiniMap.Texture       = TexMiniMap;
+        _trMiniMapQT.Texture     = _texMiniMapQT;
         _trMiniMapO.Texture      = _texMiniMapO;
         _trMiniMapG.Texture      = _texMiniMapG;
         _trMiniMapBG.Texture     = _texMiniMapBG;
+        _texMiniMapQT.SetImage(_imgMiniMapQT);
         _texMiniMapO.SetImage (_imgMiniMapO);
         _texMiniMapG.SetImage (_imgMiniMapG);
         _texMiniMapBG.SetImage(_imgMiniMapBG);
@@ -570,8 +586,16 @@ public partial class HUD : Godot.Control {
         _qtreeMultCur          = XB.Utils.LerpF(_qtreeMultCur, _qtreeMult, _hudSm*dt); 
         XB.ManagerTerrain.UpdateBlockStrength(_blockMultCur);
         XB.ManagerTerrain.UpdateQTreeStrength(_qtreeMultCur);
+        _colMiniMapQT.A        = XB.Utils.LerpF(_colMiniMapQT.A, _qtreeMult, _hudSm*dt);
+        _trMiniMapQT.Modulate  = _colMiniMapQT;
 
         UpdateMiniMapOverlayTexture();
+
+        if (XB.AData.QTreeVis) {
+            XB.ManagerTerrain.UpdateQTreeTexture(ref _imgMiniMapQT,
+                                                 _imgMiniMapQT.GetWidth()/XB.WorldData.WorldDim.X);
+            _texMiniMapQT.Update(_imgMiniMapQT);
+        }
 
         _lbFps.Text = Godot.Engine.GetFramesPerSecond().ToString();
 

@@ -4,8 +4,7 @@ public partial class DebugHUD : Godot.Control {
     private bool _visible    = false;
     private bool _pauseDebug = false;
 
-    private const int    _sizeMMMax             = 512;
-    private const int    _dimSpacer             = 16;
+    private const int    _dimSpacer             = 16; //TODO[ALEX]: required?
     private const int    _debugLabelSpacing     = 18; // between each line of text
     private const int    _debugLabelFontSize    = 18;
     private const int    _debugLabelOutlineSize = 4;
@@ -17,11 +16,6 @@ public partial class DebugHUD : Godot.Control {
 
     private Godot.TextureRect  _trBlueNoise;
     private Godot.ImageTexture _texBlueNoise;
-    private Godot.TextureRect  _trMiniMap;
-    private Godot.ImageTexture _texMiniMap;
-    private Godot.TextureRect  _trMiniMapO;
-    private Godot.Image        _imgMiniMapO;
-    private Godot.ImageTexture _texMiniMapO;
     private Godot.Label[]      _lbDebugStats;
     private Godot.Label        _lbPlayerPos;
 
@@ -34,41 +28,6 @@ public partial class DebugHUD : Godot.Control {
         _texBlueNoise.SetImage(XB.Random.BlueNoise);
         _trBlueNoise.Texture  = _texBlueNoise;
         AddChild(_trBlueNoise);
-
-        int sizeMMX = XB.WorldData.ImgMiniMap.GetWidth();
-        int sizeMMY = XB.WorldData.ImgMiniMap.GetHeight();
-        if (sizeMMX > sizeMMY) {
-            sizeMMX = _sizeMMMax;
-            sizeMMY = _sizeMMMax*(sizeMMY/sizeMMX);
-        } else {
-            sizeMMX = _sizeMMMax*(sizeMMX/sizeMMY);
-            sizeMMY = _sizeMMMax;
-        }
-        var sizeMM   = new Godot.Vector2I(sizeMMX, sizeMMY);
-        _imgMiniMapO = Godot.Image.Create(sizeMM.X, sizeMM.Y, false, Godot.Image.Format.Rgba8);
-        var posMM    = new Godot.Vector2I(XB.AData.BaseResX -_dimSpacer - sizeMM.X,
-                                          _dimSpacer                                              );
-
-        _texMiniMap            = new Godot.ImageTexture();
-        _texMiniMap.SetImage(XB.WorldData.ImgMiniMap);
-        _trMiniMap             = new Godot.TextureRect();
-        _trMiniMap.Position    = posMM;
-        _trMiniMap.Size        = sizeMM;
-        _trMiniMap.Texture     = _texMiniMap;
-        _trMiniMap.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
-        _trMiniMap.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
-        AddChild(_trMiniMap);
-
-        _texMiniMapO            = new Godot.ImageTexture();
-        _imgMiniMapO.Fill(XB.Col.Transp);
-        _texMiniMapO.SetImage(_imgMiniMapO);
-        _trMiniMapO             = new Godot.TextureRect();
-        _trMiniMapO.Position    = posMM;
-        _trMiniMapO.Size        = sizeMM;
-        _trMiniMapO.Texture     = _texMiniMapO;
-        _trMiniMapO.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
-        _trMiniMapO.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
-        AddChild(_trMiniMapO);
 
         int colCounter = 1;
         foreach (XB.D d in System.Enum.GetValues(typeof(XB.D))) {
@@ -151,11 +110,6 @@ public partial class DebugHUD : Godot.Control {
                plPos += "Z: " + XB.PController.PModel.GlobalPosition.Z.ToString() + '\n';
         _lbPlayerPos.Text = plPos;
 
-        // minimap
-        XB.ManagerTerrain.UpdateQTreeTexture(ref _imgMiniMapO,
-                                             _imgMiniMapO.GetWidth()/XB.WorldData.WorldDim.X);
-        _texMiniMapO.Update(_imgMiniMapO);
-        _texMiniMap.Update(XB.WorldData.ImgMiniMap);
         _texBlueNoise.Update(XB.Random.BlueNoise);
     }
 
