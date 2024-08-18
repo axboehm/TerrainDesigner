@@ -24,8 +24,6 @@ public class Random {
         _w            = (uint)1 << (int)(_z+1);
         _randomValues = Xorshift();
         _rVPosition   = 0;
-            Godot.GD.Print(seed + " " + _randomValues[0] + " " + _randomValues[1] + " "
-                        + _randomValues[2] + " " + _randomValues[3]);
 
 #if BLUENOISETEXTURE
         BlueNoise      = Godot.Image.LoadFromFile(XB.ScenePaths.BlueNoiseTex);

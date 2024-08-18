@@ -258,6 +258,7 @@ public class DamSegment {
 
 public class ManagerSphere {
     public const  int  MaxSphereAmount = 64; // limit to <= 99 because of sphere texture sizes,
+                                             //NOTE[ALEX]: change this manually in miniMapO.gdshader
     public static int  ActiveSpheres   = 0;
     public static int  NextSphere      = MaxSphereAmount;
     public static int  HLSphereID      = MaxSphereAmount;

@@ -97,9 +97,14 @@ public partial class HUD : Godot.Control {
     private const int          _dimMMSp = 6;
     private const float        _playerTriWidth  = 6.0f;
     private const float        _playerTriHeight = 10.0f;
+    private const float        _sphereCirRadius = 3.0f;
     private const string       _heightFormat    = "F2";
     private const int          _gradLbFontSize  = 16;
     private const int          _gradLbOutlSize  = 2;
+    private Godot.Vector2[]    _spherePositions; // to pass to the shader
+    private Godot.Color[]      _sphereColors;
+
+    private Godot.ShaderMaterial _matMiniMapO;
 
     //TODO[ALEX]: on screen guide
     private Godot.Image        _imgGuideBG;
@@ -113,7 +118,7 @@ public partial class HUD : Godot.Control {
 
         var font = Godot.ResourceLoader.Load<Godot.Font>(XB.ResourcePaths.FontLibMono);
 
-        _matHudEff    = (Godot.ShaderMaterial)GetNode<Godot.TextureRect>(_matHudEffectsNode).Material;
+        _matHudEff = (Godot.ShaderMaterial)GetNode<Godot.TextureRect>(_matHudEffectsNode).Material;
 
         _trCrosshairs = new Godot.TextureRect();
         _trLinking    = new Godot.TextureRect();
@@ -245,6 +250,16 @@ public partial class HUD : Godot.Control {
         _texMiniMapG.SetImage (_imgMiniMapG);
         _texMiniMapBG.SetImage(_imgMiniMapBG);
         CreateGradientTexture(ref _imgMiniMapG, ref _texMiniMapG, ref _vect, ref _rects);
+        _matMiniMapO = new Godot.ShaderMaterial();
+        _matMiniMapO.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.MiniMapOShader);
+        _matMiniMapO.SetShaderParameter("plColor", XB.Col.MPlayer);
+        _matMiniMapO.SetShaderParameter("squareRatio", (float)_dimMMY/(float)_dimMMX);
+        _matMiniMapO.SetShaderParameter("halfWidth",  (_playerTriWidth/_dimMMX)/2.0f);
+        _matMiniMapO.SetShaderParameter("halfHeight", (_playerTriHeight/_dimMMY)/2.0f);
+        _matMiniMapO.SetShaderParameter("spRadius", (_sphereCirRadius/_dimMMY));
+        _spherePositions = new Godot.Vector2[XB.ManagerSphere.MaxSphereAmount];
+        _sphereColors    = new Godot.Color[XB.ManagerSphere.MaxSphereAmount];
+        _trMiniMapO.Material = _matMiniMapO;
 
         var mmLabelPosition = miniMapPosition + new Godot.Vector2I(0, _dimMMY + 2*_dimMMSp + _dimMMGY);
         var mmLabelSize     = new Godot.Vector2I(_dimMMX, _dimMMY);
@@ -322,20 +337,23 @@ public partial class HUD : Godot.Control {
         var debug = new XB.DebugTimedBlock(XB.D.HUDCreateLinkingTexture);
 #endif
 
+        image.Fill(XB.Col.Transp);
+
+        int radius = 100;
+        int thick = 20;
         int width  = image.GetWidth();
         int height = image.GetHeight();
 
-        var rect = new Godot.Rect2I(0, 0, width, height);
-        image.FillRect(rect, XB.Col.LinkDim);
-        XB.Utils.UpdateRect2I(shadow, shadow, width-2*shadow, height-2*shadow, ref rect, ref vect);
-        image.FillRect(rect, XB.Col.LinkBri);
-        XB.Utils.UpdateRect2I(thickness, thickness, width-2*thickness,
-                              height-2*thickness, ref rect, ref vect  );
-        image.FillRect(rect, XB.Col.Transp);
-        XB.Utils.UpdateRect2I(0, cornerHeight, width, height-2*cornerHeight, ref rect, ref vect);
-        image.FillRect(rect, XB.Col.Transp);
-        XB.Utils.UpdateRect2I(cornerWidth, 0, width-2*cornerWidth, height, ref rect, ref vect);
-        image.FillRect(rect, XB.Col.Transp);
+        for (int i = width/2-radius; i < width/2+radius; i++) {
+            for (int j = height/2-radius; j < height/2+radius; j++) {
+                float d = XB.Utils.CircleSDF(i, j, width/2, height/2, radius);
+                if (d < 0 && d > -thick) {
+                    image.SetPixel(i, j, XB.Col.LinkBri);
+                } else {
+                    image.SetPixel(i, j, XB.Col.Transp);
+                }
+            }
+        }
 
         tex.Update(image);
 
@@ -495,34 +513,39 @@ public partial class HUD : Godot.Control {
         //            texture starts at top right corner with 0|0,
         //            world has z+ going forward and x+ going left,
         //            so 0|0 in world coordinates is 0|0 in world coordinates
-        //            but the axes in world space go in negative direction
+        //            but the axes of the terrain in world space go in negative direction
         float posX = -XB.PController.PModel.GlobalPosition.X/XB.WorldData.WorldDim.X;
         float posZ = -XB.PController.PModel.GlobalPosition.Z/XB.WorldData.WorldDim.Y;
-        float x    = posX * (float)_dimMMX;
-        float z    = posZ * (float)_dimMMY;
         float xDir = XB.PController.CCtrH.GlobalTransform.Basis.Z.X; // X coordinate of Z basis vector
-        float yDir = XB.PController.CCtrH.GlobalTransform.Basis.Z.Z;
-        XB.Utils.RotatedTrianglePixels(x, z, xDir, yDir, _playerTriWidth, _playerTriHeight,
-                                       ref _imgMiniMapO, XB.Col.MPlayer, XB.Col.Transp     );
+        float zDir = XB.PController.CCtrH.GlobalTransform.Basis.Z.Z;
+
+        _matMiniMapO.SetShaderParameter("plPosX", posX);
+        _matMiniMapO.SetShaderParameter("plPosZ", posZ);
+        _matMiniMapO.SetShaderParameter("plDirX", xDir);
+        _matMiniMapO.SetShaderParameter("plDirZ", zDir);
 
         for (int i = 0; i < XB.ManagerSphere.Spheres.Length; i++) {
-            if (!XB.ManagerSphere.Spheres[i].Active) { continue; }
+            if (!XB.ManagerSphere.Spheres[i].Active) { 
+                _spherePositions[i].X = -1.0f; // move sphere out of bounds of texture
+                _spherePositions[i].Y = -1.0f; // to effectively ignore it
+                _sphereColors[i]      = XB.Col.Transp;
+            } else {
+                posX = -XB.ManagerSphere.Spheres[i].GlobalPosition.X/XB.WorldData.WorldDim.X;
+                posZ = -XB.ManagerSphere.Spheres[i].GlobalPosition.Z/XB.WorldData.WorldDim.Y;
+                _spherePositions[i].X = posX;
+                _spherePositions[i].Y = posZ;
 
-            posX = -XB.ManagerSphere.Spheres[i].GlobalPosition.X/XB.WorldData.WorldDim.X;
-            posZ = -XB.ManagerSphere.Spheres[i].GlobalPosition.Z/XB.WorldData.WorldDim.Y;
-            x    = posX * (float)_dimMMX;
-            z    = posZ * (float)_dimMMY;
-            XB.Utils.PointRectangles((int)x, (int)z, _dimMMSp, ref _rects, ref _rSize, ref _vect);
-
-            Godot.Color spColor = new Godot.Color(0.0f, 0.0f, 0.0f, 0.0f);
-            switch (XB.ManagerSphere.Spheres[i].TexSt) {
-                case XB.SphereTexSt.Inactive:      { spColor = XB.Col.InAct;   break; }
-                case XB.SphereTexSt.Active:        { spColor = XB.Col.Act;     break; }
-                case XB.SphereTexSt.ActiveLinking: { spColor = XB.Col.LinkBri; break; }
-                case XB.SphereTexSt.ActiveLinked:  { spColor = XB.Col.LinkDim; break; }
+                switch (XB.ManagerSphere.Spheres[i].TexSt) {
+                    case XB.SphereTexSt.Inactive:      { _sphereColors[i] = XB.Col.InAct;   break; }
+                    case XB.SphereTexSt.Active:        { _sphereColors[i] = XB.Col.Act;     break; }
+                    case XB.SphereTexSt.ActiveLinking: { _sphereColors[i] = XB.Col.LinkBri; break; }
+                    case XB.SphereTexSt.ActiveLinked:  { _sphereColors[i] = XB.Col.LinkDim; break; }
+                }
             }
-            for (int j = 0; j < _rSize; j++) { _imgMiniMapO.FillRect(_rects[j], spColor); }
         }
+
+        _matMiniMapO.SetShaderParameter("spPos", _spherePositions);
+        _matMiniMapO.SetShaderParameter("spCol", _sphereColors);
 
         _texMiniMapO.Update(_imgMiniMapO);
 

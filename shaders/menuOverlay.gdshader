@@ -4,14 +4,16 @@ render_mode blend_add;
 uniform sampler2D overlayT  : source_color, repeat_disable, filter_nearest;
 uniform sampler2D gradientT : source_color, repeat_disable, filter_nearest;
 
+uniform vec2  res          = vec2(1920.0, 1080.0);
+uniform float eThick       = 50.0;
+uniform float squareFactor = 1.777777778; // 16.0/9.0;
+
 void fragment() {
     vec4  gridTex   = texture(overlayT, UV);
     float gradient  = texture(gradientT, UV).r;
           gradient  = gradient + pow(gradient, 2.0);
           gradient /= 2.0;
 
-    vec2  res      = vec2(1920.0, 1080.0);
-    float eThick   = 50.0;
     float edgeL    = 1.0 - step(eThick        /res.x, UV.x);
     float edgeR    =       step((res.x-eThick)/res.x, UV.x);
     float edgeT    = 1.0 - step(eThick        /res.y, UV.y);
@@ -19,7 +21,6 @@ void fragment() {
     float edgeMask = 1.0 - edgeL - edgeR - edgeT - edgeB;
           edgeMask = clamp(edgeMask, 0.0, 1.0);
 
-    float squareFactor = 16.0/9.0;
     vec2  uvSquared    = vec2(UV.x*squareFactor, UV.y);
     vec2  nearestPt    = vec2(clamp(uvSquared.x, squareFactor*eThick/res.x,
                                                  squareFactor*(res.x-eThick)/res.x),

@@ -100,6 +100,7 @@ public struct ResourcePaths {
     public static string SpEMaskTex       = "res://assets/sphere/data/sphereEmissionMask.png";
     public static string ConeDamShader    = "res://code/shaders/spConeDam.gdshader";
     public static string ConeDamUShader   = "res://code/shaders/spConeDamU.gdshader";
+    public static string MiniMapOShader   = "res://code/shaders/miniMapO.gdshader";
 }
 
 public struct Resources {
