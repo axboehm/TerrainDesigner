@@ -322,7 +322,7 @@ public partial class PController : Godot.CharacterBody3D {
         switch (_move) {
             case XB.MoveSt.Walk: {
                 _moveSpd = XB.Utils.LerpF(_moveSpd, _walkSpd, _moveSm*dt);
-                if (XB.AData.Input.LIn) {
+                if (XB.AData.Input.DUp) {
                     _move = XB.MoveSt.Run;
                 }
                 break;
@@ -618,12 +618,14 @@ public partial class PController : Godot.CharacterBody3D {
                 XB.AData.CamZoom = XB.Utils.ClampF(zoom , 0.0f, XB.AData.CamZoomMax);
                 XB.PersistData.UpdateCamDistance();
             }
-            // DUp
+            // LIn
+            // RIn
+            // DUp // toggle walk/run (handled earlier)
             if (XB.AData.Input.DDown) { // swap between first and third person view
                 _thirdP = !_thirdP;
             }
-            // DLeft
-            // DRight
+            // DLeft  // modifier for sphere radius (handled below)
+            // DRight // modifier for sphere angle (handled below)
             if (_canShoot && XB.AData.Input.FUp) { // link
                 if (   XB.ManagerSphere.Linking
                     && XB.ManagerSphere.HLSphereID < XB.ManagerSphere.MaxSphereAmount) {

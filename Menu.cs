@@ -120,12 +120,16 @@ public partial class Menu : Godot.Control {
     [Godot.Export] private Godot.Label    _lbGenExp;
     [Godot.Export] private Godot.Slider   _slGenExp;
     [Godot.Export] private Godot.Button   _cbGenUpd;
+    [Godot.Export] private Godot.Label    _lbGenLow;
+    [Godot.Export] private Godot.Label    _lbGenHigh;
+    [Godot.Export] private Godot.Label    _lbGenCurSeed;
     [Godot.Export] private Godot.TextureRect  _trGenMap;
                    private Godot.Image        _imgGenMap;
                    private Godot.ImageTexture _texGenMap;
                    private const int          _sizeGenMap   = 512;
                    private const string       _valueFormat  = "F2";
                    private const string       _scaleFormat  = "F4"; // more precision for scale
+                   private const string       _heightFormat = "F2";
                    private       bool         _updateGenTex = true;
 
 
@@ -759,8 +763,7 @@ public partial class Menu : Godot.Control {
         _cbGenUpd.ButtonPressed = _updateGenTex;
         uint seed = (uint)System.DateTime.Now.GetHashCode();
         _leGenSeed.Text = seed.ToString();
-        XB.Random.InitializeRandom(seed);
-        GenerateTerrainHeights();
+        ButtonGenSeedApplyOnPressed();
     }
 
     private void ButtonApplySpheresOnPressed() {
@@ -806,6 +809,10 @@ public partial class Menu : Godot.Control {
         _leGenSeed.Text = seed.ToString();
         XB.Random.InitializeRandom(seed);
         if (_updateGenTex) { GenerateTerrainHeights(); }
+
+        // create new code to make iteration easier
+        seed = (uint)System.DateTime.Now.GetHashCode();
+        _leGenSeed.Text = seed.ToString();
     }
 
     private void SliderGenHeightOnDragEnded(bool valueChanged) {
@@ -859,6 +866,10 @@ public partial class Menu : Godot.Control {
                                      ref lowest, ref highest                              );
         XB.Terrain.UpdateHeightMap(ref XB.WorldData.TerrainHeightsMod,
                                    lowest, highest, ref _imgGenMap    );
+        _lbGenLow.Text     = lowest.ToString(_heightFormat);
+        _lbGenHigh.Text    = highest.ToString(_heightFormat);
+        _lbGenCurSeed.Text = XB.Random.RandomSeed.ToString();
+
         _texGenMap.Update(_imgGenMap);
     }
 

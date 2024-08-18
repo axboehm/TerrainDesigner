@@ -225,7 +225,7 @@ public partial class Input : Godot.Node {
                         iEvent.Keycode = Godot.Key.D;
                     } break;
                     case "LIn": {
-                        iEvent.Keycode = Godot.Key.Shift;
+                        iEvent.Keycode = Godot.Key.X;
                     } break;
                     case "RUp": {
                         iEvent.Keycode = Godot.Key.Up;
@@ -243,7 +243,7 @@ public partial class Input : Godot.Node {
                         iEvent.Keycode = Godot.Key.E;
                     } break;
                     case "DUp": {
-                        iEvent.Keycode = Godot.Key.X;
+                        iEvent.Keycode = Godot.Key.Shift;
                     } break;
                     case "DDown": {
                         iEvent.Keycode = Godot.Key.Q;

@@ -2,6 +2,7 @@
 //#define BLUENOISETEXTURE
 namespace XB { // namespace open
 public class Random {
+    public  static uint   RandomSeed    = 0;    // last used random seed
     private static uint[] _randomValues = new uint[4] {1, 1, 1, 1};
     private static uint   _rVPosition   = 0;
     private static uint   _x            = 25625625;
@@ -16,6 +17,7 @@ public class Random {
         var debug = new XB.DebugTimedBlock(XB.D.RandomInitializeRandom);
 #endif
 
+        RandomSeed    = seed;
         _rVPosition   = 0;
         _x            = (uint)1 << (int)seed;
         _y            = (uint)1 << (int)(_x+1);
