@@ -33,7 +33,9 @@ public class Terrain {
             normalization += amplitude;
             amplitude     *= ampMult;
         }
+        //TODO[ALEX]: is normalization too big?
 
+        //TODO[ALEX]: retime this
         // non parallel way: 508.2472 - 535.7532
         // parallel way: 164.9999 (first) 34.0475 - 42.4827 (subsequent)
 #if XBSINGLETHREADED
@@ -193,18 +195,12 @@ public class Terrain {
                 float height = 0.0f;
                 if        (k < 0.0f) { // point 1 side
                     dist = System.MathF.Sqrt(h * n) - radius1; 
-                    if (dist < 0.0f) {
-                        height = height1;
-                    } else {
-                        height = height1 - direction*ramp1*dist;
-                    }
+                    if (dist < 0.0f) { height = height1;                        }
+                    else             { height = height1 - direction*ramp1*dist; }
                 } else if (k > c.X ) { // point 2 side
                     dist = System.MathF.Sqrt(h * (n + 1.0f - 2.0f*q.Y)) - radius2; 
-                    if (dist < 0.0f) {
-                        height = height2;
-                    } else {
-                        height = height2 - direction*ramp2*dist;
-                    }
+                    if (dist < 0.0f) { height = height2;                        }
+                    else             { height = height2 - direction*ramp2*dist; }
                 }else { // in between points, t as ratio between distances
                     dist = m - radius1;
                     float t = k/c.X;

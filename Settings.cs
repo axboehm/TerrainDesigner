@@ -4,7 +4,7 @@ public partial class Settings {
     public  static float CamSliderMult = 25.0f;
     private static SysCG.Dictionary<string, ulong> sPos =
         new SysCG.Dictionary<string, ulong>() {
-                {"Cont",   (ulong)1 << 0 },
+                {"Unused", (ulong)1 << 0 }, //NOTE[ALEX]: currently unused
                 {"SFps",   (ulong)1 << 1 },
                 {"Full",   (ulong)1 << 2 },
                 {"VSync",  (ulong)1 << 3 },
@@ -256,6 +256,9 @@ public partial class Settings {
         return XB.AData.TR.Tr("APPLICATION_DEFAULT");
     }
 
+    //NOTE[ALEX]: drop down dialogs are a bit too short with apparently no option to change that
+    //            adding separators at the bottom makes all entries show up without scrolling
+    //            when that should be the case
     public static void AddSeparators(Godot.OptionButton ob) {
         ob.AddSeparator();
         ob.AddSeparator();
@@ -279,7 +282,7 @@ public partial class Settings {
 
         // right side (booleans and arrays)
         // booleans (11 bits)
-        if (XB.AData.Controller) { codeR |= sPos["Cont"];   }
+        //if () { codeR |= sPos["Unused"]; } // currently unused
         if (XB.AData.ShowFps)    { codeR |= sPos["SFps"];   }
         if (XB.AData.BlockGrid)  { codeR |= sPos["SBlock"]; }
         if (XB.AData.QTreeVis)   { codeR |= sPos["SQTree"]; }
@@ -343,7 +346,6 @@ public partial class Settings {
         XB.AData.SetCodeR = codeR;
         XB.AData.SetCodeL = codeL;
         leSetCode.Text =   XB.Utils.ULongToBitString(XB.AData.SetCodeL, XB.AData.SetCodeLengthL)
-                         //+ " " // visualization
                          + XB.Utils.ULongToBitString(XB.AData.SetCodeR, XB.AData.SetCodeLengthR);
     }
 
@@ -362,8 +364,8 @@ public partial class Settings {
 
         // right side (booleans and arrays)
         // booleans (11 bits)
-        if ((codeR & sPos["Cont"]) > 0)   { XB.AData.Controller = true;  }
-        else                              { XB.AData.Controller = false; }
+        // if ((codeR & sPos["Unused"]) > 0) { ; } // currently unused
+        // else                              { ; }
         if ((codeR & sPos["SFps"]) > 0)   { XB.AData.ShowFps = true;  }
         else                              { XB.AData.ShowFps = false; }
         if ((codeR & sPos["SBlock"]) > 0) { XB.AData.BlockGrid = true;  }

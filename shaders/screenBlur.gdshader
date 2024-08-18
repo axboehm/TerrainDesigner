@@ -9,7 +9,6 @@ uniform float     bStr = 1.0;
 vec3 gaussianBlur(sampler2D tex, vec2 uv, float directions, float quality, float size, float strength) {
     vec4 scCol  = textureLod(tex, uv, 0.0);
     vec4 blCol  = textureLod(tex, uv, 0.0);
-    //vec2 radius = size/VIEWPORT_SIZE; //TODO[ALEX]: test this again
     vec2 radius = size/vec2(1920.0, 1080.0);
     for (float d = 0.0; d < TAU; d += TAU/directions) {
         for (float i = 1.0/quality; i <= 1.0; i += 1.0/quality) {

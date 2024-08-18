@@ -186,12 +186,13 @@ public partial class Sphere : Godot.CharacterBody3D {
             if (ID > 9) { // decimal digit
                 XB.Utils.DigitRectangles(ID/10, xStart+_dimThick, _dimThick, _dimDigitX,
                                          _dimDigitY, _dimThick, ref rects, ref rSize, ref vect);
-                for (int j = 0; j < rSize; j++ ) { _imgScrolling.FillRect(rects[j], XB.Col.White); }
+                XB.Utils.FillRectanglesInImage(ref _imgScrolling, ref rects, ref rSize,
+                                               ref XB.Col.White                        );
                 xStart += _dimDigitX;
             }
             XB.Utils.DigitRectangles(ID%10, xStart+_dimThick, _dimThick, _dimDigitX,
                                      _dimDigitY, _dimThick, ref rects, ref rSize, ref vect);
-            for (int j = 0; j < rSize; j++ ) { _imgScrolling.FillRect(rects[j], XB.Col.White); }
+            XB.Utils.FillRectanglesInImage(ref _imgScrolling, ref rects, ref rSize, ref XB.Col.White);
         }
 
         _texScrolling = new Godot.ImageTexture();
@@ -302,7 +303,7 @@ public partial class Sphere : Godot.CharacterBody3D {
 #endif
 
         foreach (XB.Sphere lS in _linkedSpheres) {
-            if (lS.ID == idLinkFrom) { return; }
+            if (lS.ID == idLinkFrom) { return; } //TODO[ALEX]: is this correct?
         }
         _linkedSpheres.Add(XB.ManagerSphere.Spheres[idLinkFrom]);
         if (!Linked && _animPl.CurrentAnimation != "expand") { _animPl.Play("expand"); }
@@ -398,8 +399,8 @@ public partial class Sphere : Godot.CharacterBody3D {
         var   resultP  = XB.Utils.Raycast(spaceState, rayOrigP, rayDestP, XB.LayerMasks.SphereMask);
 
         if (resultT.Count > 0 && resultP.Count > 0) {
-            var hitPosT   = (Godot.Vector3)resultT["position"];
-            var hitPosP   = (Godot.Vector3)resultP["position"];
+            var hitPosT = (Godot.Vector3)resultT["position"];
+            var hitPosP = (Godot.Vector3)resultP["position"];
 
             // vertical movement
             var hitNrmT    = new Godot.Vector3(camTrans.Origin.X, 0.0f, camTrans.Origin.Z);
@@ -407,12 +408,12 @@ public partial class Sphere : Godot.CharacterBody3D {
                 hitNrmT.Z -= hitPosT.Z;
             //NOTE[ALEX]: when using the previous frames hit vector in the following calculation, 
             //            the sphere jitters heavily, so using the same one is intentional
-            //            for the previous frame's camera position the player's movement has
-            //            to be compensated for
-            var hitPrevG  = XB.Utils.IntersectRayPlaneV3(camTransPrev.Origin + playerMovement,
-                                                         camTransPrev.Basis.Z, hitPosT, hitNrmT);
-            var hitThisG  = XB.Utils.IntersectRayPlaneV3(camTrans.Origin, camTrans.Basis.Z,
-                                                         hitPosT, hitNrmT                  );
+            //            as the player's movement has to be compensated for
+            //            from the previous frame's camera position 
+            var hitPrevG = XB.Utils.IntersectRayPlaneV3(camTransPrev.Origin + playerMovement,
+                                                        camTransPrev.Basis.Z, hitPosT, hitNrmT);
+            var hitThisG = XB.Utils.IntersectRayPlaneV3(camTrans.Origin, camTrans.Basis.Z,
+                                                        hitPosT, hitNrmT                  );
 
             // horizontal movement
             var   toPosT      = hitPosT-camTrans.Origin;
@@ -431,9 +432,7 @@ public partial class Sphere : Godot.CharacterBody3D {
         }
 
         UpdateConeMesh();
-        if (Linked) {
-            XB.ManagerSphere.UpdateDam(ID);
-        }
+        if (Linked) { XB.ManagerSphere.UpdateDam(ID); }
 
 #if XBDEBUG
         debug.End();
@@ -446,7 +445,8 @@ public partial class Sphere : Godot.CharacterBody3D {
 #endif
 
         Radius += amount*_radiusMult; // mouse down will reduce radius
-        Radius  = XB.Utils.ClampF(Radius, _radiusMin, XB.WorldData.WorldDim.X + XB.WorldData.WorldDim.Y);
+        Radius  = XB.Utils.ClampF(Radius, _radiusMin,
+                                  XB.WorldData.WorldDim.X + XB.WorldData.WorldDim.Y);
         UpdateConeMesh();
         XB.ManagerSphere.UpdateDam(ID);
 

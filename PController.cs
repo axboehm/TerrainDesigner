@@ -33,7 +33,7 @@ public partial class PController : Godot.CharacterBody3D {
     [Godot.Export] private Godot.NodePath       _animationTreeNode;
                    private Godot.AnimationTree  _pATree;
     [Godot.Export] private Godot.NodePath       _gunTipNode;
-                   private Godot.Node3D         _gunTip;              // point from which bullets spawn
+                   private Godot.Node3D         _gunTip;    // reference point for camera ray casting
     [Godot.Export] private Godot.NodePath       _hudNode;
              public static XB.HUD               Hud;
     [Godot.Export] private Godot.NodePath       _menuNode;
@@ -59,17 +59,9 @@ public partial class PController : Godot.CharacterBody3D {
     private       int           _spawnAttempts    = 0;
     private const int           _spawnAttemptsMax = 20;
 
-    // audio
-    //NOTE[ALEX]: exporting the array directly does not consistently work in Godot 4.2.2 (bug)
-    [Godot.Export] private Godot.AudioStreamPlayer3D   _audFootStep0;
-    [Godot.Export] private Godot.AudioStreamPlayer3D   _audFootStep1;
-    [Godot.Export] private Godot.AudioStreamPlayer3D   _audFootStep2;
-    [Godot.Export] private Godot.AudioStreamPlayer3D   _audFootStep3;
-    [Godot.Export] private Godot.AudioStreamPlayer3D   _audFootStep4;
-    [Godot.Export] private Godot.AudioStreamPlayer3D   _audFootStep5;
-                   private Godot.AudioStreamPlayer3D[] _audFootStep;
-                   private int                         _audFootStepAmnt = 6;
-                   private float                       _tFootStep       = 0.0f;
+    private Godot.AudioStreamPlayer3D[] _audFootStep;
+    private const int                   _audFootStepAmnt = 6;
+    private float                       _tFootStep       = 0.0f;
 
     private Godot.Vector2   _mouse    = new Godot.Vector2(0.0f, 0.0f); // mouse motion this tick
 
@@ -94,18 +86,22 @@ public partial class PController : Godot.CharacterBody3D {
     private const float   _cPullSpd = 5.0f;     // speed with which the camera pulls back
     private const float   _maxVAng  = 80.0f;    // maximum vertical angle of camera
 
+    private Godot.Vector3 _rotCtr   = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _toCam    = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _toCamG   = new Godot.Vector3(0.0f, 0.0f, 0.0f);
     private const float   _aimHOff  = 0.4f;     // horizontal camera offset while aiming
     private const float   _aimVOff  = 0.0f;     // vertical camera offset while aiming
     private Godot.Vector2 _aimOff   = new Godot.Vector2(0.0f, 0.0f); // camera offset this frame
     private const float   _aimEmpty = 20.0f;    // distance from gun to aim target with no rayhit
 
-    private const float   _walkSm   = 10.0f;    // smoothing value for walk blend lerping
-    private Godot.Vector2 _blWalk   = new Godot.Vector2(0.0f, 0.0f); // animation walking blend value
-    private const float   _moveSm   = 15.0f;    // smoothing value for all move lerping
-    private float         _blMove   = 0.0f;     // animation move blend value
-    private float         _blIdle   = 0.0f;     // animation moveIdle blend value
+    private Godot.Vector2 _walkBlend = new Godot.Vector2(0.0f, 0.0f); // move animation in 2D blendspace
+    private const float   _walkSm    = 10.0f;    // smoothing value for walk blend lerping
+    private Godot.Vector2 _blWalk    = new Godot.Vector2(0.0f, 0.0f); // animation walking blend value
+    private const float   _moveSm    = 15.0f;    // smoothing value for all move lerping
+    private float         _blMove    = 0.0f;     // animation move blend value
+    private float         _blIdle    = 0.0f;     // animation moveIdle blend value
 
-    private Godot.Transform3D _camTransPrev = new Godot.Transform3D();
+    private Godot.Transform3D _camTransPrev = new Godot.Transform3D(); // for moving spheres
 #if XBDEBUG
     public XB.DebugHUD DebugHud;
 #endif
@@ -145,12 +141,46 @@ public partial class PController : Godot.CharacterBody3D {
                        (_bodyNode).GetSurfaceOverrideMaterial(1);
 
         _audFootStep    = new Godot.AudioStreamPlayer3D[_audFootStepAmnt];
-        _audFootStep[0] = _audFootStep0;
-        _audFootStep[1] = _audFootStep1;
-        _audFootStep[2] = _audFootStep2;
-        _audFootStep[3] = _audFootStep3;
-        _audFootStep[4] = _audFootStep4;
-        _audFootStep[5] = _audFootStep5;
+        var footStepScn = Godot.ResourceLoader.Load<Godot.PackedScene>(XB.ResourcePaths.FootStep01);
+        //NOTE[ALEX]: somewhat hard coded footstep array initialization
+        //            but will populate the array to any length
+        for (int i = 0; i < _audFootStepAmnt; i++) {
+            switch (i) {
+                case 1: {
+                    footStepScn = Godot.ResourceLoader.Load<Godot.PackedScene>
+                        (XB.ResourcePaths.FootStep02);
+                    break;
+                }
+                case 2: {
+                    footStepScn = Godot.ResourceLoader.Load<Godot.PackedScene>
+                        (XB.ResourcePaths.FootStep03);
+                    break;
+                }
+                case 3: {
+                    footStepScn = Godot.ResourceLoader.Load<Godot.PackedScene>
+                        (XB.ResourcePaths.FootStep04);
+                    break;
+                }
+                case 4: {
+                    footStepScn = Godot.ResourceLoader.Load<Godot.PackedScene>
+                        (XB.ResourcePaths.FootStep05);
+                    break;
+                }
+                case 5: {
+                    footStepScn = Godot.ResourceLoader.Load<Godot.PackedScene>
+                        (XB.ResourcePaths.FootStep06);
+                    break;
+                }
+                default: {
+                    footStepScn = Godot.ResourceLoader.Load<Godot.PackedScene>
+                        (XB.ResourcePaths.FootStep01);
+                    break;
+                }
+            }
+
+            _audFootStep[i] = (Godot.AudioStreamPlayer3D)footStepScn.Instantiate();
+            AddChild(_audFootStep[i]);
+        }
 
 #if XBDEBUG
         debug.End();
@@ -262,27 +292,27 @@ public partial class PController : Godot.CharacterBody3D {
         // STEP 2: check for player being outside of terrain area
         if        (GlobalPosition.Y < XB.WorldData.KillPlane || 
                    GlobalPosition.Y < (XB.WorldData.LowestPoint - XB.WorldData.LowHighExtra)) {
-            Godot.GD.Print(">> out of bounds high/low");
+            // Godot.GD.Print(">> out of bounds high/low");
             PlacePlayer(new Godot.Vector3(GlobalPosition.X, 
                                           XB.WorldData.HighestPoint + XB.WorldData.LowHighExtra,
                                           GlobalPosition.Z                                      ));
         } else if (GlobalPosition.X > 0.0f) {
-            Godot.GD.Print(">> out of bounds X high");
+            // Godot.GD.Print(">> out of bounds X high");
             PlacePlayer(new Godot.Vector3(-_respawnOff,
                                           GlobalPosition.Y + XB.WorldData.LowHighExtra,
                                           GlobalPosition.Z                             ));
         } else if (GlobalPosition.X < -XB.WorldData.WorldDim.X) {
-            Godot.GD.Print(">> out of bounds X low");
+            // Godot.GD.Print(">> out of bounds X low");
             PlacePlayer(new Godot.Vector3(-XB.WorldData.WorldDim.X + _respawnOff,
                                           GlobalPosition.Y + XB.WorldData.LowHighExtra,
                                           GlobalPosition.Z                             ));
         } else if (GlobalPosition.Z > 0.0f) {
-            Godot.GD.Print(">> out of bounds Z high");
+            // Godot.GD.Print(">> out of bounds Z high");
             PlacePlayer(new Godot.Vector3(GlobalPosition.X,
                                           GlobalPosition.Y + XB.WorldData.LowHighExtra,
                                           -_respawnOff                                 ));
         } else if (GlobalPosition.Z < -XB.WorldData.WorldDim.Y) {
-            Godot.GD.Print(">> out of bounds Z low");
+            // Godot.GD.Print(">> out of bounds Z low");
             PlacePlayer(new Godot.Vector3(GlobalPosition.X,
                                           GlobalPosition.Y + XB.WorldData.LowHighExtra,
                                           -XB.WorldData.WorldDim.Y + _respawnOff       ));
@@ -309,8 +339,8 @@ public partial class PController : Godot.CharacterBody3D {
 
         var v    = new Godot.Vector3(XB.AData.Input.MoveX, 0.0f, XB.AData.Input.MoveY);
             v    = v.Normalized()*_moveSpd;
-        // horizontal player movement for use when moving spheres
-        var spV  = new Godot.Vector3(0.0f, 0.0f, v.Z);
+        var spV  = new Godot.Vector3(0.0f, 0.0f, v.Z); // horizontal player movement
+                                                       // for use when moving spheres
             v.Y  = -_plYV;
             v    = v.Rotated(CCtrH.Transform.Basis.Y, CCtrH.Transform.Basis.GetEuler().Y);
             spV  = spV.Rotated(CCtrH.Transform.Basis.Y, CCtrH.Transform.Basis.GetEuler().Y);
@@ -389,20 +419,20 @@ public partial class PController : Godot.CharacterBody3D {
         CCtrH.RotateObjectLocal(CCtrH.Transform.Basis.Y, horAmount);
 
         // STEP 3: vertical camera movement
-        var   rotCtr    = new Godot.Vector3(0.0f, 0.0f, 0.0f);
-              rotCtr   += CCtrH.GlobalPosition;
-              rotCtr   += _aimOff.X*_cam.GlobalTransform.Basis.X;
-              rotCtr   += _aimOff.Y*_cam.GlobalTransform.Basis.Y;
-        var   toCam     = _cam.GlobalTransform.Basis.Z;
+        _rotCtr   = CCtrH.GlobalPosition;
+        _rotCtr += _aimOff.X*_cam.GlobalTransform.Basis.X;
+        _rotCtr += _aimOff.Y*_cam.GlobalTransform.Basis.Y;
+        _toCam   = _cam.GlobalTransform.Basis.Z;
         if (_thirdP) {
-            toCam = _cam.GlobalPosition-rotCtr;
+            _toCam = _cam.GlobalPosition-_rotCtr;
         }
-        var   toCamG    = new Godot.Vector3(toCam.X, 0.0f, toCam.Z);
-        float cAngle    = toCam.AngleTo(toCamG)*XB.Constants.Rad2Deg;
+        _toCamG   = _toCam;
+        _toCamG.Y = 0.0f;
+        float cAngle    = _toCam.AngleTo(_toCamG)*XB.Constants.Rad2Deg;
         float verAmount = dt*XB.AData.CamYSens*XB.AData.Input.CamY;
         if (cAngle > _maxVAng) {
-            if      (toCam.Y > 0.0f && XB.AData.Input.CamY < 0.0f) verAmount = 0.0f;
-            else if (toCam.Y < 0.0f && XB.AData.Input.CamY > 0.0f) verAmount = 0.0f;
+            if      (_toCam.Y > 0.0f && XB.AData.Input.CamY < 0.0f) verAmount = 0.0f;
+            else if (_toCam.Y < 0.0f && XB.AData.Input.CamY > 0.0f) verAmount = 0.0f;
         }
         _cCtrV.RotateObjectLocal(_cCtrV.Transform.Basis.X, verAmount);
 
@@ -424,7 +454,7 @@ public partial class PController : Godot.CharacterBody3D {
             }
         } else {
             var resultC = XB.Utils.Raycast(spaceSt, CCtrH.GlobalPosition,
-                                           CCtrH.GlobalPosition + 2.0f*toCam,
+                                           CCtrH.GlobalPosition + 2.0f*_toCam,
                                            XB.LayerMasks.CamMask);
             if (resultC.Count > 0) {
                 var   toCollision = (Godot.Vector3)resultC["position"]-CCtrH.GlobalPosition;
@@ -456,7 +486,6 @@ public partial class PController : Godot.CharacterBody3D {
         } else if (PlAiming) {
             _canShoot = true;
             var camHit  = _cam.GlobalPosition - _cam.GlobalTransform.Basis.Z*1000.0f;
-            var hitBox  = new Godot.StaticBody3D();
             var rayOrig = XB.Utils.IntersectRayPlaneV3
                             (_cam.GlobalPosition,    _cam.GlobalTransform.Basis.Z,
                              _gunTip.GlobalPosition, _cam.GlobalTransform.Basis.Z);
@@ -464,7 +493,6 @@ public partial class PController : Godot.CharacterBody3D {
             var resultA = XB.Utils.Raycast(spaceSt, rayOrig, camHit, XB.LayerMasks.AimMask);
             if (resultA.Count > 0) {
                 camHit = (Godot.Vector3)resultA["position"];
-                hitBox = (Godot.StaticBody3D)resultA["collider"];
             } else {
                 camHit = _cam.GlobalPosition - _cam.GlobalTransform.Basis.Z*_aimEmpty;
             }
@@ -488,19 +516,19 @@ public partial class PController : Godot.CharacterBody3D {
 
         // SPHERE INTERACTIONS
         if (!_thirdP || PlAiming) {
-            Godot.Vector3 rayOrigin = _cam.GlobalPosition;
+            var rayOrigin = _cam.GlobalPosition;
             if (PlAiming) {
                 rayOrigin  = XB.Utils.IntersectRayPlaneV3
                                  (_cam.GlobalPosition,  _cam.GlobalTransform.Basis.Z,
                                   CCtrH.GlobalPosition, _cam.GlobalTransform.Basis.Z);
             }
-            float         rayDistance  = XB.WorldData.WorldDim.X+XB.WorldData.WorldDim.Y;
-                          rayDistance *= -1.0f;
-            Godot.Vector3 rayTarget    = rayOrigin + rayDistance*_cam.GlobalTransform.Basis.Z;
-            var resultCS = XB.Utils.Raycast(spaceSt, rayOrigin, rayTarget, XB.LayerMasks.SphereMask);
+            float rayDistance  = XB.WorldData.WorldDim.X+XB.WorldData.WorldDim.Y;
+                  rayDistance *= -1.0f;
+            var rayTarget = rayOrigin + rayDistance*_cam.GlobalTransform.Basis.Z;
+            var resultCS  = XB.Utils.Raycast(spaceSt, rayOrigin, rayTarget, XB.LayerMasks.SphereMask);
             if (resultCS.Count > 0) {
                 // Godot.GD.Print((Godot.Vector3)resultCS["position"]);
-                XB.Sphere sphere = (XB.Sphere)resultCS["collider"];
+                var sphere = (XB.Sphere)resultCS["collider"];
                 XB.ManagerSphere.ChangeHighlightSphere(sphere.ID);
             } else {
                 XB.ManagerSphere.ChangeHighlightSphere(XB.ManagerSphere.MaxSphereAmount);
@@ -512,29 +540,30 @@ public partial class PController : Godot.CharacterBody3D {
 
         // ANIMATIONS
         float idleMode  = 0.0f;
-        var   walkBlend = new Godot.Vector2(0.0f, 0.0f);  // movement animation in 2D blendspace
+        _walkBlend.X = 0.0f;
+        _walkBlend.Y = 0.0f;
         float walkSpeed = 0.0f;
         if (_plA == XB.AirSt.Grounded) { // walking - on ground
             _blMove = XB.Utils.LerpF(_blMove, 0.0f, _moveSm*dt); // walk - 0.0f
             if (_plMoved) {
                 idleMode = 1.0f; // walk
                 if (PlAiming) {
-                    walkBlend.X = XB.AData.Input.MoveX; // walk left/right
-                    walkBlend.Y = XB.AData.Input.MoveY; // walk forwards/backwards
+                    _walkBlend.X = XB.AData.Input.MoveX; // walk left/right
+                    _walkBlend.Y = XB.AData.Input.MoveY; // walk forwards/backwards
                 } else { // condense 2D movement into single value representing amount
-                    walkBlend.Y = new Godot.Vector2(XB.AData.Input.MoveX, XB.AData.Input.MoveY).Length();
+                    _walkBlend.Y = new Godot.Vector2(XB.AData.Input.MoveX, XB.AData.Input.MoveY).Length();
                 }
-                walkBlend /= walkBlend.Length();
-                walkSpeed  = walkBlend.Length()*_walkAnm;
+                _walkBlend /= _walkBlend.Length();
+                walkSpeed   = _walkBlend.Length()*_walkAnm;
                 switch (_move) {
                     case XB.MoveSt.Walk: { 
-                        walkBlend *= 0.5f; 
-                        walkSpeed *= 0.5f;
+                        _walkBlend *= 0.5f; 
+                        walkSpeed  *= 0.5f;
                         break;
                     }
                     case XB.MoveSt.Run:  { 
-                        walkBlend *= 1.0f; 
-                        walkSpeed *= 1.0f;
+                        _walkBlend *= 1.0f; 
+                        walkSpeed  *= 1.0f;
                         break;
                     }
                 }
@@ -542,7 +571,7 @@ public partial class PController : Godot.CharacterBody3D {
                 if (!PlAiming) { idleMode = 0.0f; } // idle
             }
             _blIdle = XB.Utils.LerpF(_blIdle, idleMode, _moveSm*dt);
-            _blWalk = XB.Utils.LerpV2(_blWalk, walkBlend, _walkSm*dt);
+            _blWalk = XB.Utils.LerpV2(_blWalk, _walkBlend, _walkSm*dt);
         } else { // jumping - in air
             _blMove = XB.Utils.LerpF(_blMove, 1.0f, _moveSm*dt); // jump - 1.0f
             if      (PlJ == XB.JumpSt.OneJumpS) {
@@ -617,7 +646,7 @@ public partial class PController : Godot.CharacterBody3D {
                 var spawnPos =   CCtrH.GlobalPosition
                                + _cam.GlobalTransform.Basis.Z*-_sphereSpawnDist;
                 if (!XB.ManagerSphere.RequestSphere(spawnPos)) {
-                    Godot.GD.Print("all spheres used");
+                    // Godot.GD.Print("all spheres used");
                 }
             }
             // SLBot - aiming (handled earlier)
@@ -672,20 +701,12 @@ public partial class PController : Godot.CharacterBody3D {
     //NOTE[ALEX]: if a raycast happens in the same frame that a mesh gets assigned,
     //            then that mesh will not be hit, 
     //            to avoid this, SpawnPlayer is called one frame delayed
-    //
-    //TODO
-    //            occasionally the raycast just does not return anything at all and 
-    //            respawning is not successful, the out of bounds check in STEP 2
-    //            ensures those cases do not cause an irrecoverable state
-    //            I have not found any issues with collider generation or the provided parameters
-    //            in those cases so the issue appears to not be in my code
-    //            for now I will accept this limitation
     public void SpawnPlayer(Godot.Vector2 spawnXZ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.PControllerSpawnPlayer);
 #endif
 
-        Godot.GD.Print("spawnplayer " + spawnXZ);
+        // Godot.GD.Print("spawnplayer " + spawnXZ);
         _spawn    = true;
         _spawnPos = spawnXZ;
 
@@ -706,23 +727,23 @@ public partial class PController : Godot.CharacterBody3D {
         var destination = new Godot.Vector3(spawnPoint.X, low,  spawnPoint.Z);
         var resultCD    = XB.Utils.Raycast(RequestSpaceState(), origin, destination,
                                            XB.LayerMasks.EnvironmentMask            );
-        Godot.GD.Print("try spawn at: " + spawnPoint + ", o: " + origin + ", d: " + destination
-                       + ", PlPos: " + GlobalPosition);
+        // Godot.GD.Print("try spawn at: " + spawnPoint + ", o: " + origin + ", d: " + destination
+        //                + ", PlPos: " + GlobalPosition);
         if (resultCD.Count > 0) {
             spawnPoint      = (Godot.Vector3)resultCD["position"];
             spawnPoint.Y   += _respawnOff;
             _spawn          = false;
             _spawnAttempts  = 0;
             PlacePlayer(spawnPoint);
-            Godot.GD.Print("spawn hit " + spawnPoint);
+            // Godot.GD.Print("spawn hit " + spawnPoint);
         } else if (_spawnAttempts >= _spawnAttemptsMax) {
             _spawn         = false;
             _spawnAttempts = 0;
             PlacePlayer(spawnPoint);
-            Godot.GD.Print("spawn out of attempts at " + spawnPoint);
+            // Godot.GD.Print("spawn out of attempts at " + spawnPoint);
         } else {
             _spawnAttempts += 1;
-            Godot.GD.Print("spawn no hit");
+            // Godot.GD.Print("spawn no hit");
         }
 
 #if XBDEBUG

@@ -13,14 +13,14 @@ public partial class HUD : Godot.Control {
 
     private Godot.Label       _lbFps;
     private Godot.TextureRect _trCrosshairs;
-    private Godot.TextureRect _trLinking;
-    private Godot.TextureRect _trSpheres;
-    private Godot.TextureRect _trSpheresBG;
-    private Godot.TextureRect _trMiniMap;
-    private Godot.TextureRect _trMiniMapQT;
-    private Godot.TextureRect _trMiniMapO;
-    private Godot.TextureRect _trMiniMapG;
-    private Godot.TextureRect _trMiniMapBG;
+    private Godot.TextureRect _trLinking;   // overlay when in linking mode
+    private Godot.TextureRect _trSpheres;   // shows status of all available spheres
+    private Godot.TextureRect _trSpheresBG; // background for _trSpheres
+    private Godot.TextureRect _trMiniMap;   // shows heightmap of terrain
+    private Godot.TextureRect _trMiniMapQT; // shows quadtree visualization of terrain
+    private Godot.TextureRect _trMiniMapO;  // shows player and spheres on map
+    private Godot.TextureRect _trMiniMapG;  // black to white gradient below minimap
+    private Godot.TextureRect _trMiniMapBG; // background for minimap information
     private Godot.TextureRect _trGuideBG;
     private Godot.Label       _lbHeightL;
     private Godot.Label       _lbHeightH;
@@ -61,12 +61,9 @@ public partial class HUD : Godot.Control {
 
     private Godot.Image        _imgLinking;
     private Godot.ImageTexture _texLinking;
-    private const int          _dimLinkBorderX = 128;
-    private const int          _dimLinkBorderY = 96;
-    private const int          _dimLinkThick   = 16;
-    private const int          _dimLinkShadow  = 4; // part of thickness, does not add to total
-    private const float        _dimLinkCorX    = 0.18f;
-    private const float        _dimLinkCorY    = 0.12f;
+
+    private Godot.ShaderMaterial _matLinking;
+    private const float          _linkingRingRadius = 0.6f;
 
     private Godot.Image        _imgSpheres;
     private Godot.ImageTexture _texSpheres;
@@ -97,14 +94,14 @@ public partial class HUD : Godot.Control {
     private const int          _dimMMSp = 6;
     private const float        _playerTriWidth  = 6.0f;
     private const float        _playerTriHeight = 10.0f;
-    private const float        _sphereCirRadius = 3.0f;
+    private const float        _sphereCirRadius = 2.0f;
     private const string       _heightFormat    = "F2";
     private const int          _gradLbFontSize  = 16;
     private const int          _gradLbOutlSize  = 2;
-    private Godot.Vector2[]    _spherePositions; // to pass to the shader
-    private Godot.Color[]      _sphereColors;
 
     private Godot.ShaderMaterial _matMiniMapO;
+    private Godot.Vector2[]      _spherePositions;
+    private Godot.Color[]        _sphereColors;
 
     //TODO[ALEX]: on screen guide
     private Godot.Image        _imgGuideBG;
@@ -122,13 +119,24 @@ public partial class HUD : Godot.Control {
 
         _trCrosshairs = new Godot.TextureRect();
         _trLinking    = new Godot.TextureRect();
+        _texLinking   = new Godot.ImageTexture();
         _trSpheres    = new Godot.TextureRect();
+        _texSpheres   = new Godot.ImageTexture();
         _trSpheresBG  = new Godot.TextureRect();
+        _texSpheresBG = new Godot.ImageTexture();
         _trMiniMap    = new Godot.TextureRect();
+        TexMiniMap    = new Godot.ImageTexture();
         _trMiniMapQT  = new Godot.TextureRect();
+        _texMiniMapQT = new Godot.ImageTexture();
         _trMiniMapO   = new Godot.TextureRect();
+        _texMiniMapO  = new Godot.ImageTexture();
         _trMiniMapG   = new Godot.TextureRect();
+        _texMiniMapG  = new Godot.ImageTexture();
         _trMiniMapBG  = new Godot.TextureRect();
+        _texMiniMapBG = new Godot.ImageTexture();
+        _lbHeightL    = new Godot.Label();
+        _lbHeightH    = new Godot.Label();
+        _lbFps        = new Godot.Label();
         // order matters (back to front)
         AddChild(_trLinking);
         AddChild(_trSpheresBG);
@@ -139,17 +147,6 @@ public partial class HUD : Godot.Control {
         AddChild(_trMiniMapO);
         AddChild(_trMiniMapG);
         AddChild(_trCrosshairs);
-        _texLinking   = new Godot.ImageTexture();
-        _texSpheres   = new Godot.ImageTexture();
-        _texSpheresBG = new Godot.ImageTexture();
-        TexMiniMap    = new Godot.ImageTexture();
-        _texMiniMapQT = new Godot.ImageTexture();
-        _texMiniMapO  = new Godot.ImageTexture();
-        _texMiniMapG  = new Godot.ImageTexture();
-        _texMiniMapBG = new Godot.ImageTexture();
-        _lbHeightL    = new Godot.Label();
-        _lbHeightH    = new Godot.Label();
-        _lbFps        = new Godot.Label();
         AddChild(_lbHeightL);
         AddChild(_lbHeightH);
         AddChild(_lbFps);
@@ -157,28 +154,30 @@ public partial class HUD : Godot.Control {
         for (int i = 0; i < _rects.Length; i++) { _rects[i] = new Godot.Rect2I(0, 0, 0, 0); }
 
         var texCrosshairs = Godot.ResourceLoader.Load<Godot.Texture2D>(XB.ResourcePaths.CrosshairsTex);
-        _trCrosshairs.Texture     = texCrosshairs;
-        var crosshairsSize = new Godot.Vector2I(_dimCrosshairs, _dimCrosshairs);
-        _trCrosshairs.Position    = new Godot.Vector2I(XB.AData.BaseResX/2 - crosshairsSize.X/2,
-                                                       XB.AData.BaseResY/2 - crosshairsSize.Y/2);
+        _trCrosshairs.Texture  = texCrosshairs;
+        var crosshairsSize     = new Godot.Vector2I(_dimCrosshairs, _dimCrosshairs);
+        _trCrosshairs.Position = new Godot.Vector2I(XB.AData.BaseResX/2 - crosshairsSize.X/2,
+                                                    XB.AData.BaseResY/2 - crosshairsSize.Y/2 );
         _trCrosshairs.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
         _trCrosshairs.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
         _trCrosshairs.Size        = crosshairsSize;
 
-        int sizeLinkingX = XB.AData.BaseResX-2*_dimLinkBorderX;
-        int sizeLinkingY = XB.AData.BaseResY-2*_dimLinkBorderY;
-        _imgLinking = Godot.Image.Create(sizeLinkingX, sizeLinkingY,
-                                         false, Godot.Image.Format.Rgba8);
+        _imgLinking = Godot.Image.Create(XB.AData.BaseResX, XB.AData.BaseResY,
+                                         false, Godot.Image.Format.Rgba8      );
         _texLinking.SetImage(_imgLinking);
-        _trLinking.Position    = new Godot.Vector2I(_dimLinkBorderX, _dimLinkBorderY);
+        _trLinking.Position    = new Godot.Vector2I(0, 0);
         _trLinking.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
         _trLinking.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
-        _trLinking.Size        = new Godot.Vector2I(sizeLinkingX, sizeLinkingY);
+        _trLinking.Size        = new Godot.Vector2I(XB.AData.BaseResX, XB.AData.BaseResY);
         _trLinking.Texture     = _texLinking;
-        CreateLinkingTexture(_dimLinkThick, _dimLinkShadow,
-                             (int)((float)sizeLinkingX*_dimLinkCorX),
-                             (int)((float)sizeLinkingY*_dimLinkCorY), 
-                             ref _imgLinking, ref _texLinking, ref _vect);
+        _matLinking            = new Godot.ShaderMaterial();
+        _matLinking.Shader     = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.LinkingShader);
+        _matLinking.SetShaderParameter("colBright",   XB.Col.LinkBri);
+        _matLinking.SetShaderParameter("colDim",      XB.Col.LinkDim);
+        _matLinking.SetShaderParameter("squareRatio", (float)XB.AData.BaseResX/(float)XB.AData.BaseResY);
+        _matLinking.SetShaderParameter("ringRad",     _linkingRingRadius);
+        _matLinking.SetShaderParameter("alphaMult",   1.0f);
+        _trLinking.Material    = _matLinking;
 
         float columns = (float)XB.ManagerSphere.MaxSphereAmount/((float)_texMaxY/(float)_dimSp);
              _columns = (int)columns;
@@ -192,10 +191,10 @@ public partial class HUD : Godot.Control {
         _imgSpheres.Fill(XB.Col.Transp);
         _imgSpheresBG = Godot.Image.Create(_dimSpX, _dimSpY, false, Godot.Image.Format.Rgba8);
         _imgSpheresBG.Fill(XB.Col.BG);
-        var spheresPosition = new Godot.Vector2I(XB.AData.BaseResX - 2*_offsetH - _dimSpX,
-                                                 _offsetT - _offsetH                      );
-        _trSpheres.Position      = spheresPosition;
-        _trSpheresBG.Position    = spheresPosition - new Godot.Vector2I(_offsetH, _offsetH);
+        var spPosition = new Godot.Vector2I(XB.AData.BaseResX - 2*_offsetH - _dimSpX,
+                                            _offsetT - _offsetH                      );
+        _trSpheres.Position      = spPosition;
+        _trSpheresBG.Position    = spPosition - new Godot.Vector2I(_offsetH, _offsetH);
         _trSpheres.ExpandMode    = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
         _trSpheresBG.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
         _trSpheres.StretchMode   = Godot.TextureRect.StretchModeEnum.Scale;
@@ -250,13 +249,14 @@ public partial class HUD : Godot.Control {
         _texMiniMapG.SetImage (_imgMiniMapG);
         _texMiniMapBG.SetImage(_imgMiniMapBG);
         CreateGradientTexture(ref _imgMiniMapG, ref _texMiniMapG, ref _vect, ref _rects);
-        _matMiniMapO = new Godot.ShaderMaterial();
+        _matMiniMapO        = new Godot.ShaderMaterial();
         _matMiniMapO.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.MiniMapOShader);
-        _matMiniMapO.SetShaderParameter("plColor", XB.Col.MPlayer);
+        _matMiniMapO.SetShaderParameter("plColor",     XB.Col.MPlayer);
         _matMiniMapO.SetShaderParameter("squareRatio", (float)_dimMMY/(float)_dimMMX);
-        _matMiniMapO.SetShaderParameter("halfWidth",  (_playerTriWidth/_dimMMX)/2.0f);
-        _matMiniMapO.SetShaderParameter("halfHeight", (_playerTriHeight/_dimMMY)/2.0f);
-        _matMiniMapO.SetShaderParameter("spRadius", (_sphereCirRadius/_dimMMY));
+        _matMiniMapO.SetShaderParameter("halfWidth",   (_playerTriWidth/_dimMMX)/2.0f);
+        _matMiniMapO.SetShaderParameter("halfHeight",  (_playerTriHeight/_dimMMY)/2.0f);
+        _matMiniMapO.SetShaderParameter("spRadius",    (_sphereCirRadius/_dimMMY));
+        _matMiniMapO.SetShaderParameter("alphaMult",   _miniMapAlpha);
         _spherePositions = new Godot.Vector2[XB.ManagerSphere.MaxSphereAmount];
         _sphereColors    = new Godot.Color[XB.ManagerSphere.MaxSphereAmount];
         _trMiniMapO.Material = _matMiniMapO;
@@ -271,8 +271,8 @@ public partial class HUD : Godot.Control {
         _lbHeightH.HorizontalAlignment = Godot.HorizontalAlignment.Right;
         _lbHeightL.VerticalAlignment   = Godot.VerticalAlignment.Top;
         _lbHeightL.VerticalAlignment   = Godot.VerticalAlignment.Top;
-        _lbHeightL.Text = "low";
-        _lbHeightH.Text = "high";
+        _lbHeightL.Text = Tr("MMLEGEND_LOW");
+        _lbHeightH.Text = Tr("MMLEGEND_HIGH");
         _lbHeightL.AddThemeFontOverride    ("font",               font           );
         _lbHeightH.AddThemeFontOverride    ("font",               font           );
         _lbHeightL.AddThemeFontSizeOverride("font_size",          _gradLbFontSize);
@@ -299,8 +299,6 @@ public partial class HUD : Godot.Control {
         _colSpheres.A          = _spheresAlpha;
         _trSpheres.Modulate    = _colSpheres;
         _trSpheresBG.Modulate  = _colSpheres;
-        _colLinking.A          = _linkingAlpha;
-        _trLinking.Modulate    = _colLinking;
         _colMiniMap.A          = _miniMapAlpha;
         _trMiniMap.Modulate    = _colMiniMap;
         _trMiniMapO.Modulate   = _colMiniMap;
@@ -329,39 +327,6 @@ public partial class HUD : Godot.Control {
 #endif 
     }
 
-    //NOTE[ALEX]: colors are hardcoded because the texture is very specific
-    private void CreateLinkingTexture(int thickness, int shadow, int cornerWidth, int cornerHeight,
-                                      ref Godot.Image image, ref Godot.ImageTexture tex,
-                                      ref Godot.Vector2I vect                                      ) {
-#if XBDEBUG
-        var debug = new XB.DebugTimedBlock(XB.D.HUDCreateLinkingTexture);
-#endif
-
-        image.Fill(XB.Col.Transp);
-
-        int radius = 100;
-        int thick = 20;
-        int width  = image.GetWidth();
-        int height = image.GetHeight();
-
-        for (int i = width/2-radius; i < width/2+radius; i++) {
-            for (int j = height/2-radius; j < height/2+radius; j++) {
-                float d = XB.Utils.CircleSDF(i, j, width/2, height/2, radius);
-                if (d < 0 && d > -thick) {
-                    image.SetPixel(i, j, XB.Col.LinkBri);
-                } else {
-                    image.SetPixel(i, j, XB.Col.Transp);
-                }
-            }
-        }
-
-        tex.Update(image);
-
-#if XBDEBUG
-        debug.End();
-#endif 
-    }
-
     private void CreateSphereTexture(int dimSpY, int dimSp, int columns, int dimBord, int dimThick,
                                      ref Godot.Image image, ref Godot.ImageTexture tex, 
                                      ref Godot.Vector2I vect, ref Godot.Rect2I[] rects, ref int rSize) {
@@ -379,12 +344,12 @@ public partial class HUD : Godot.Control {
 
             XB.Utils.BeveledRectangle(xStart, yStart, dimSp-2*dimThick, 
                                       ref rects, ref rSize, ref vect   );
-            for (int j = 0; j < rSize; j++ ) { image.FillRect(rects[j], XB.Col.Outline); }
+            XB.Utils.FillRectanglesInImage(ref image, ref rects, ref rSize, ref XB.Col.Outline);
 
             XB.Utils.BeveledRectangle(xStart+dimBord, yStart+dimBord,
                                       dimSp-2*dimBord-2*dimThick, 
                                       ref rects, ref rSize, ref vect );
-            for (int j = 0; j < rSize; j++ ) { image.FillRect(rects[j], XB.Col.InAct); }
+            XB.Utils.FillRectanglesInImage(ref image, ref rects, ref rSize, ref XB.Col.InAct);
 
             AddDigitTexture(i, xStart+2*dimBord, yStart+2*dimBord, dimThick, ref XB.Col.White);
             if (counter == 0) {
@@ -430,12 +395,12 @@ public partial class HUD : Godot.Control {
         if (digit > 9) { // decimal digit
             XB.Utils.DigitRectangles(digit/10, xStart, yStart, xSize, ySize, thickness,
                                      ref _rects, ref _rSize, ref _vect                 );
-            for (int i = 0; i < _rSize; i++ ) { _imgSpheres.FillRect(_rects[i], digitColor); }
+            XB.Utils.FillRectanglesInImage(ref _imgSpheres, ref _rects, ref _rSize, ref digitColor);
             xStart += xSize;
         }
         XB.Utils.DigitRectangles(digit%10, xStart, yStart, xSize, ySize, thickness,
                                  ref _rects, ref _rSize, ref _vect                 );
-        for (int i = 0; i < _rSize; i++ ) { _imgSpheres.FillRect(_rects[i], digitColor); }
+        XB.Utils.FillRectanglesInImage(ref _imgSpheres, ref _rects, ref _rSize, ref digitColor);
 
 #if XBDEBUG
         debug.End();
@@ -462,7 +427,7 @@ public partial class HUD : Godot.Control {
         XB.Utils.BeveledRectangle(xStart+_dimBord, yStart+_dimBord,
                                   _dimSp-2*_dimBord-2*_dimThick, 
                                   ref _rects, ref _rSize, ref _vect);
-        for (int i = 0; i < _rSize; i++ ) { _imgSpheres.FillRect(_rects[i], pColor); }
+        XB.Utils.FillRectanglesInImage(ref _imgSpheres, ref _rects, ref _rSize, ref pColor);
 
         AddDigitTexture(id, xStart+2*_dimBord, yStart+2*_dimBord, _dimThick, ref dColor);
         _texSpheres.Update(_imgSpheres);
@@ -484,7 +449,7 @@ public partial class HUD : Godot.Control {
 
             XB.Utils.RectangleOutline(xStart, yStart, _dimSp, _dimThick, 
                                       ref _rects, ref _rSize, ref _vect );
-            for (int i = 0; i < _rSize; i++ ) { _imgSpheres.FillRect(_rects[i], XB.Col.Transp); }
+            XB.Utils.FillRectanglesInImage(ref _imgSpheres, ref _rects, ref _rSize, ref XB.Col.Transp);
         }
         if (to < XB.ManagerSphere.MaxSphereAmount) {
             int xStart = (to%_columns)*_dimSp;
@@ -493,7 +458,7 @@ public partial class HUD : Godot.Control {
             
             XB.Utils.RectangleOutline(xStart, yStart, _dimSp, _dimThick, 
                                       ref _rects, ref _rSize, ref _vect );
-            for (int i = 0; i < _rSize; i++ ) { _imgSpheres.FillRect(_rects[i], XB.Col.Hl); }
+            XB.Utils.FillRectanglesInImage(ref _imgSpheres, ref _rects, ref _rSize, ref XB.Col.Hl);
         }
         _texSpheres.Update(_imgSpheres);
 
@@ -506,8 +471,6 @@ public partial class HUD : Godot.Control {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.HUDUpdateMiniMapOverlayTexture);
 #endif
-
-        _imgMiniMapO.Fill(XB.Col.Transp);
 
         //NOTE[ALEX]: world corner is at 0|0, calculate % offset from corner
         //            texture starts at top right corner with 0|0,
@@ -546,8 +509,6 @@ public partial class HUD : Godot.Control {
 
         _matMiniMapO.SetShaderParameter("spPos", _spherePositions);
         _matMiniMapO.SetShaderParameter("spCol", _sphereColors);
-
-        _texMiniMapO.Update(_imgMiniMapO);
 
 #if XBDEBUG
         debug.End();
@@ -592,11 +553,11 @@ public partial class HUD : Godot.Control {
         _colSpheres.A          = XB.Utils.LerpF(_colSpheres.A, _spheresAlpha, _hudSm*dt);
         _trSpheres.Modulate    = _colSpheres;
         _trSpheresBG.Modulate  = _colSpheres;
-        _colLinking.A          = XB.Utils.LerpF(_colLinking.A, _linkingAlpha, _hudSm*dt);
-        _trLinking.Modulate    = _colLinking;
+        _matLinking.SetShaderParameter("alphaMult", _linkingAlpha);
         _colMiniMap.A          = XB.Utils.LerpF(_colMiniMap.A, _miniMapAlpha, _hudSm*dt);
         _trMiniMap.Modulate    = _colMiniMap;
         _trMiniMapO.Modulate   = _colMiniMap;
+        _matMiniMapO.SetShaderParameter("alphaMult", _miniMapAlpha);
         _trMiniMapG.Modulate   = _colMiniMap;
         _trMiniMapBG.Modulate  = _colMiniMap;
         _colMMLegend.A         = XB.Utils.LerpF(_colMMLegend.A,    _miniMapAlpha, _hudSm*dt);

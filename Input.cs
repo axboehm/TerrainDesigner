@@ -102,11 +102,11 @@ public partial class Input : Godot.Node {
 
 #if XBDEBUG
     // debug inputs
-    public bool Debug1     = false;
-    public bool Debug2     = false;
-    public bool Debug3     = false;
-    public bool Debug4     = false;
-    public bool Debug5     = false;
+    public bool Debug1 = false;
+    public bool Debug2 = false;
+    public bool Debug3 = false;
+    public bool Debug4 = false;
+    public bool Debug5 = false;
 #endif
 
 
@@ -225,7 +225,7 @@ public partial class Input : Godot.Node {
                         iEvent.Keycode = Godot.Key.D;
                     } break;
                     case "LIn": {
-                        iEvent.Keycode = Godot.Key.Shift; //TODO[ALEX]: change
+                        iEvent.Keycode = Godot.Key.Shift;
                     } break;
                     case "RUp": {
                         iEvent.Keycode = Godot.Key.Up;

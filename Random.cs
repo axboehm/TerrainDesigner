@@ -11,7 +11,6 @@ public class Random {
     public  static Godot.Image BlueNoise;            // square noise texture
     private static int         _blueNoiseSize = 64;  // pixels on one side (height = width), mult of 4
 
-    //TODO[ALEX]: make this always return the same texture with the same seed, even after startup
     public static void InitializeRandom(uint seed) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.RandomInitializeRandom);
@@ -55,14 +54,6 @@ public class Random {
         return new uint[4] {_w & 0xFF, (_w >> 8) & 0xFF, (_w >> 16) & 0xFF, (_w >> 24) & 0xFF};
     }
 
-    // input from 0 to 100
-    public static bool RandomChance(uint chance) {
-        uint rand = (RandomUInt()%100) + 1; // from 1 to 100
-        //Godot.GD.Print(chance + " " + rand + " " + (chance >= rand));
-        if (chance >= rand) return true;
-        return false;
-    }
-
     //NOTE[ALEX]: not thread-safe
     public static uint RandomUInt() {
         if (_rVPosition > 3) {
@@ -99,8 +90,8 @@ public class Random {
         float r1   = (float)RandomUInt();
         float r2   = (float)RandomUInt();
         float rand = 0;
-        if (r1 < r2) rand = r1/r2;
-        else         rand = r2/r1;
+        if (r1 < r2) { rand = r1/r2; }
+        else         { rand = r2/r1; }
         rand = XB.Utils.ClampF(rand, 0.0f, 1.0f);
 
         float result  = 0;
@@ -110,14 +101,6 @@ public class Random {
               result  = XB.Utils.ClampF(result, a, b);
 
         return result;
-    }
-
-    public static Godot.Vector3 RandomInRangeV3(float a, float b) {
-        Godot.Vector3 res   = new Godot.Vector3(0.0f, 0.0f, 0.0f);
-                      res.X = RandomInRangeF(a, b);
-                      res.Y = RandomInRangeF(a, b);
-                      res.Z = RandomInRangeF(a, b);
-        return res;
     }
 
     // returns a random integer between a and b, a and b included

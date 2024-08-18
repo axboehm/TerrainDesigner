@@ -76,6 +76,7 @@ public class QNode {
 #endif
 
         if (!Visible) { return; }
+
         MeshContainer.ReleaseMesh();
         MeshContainer = null;
         Visible       = false;
@@ -186,7 +187,7 @@ public class MeshContainer {
         MeshDataSkirt[(int)XB.Sk.XM].Resize((int)Godot.Mesh.ArrayType.Max);
         MeshDataSkirt[(int)XB.Sk.XP] = new Godot.Collections.Array();
         MeshDataSkirt[(int)XB.Sk.XP].Resize((int)Godot.Mesh.ArrayType.Max);
-        ArrMesh       = new Godot.ArrayMesh();
+        ArrMesh = new Godot.ArrayMesh();
 
         XAmount = 0;
         ZAmount = 0;
@@ -267,7 +268,7 @@ public class MeshContainer {
         UVsSkirt[(int)XB.Sk.XP] = new Godot.Vector2[2*XAmount];
         UVsSkirt[(int)XB.Sk.ZM] = new Godot.Vector2[2*ZAmount];
         UVsSkirt[(int)XB.Sk.ZP] = new Godot.Vector2[2*ZAmount];
-        NormalsSkirt                 = new Godot.Vector3[4][];
+        NormalsSkirt                = new Godot.Vector3[4][];
         NormalsSkirt[(int)XB.Sk.XM] = new Godot.Vector3[2*XAmount];
         NormalsSkirt[(int)XB.Sk.XP] = new Godot.Vector3[2*XAmount];
         NormalsSkirt[(int)XB.Sk.ZM] = new Godot.Vector3[2*ZAmount];
@@ -366,7 +367,7 @@ public class MeshContainer {
 
         XB.Terrain.CalculateNormals(ref NormalsTile, ref VerticesTile, ref TrianglesTile);
 
-        // skirt vertices and normals (copied from edges of tile
+        // skirt vertices and normals (copied from edges of tile)
         //NOTE[ALEX]: if the vertices for opposing sides are added in the same order 
         //            e.g. for Z- and Z+ from X- to X+, then the triangle indices need to be inverted
         //            to use the same triangle indices for all four sides, the vertices and normals
@@ -591,7 +592,7 @@ public class CollisionTile {
         MeshInstVis  = new Godot.MeshInstance3D();
         root.AddChild(MeshInstVis);
         MeshInstVis.GlobalPosition = new Godot.Vector3(xPos, 0.0f, zPos);
-        MaterialVis = new Godot.ShaderMaterial();
+        MaterialVis        = new Godot.ShaderMaterial();
         MaterialVis.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.TerrainShader);
         float r = XB.Random.RandomInRangeF(0.0f, 1.0f);
         float g = XB.Random.RandomInRangeF(0.0f, 1.0f);
@@ -614,6 +615,7 @@ public class CollisionTile {
         var debug = new XB.DebugTimedBlock(XB.D.CollisionTileInitializeCollisionMesh);
 #endif
 
+        //TODO[ALEX]: some mess with collisionres and sizemult
         Vertices  = new Godot.Vector3[XAmount*ZAmount];
         Triangles = new int[(XAmount-1)*(ZAmount-1)*6];
 
@@ -731,9 +733,9 @@ public class ManagerTerrain {
         }
         _divisions = XB.Utils.MinI(_divisions, divMax);
 
-        Godot.GD.Print("InitializeQuadTree with Size: " + _worldXSize + " x " + _worldZSize
-                       + ", Mesh Resolution: " + _resolutionM + ", Divisions: " + _divisions
-                       + ", Coll Resolution: " + _resolutionC + ", CTile Size: " + _sizeCTile);
+        // Godot.GD.Print("InitializeQuadTree with Size: " + _worldXSize + " x " + _worldZSize
+        //                + ", Mesh Resolution: " + _resolutionM + ", Divisions: " + _divisions
+        //                + ", Coll Resolution: " + _resolutionC + ", CTile Size: " + _sizeCTile);
         
         // the lowest division level (highest detail) should have the specified resolution
         for (int i = 0; i < _divisions; i++) { resM = resM/2.0f; }
@@ -999,7 +1001,8 @@ public class ManagerTerrain {
 
         for (int i = 0; i < _terrainMeshes.Count; i++) {
             if (_terrainMeshes[i].InUse) {
-                _terrainMeshes[i].SetShaderAttribute("blockStr", multiplier*XB.WorldData.BlockStrength);
+                _terrainMeshes[i].SetShaderAttribute("blockStr",
+                                                     multiplier*XB.WorldData.BlockStrength);
             }
         }
 
@@ -1015,7 +1018,8 @@ public class ManagerTerrain {
 
         for (int i = 0; i < _terrainMeshes.Count; i++) {
             if (_terrainMeshes[i].InUse) {
-                _terrainMeshes[i].SetShaderAttribute("albVisStr", multiplier*XB.WorldData.QTreeStrength);
+                _terrainMeshes[i].SetShaderAttribute("albVisStr",
+                                                     multiplier*XB.WorldData.QTreeStrength);
             }
         }
 

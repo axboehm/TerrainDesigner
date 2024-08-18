@@ -1,7 +1,7 @@
 #define XBDEBUG
 namespace XB { // namespace open
 public class Utils {
-    public static int MaxRectSize = 5;
+    public static int MaxRectSize = 5; // maximum amount of Rect2I used in functions in Utils
 
     public static float ClampF(float a, float b, float c) {
         if (a < b) return b;
@@ -180,6 +180,19 @@ public class Utils {
         vect.X = sizeX;
         vect.Y = sizeY;
         rect.Size = vect;
+
+#if XBDEBUG
+        debug.End();
+#endif 
+    }
+
+    public static void FillRectanglesInImage(ref Godot.Image image, ref Godot.Rect2I[] rects,
+                                             ref int rSize, ref Godot.Color color            ) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.UtilsFillRectanglesInImage);
+#endif
+
+        for (int i = 0; i < rSize; i++ ) { image.FillRect(rects[i], color); }
 
 #if XBDEBUG
         debug.End();
@@ -365,26 +378,6 @@ public class Utils {
 #if XBDEBUG
         debug.End();
 #endif 
-    }
-
-    public static float CircleSDF(float xIn, float yIn, float xCtr, float yCtr, float radius) {
-#if XBDEBUG
-        var debug = new XB.DebugTimedBlock(XB.D.UtilsCircleSDF);
-#endif
-
-        float xD = xIn-xCtr;
-              xD = XB.Utils.AbsF(xD);
-        float yD = yIn-yCtr;
-              yD = XB.Utils.AbsF(yD);
-        float length = xD*xD + yD*yD;
-              length = System.MathF.Sqrt(length);
-        float dist = length-radius;
-
-#if XBDEBUG
-        debug.End();
-#endif 
-
-        return dist;
     }
 }
 } // namespace close

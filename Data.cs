@@ -70,6 +70,12 @@ public struct Col {
 
 public struct ResourcePaths {
     public static string Player           = "res://assets/player/playerController.tscn";
+    public static string FootStep01       = "res://assets/audio/footStep01.tscn";
+    public static string FootStep02       = "res://assets/audio/footStep02.tscn";
+    public static string FootStep03       = "res://assets/audio/footStep03.tscn";
+    public static string FootStep04       = "res://assets/audio/footStep04.tscn";
+    public static string FootStep05       = "res://assets/audio/footStep05.tscn";
+    public static string FootStep06       = "res://assets/audio/footStep06.tscn";
     public static string ButtonAudio      = "res://assets/audio/soundButtonPress.tscn";
     public static string Sphere           = "res://assets/sphere/sphere.tscn";
     public static string CrosshairsTex    = "res://assets/ui/crosshairsDot.png";
@@ -101,6 +107,7 @@ public struct ResourcePaths {
     public static string ConeDamShader    = "res://code/shaders/spConeDam.gdshader";
     public static string ConeDamUShader   = "res://code/shaders/spConeDamU.gdshader";
     public static string MiniMapOShader   = "res://code/shaders/miniMapO.gdshader";
+    public static string LinkingShader    = "res://code/shaders/linkingOverlay.gdshader";
 }
 
 public struct Resources {
@@ -163,13 +170,13 @@ public struct Resources {
 
 public class WorldData {
     public static Godot.Image    ImgMiniMap;
-    public static float          LowestPoint  = -1.0f;  // lowest y coordinate in world
-    public static float          HighestPoint = +1.0f;  // highest y coordinate in world
-    public static float          LowHighExtra = 1.0f;   // buffer amount for high/low updating
+    public static float          LowestPoint  = -1.0f;    // lowest y coordinate in world
+    public static float          HighestPoint = +1.0f;    // highest y coordinate in world
+    public static float          LowHighExtra = 1.0f;     // buffer amount for high/low updating
     public static float          KillPlane    = -4096.0f; // fallback for the player falling off
     public static float          SphereEdgeLength    = 64.0f;
     public static int            DamSegmentDivisions = 16;
-    public static Godot.Vector2  WorldDim;              // world dimensions in meters
+    public static Godot.Vector2  WorldDim;                   // world dimensions in meters
     public static Godot.Vector2I WorldVerts;
     public static float          WorldRes            = 0;    // subdivisions per meter
     public static float          CollisionRes        = 1.0f;
@@ -250,7 +257,7 @@ public class WorldData {
                        GenOctDef, GenPersDef, GenLacDef, GenExpDef        );
         XB.Terrain.HeightReplace(ref TerrainHeights, ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y);
 
-        Godot.GD.Print("Generate Terrain: LP: " + LowestPoint + ", HP: " + HighestPoint);
+        // Godot.GD.Print("Generate Terrain: LP: " + LowestPoint + ", HP: " + HighestPoint);
 
 #if XBDEBUG
         debug.End();
@@ -346,7 +353,6 @@ public class AData {
     public static ulong      SetCodeL       = 0;
     public static int        SetCodeLengthR = 47;
     public static int        SetCodeLengthL = 35;
-    public static bool       Controller     = false;
     public static int        Fps            = 60;
     public static int[]      FpsOptions     = new int[] {30, 60, 120, 0};
     public static bool       ShowFps        = false;
@@ -525,7 +531,6 @@ public class PersistData {
     }
 
     public static void SetApplicationDefaults() {
-        XB.AData.Controller = false;
         XB.AData.FullScreen = false;
         XB.AData.Resolution = XB.AData.BaseResolution;
         XB.AData.Fps        = 60;

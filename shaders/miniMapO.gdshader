@@ -1,7 +1,5 @@
 shader_type canvas_item;
 
-uniform vec4 transparent = vec4(0.0, 0.0, 0.0, 0.0);
-
 uniform vec4 plColor : source_color;
 
 uniform float plPosX     = 0.5; // as relative of heightmap texture (ends up halfway up the triangle)
@@ -18,8 +16,10 @@ varying vec2 tri2; // bottom right of triangle
 uniform vec2[64] spPos; //NOTE[ALEX]: has to be changed manually, undefined length is not supported
 uniform vec4[64] spCol;
 
-uniform float spRadius = 0.1;
+uniform float spRadius    = 0.1;
 uniform float squareRatio = 1.0;
+
+uniform float alphaMult = 1.0;
 
 // sdf functions based on: https://iquilezles.org/articles/distfunctions2d/
 float sdfTriangle(vec2 p, vec2 t0, vec2 t1, vec2 t2) {
@@ -39,7 +39,6 @@ float sdfTriangle(vec2 p, vec2 t0, vec2 t1, vec2 t2) {
     return (-sqrt(d.x) * sign(d.y));
 }
 
-// current implementation does not deal with stretching of circles
 float sdfCircle(vec2 p, vec2 c0, float r) {
     float dist = length(c0-p);
     return (dist - r);
@@ -57,7 +56,7 @@ void vertex() {
 }
 
 void fragment() {
-    vec4 color = transparent;
+    vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
 
     float distPl = sdfTriangle(UV, tri0, tri1, tri2);
     float maskPl = step(distPl, 0.0);
@@ -82,6 +81,7 @@ void fragment() {
     }
 
     color = mix(color, plColor, maskPl);
+    color.a *= alphaMult;
 
     COLOR = color;
 }

@@ -36,14 +36,14 @@ public class DamSegment {
         MeshInst = new Godot.MeshInstance3D();
         root.AddChild(MeshInst);
 
-        MaterialDam = new Godot.ShaderMaterial();
+        MaterialDam        = new Godot.ShaderMaterial();
         MaterialDam.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.ConeDamShader);
         MaterialDam.SetShaderParameter("cTopInner", XB.Col.DamTI);
         MaterialDam.SetShaderParameter("cTopOuter", XB.Col.DamTO);
         MaterialDam.SetShaderParameter("cBotUpper", XB.Col.DamBU);
         MaterialDam.SetShaderParameter("cBotLower", XB.Col.DamBL);
         MaterialDam.RenderPriority = -1; // draw main material behind
-        MaterialDamU = new Godot.ShaderMaterial();
+        MaterialDamU        = new Godot.ShaderMaterial();
         MaterialDamU.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.ConeDamUShader);
         MaterialDamU.SetShaderParameter("cTopInner", XB.Col.DamTI);
         MaterialDamU.SetShaderParameter("cTopOuter", XB.Col.DamTO);
@@ -171,10 +171,10 @@ public class DamSegment {
         var nrmU  = dirCU.Rotated(ort, 90.0f*XB.Constants.Deg2Rad); // normal for upper area
         var posSp2L = (posSp2 - rSp2*ort);
         var posSp1L = (posSp1 - rSp1*ort);
-        var dirLU = posSp2L - posSp1L; // direction at left upper edge
+        var dirLU   = posSp2L - posSp1L; // direction at left upper edge
         var posSp2R = (posSp2 + rSp2*ort);
         var posSp1R = (posSp1 + rSp1*ort);
-        var dirRU = posSp2R - posSp1R; // direction at right upper edge
+        var dirRU   = posSp2R - posSp1R; // direction at right upper edge
         float stepC = dirCU.Length() / (float)(SegmentDivisions-1);
         float stepL = dirLU.Length() / (float)(SegmentDivisions-1);
         float stepR = dirRU.Length() / (float)(SegmentDivisions-1);
@@ -315,6 +315,7 @@ public class ManagerSphere {
 #endif
 
         if (HLSphereID == newHLSphereID) { return; }
+
         XB.PController.Hud.UpdateSphereTextureHighlight(HLSphereID, newHLSphereID);
         HLSphereID = newHLSphereID;
 
@@ -399,6 +400,7 @@ public class ManagerSphere {
 #endif
 
         if (LinkingID == MaxSphereAmount) { return; }
+
         Spheres[LinkingID].SphereTextureRemoveLinked();
         LinkingID = MaxSphereAmount;
 
@@ -431,6 +433,7 @@ public class ManagerSphere {
         // Godot.GD.Print("UpdateDam: " + sphereID);
         for (int i = 0; i < DamSegments.Count; i++) {
             if (!DamSegments[i].InUse) { continue; }
+
             if (   DamSegments[i].LinkedIDs[0] == sphereID
                 || DamSegments[i].LinkedIDs[1] == sphereID) {
                 DamSegments[i].UpdateMesh(XB.WorldData.SphereEdgeLength,
@@ -456,11 +459,13 @@ public class ManagerSphere {
 
         for (int i = 0; i < MaxSphereAmount; i++) {
             if (!Spheres[i].Active) { continue; }
+
             XB.WorldData.ApplySphereCone(Spheres[i].GlobalPosition, Spheres[i].Radius,
                                          Spheres[i].Angle                             );
         }
         for (int i = 0; i < DamSegments.Count; i++) {
             if (!DamSegments[i].InUse) { continue; }
+
             XB.WorldData.ApplyDamSegment(Spheres[DamSegments[i].LinkedIDs[0]].GlobalPosition,
                                          Spheres[DamSegments[i].LinkedIDs[0]].Radius,
                                          Spheres[DamSegments[i].LinkedIDs[0]].Angle,
@@ -471,6 +476,7 @@ public class ManagerSphere {
         }
         for (int i = 0; i < MaxSphereAmount; i++) {
             if (!Spheres[i].Active) { continue; }
+
             Spheres[i].RemoveSphere();
         }
 
@@ -486,10 +492,12 @@ public class ManagerSphere {
 
         for (int i = 0; i < DamSegments.Count; i++) {
             if (!DamSegments[i].InUse) { continue; }
+
             DamSegments[i].ReleaseMesh();
         }
         for (int i = 0; i < MaxSphereAmount; i++) {
             if (!Spheres[i].Active) { continue; }
+
             Spheres[i].RemoveSphere();
         }
 
@@ -507,7 +515,6 @@ public class ManagerSphere {
 #if XBDEBUG
             debug.End();
 #endif 
-
             return false; 
         }
 
@@ -537,6 +544,7 @@ public class ManagerSphere {
 #if XBDEBUG
         debug.End();
 #endif 
+
             return;
             }
         }
@@ -560,6 +568,7 @@ public class ManagerSphere {
         // Godot.GD.Print("RecycleDamSegment: " + sphereID);
         for (int i = 0; i < DamSegments.Count; i++) {
             if (!DamSegments[i].InUse) { continue; }
+
             if (   DamSegments[i].LinkedIDs[0] == sphereID
                 || DamSegments[i].LinkedIDs[1] == sphereID) {
                 DamSegments[i].ReleaseMesh();;
