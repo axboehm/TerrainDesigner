@@ -791,6 +791,7 @@ public partial class Menu : Godot.Control {
     }
 
     private void ButtonPopupGenApplyOnPressed() {
+        ButtonClearSpheresOnPressed();
         if (!_updateGenTex) { GenerateTerrainHeights(); } // only if heightmap has not been generated yet
         XB.Terrain.HeightReplace(ref XB.WData.TerrainHeights, ref XB.WData.TerrainHeightsMod,
                                  XB.WData.WorldVerts.X, XB.WData.WorldVerts.Y                );

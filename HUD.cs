@@ -399,8 +399,8 @@ public partial class HUD : Godot.Control {
             XB.Utils.DigitRectangles(digit/10, xStart, yStart, xSize, ySize, thickness,
                                      ref _rects, ref _rSize, ref _vect                 );
             XB.Utils.FillRectanglesInImage(ref _imgSpheres, ref _rects, _rSize, ref digitColor);
-            xStart += xSize;
         }
+        xStart += xSize; //NOTE[ALEX]: moved out of loop so that 0-9 are right aligned as well
         XB.Utils.DigitRectangles(digit%10, xStart, yStart, xSize, ySize, thickness,
                                  ref _rects, ref _rSize, ref _vect                 );
         XB.Utils.FillRectanglesInImage(ref _imgSpheres, ref _rects, _rSize, ref digitColor);
