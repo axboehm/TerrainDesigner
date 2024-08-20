@@ -181,7 +181,7 @@ public partial class Menu : Godot.Control {
         _cbBlock.Pressed     += ButtonBlockGridOnPressed;
         _cbQTVis.Pressed     += ButtonQuadTreeVisOnPressed;
         _slFrame.MinValue     = 0.0f;
-        _slFrame.MaxValue     = XB.AData.S.FpsOptions.Length - 1;
+        _slFrame.MaxValue     = XB.AData.S.FpsOptions.Length;
         _slFrame.DragEnded   += SliderFrameRateOnDragEnded;
             // performance
         _scrPerf.ScrollVertical = 0;
@@ -210,11 +210,11 @@ public partial class Menu : Godot.Control {
         _slShdwDist.Step       = 1;
         _slShdwDist.DragEnded += SliderShadowDistanceOnDragEnded;
         _slShdwSize.MinValue   = 0.0f;
-        _slShdwSize.MaxValue   = XB.AData.S.ShadowSizes.Length - 1;
+        _slShdwSize.MaxValue   = XB.AData.S.ShadowSizes.Length;
         _slShdwSize.Step       = 1;
         _slShdwSize.DragEnded += SliderShadowSizeOnDragEnded;
         _slLOD.MinValue   = 0.0f;
-        _slLOD.MaxValue   = XB.AData.S.LOD.Length - 1;
+        _slLOD.MaxValue   = XB.AData.S.LOD.Length;
         _slLOD.Step       = 1;
         _slLOD.DragEnded += SliderLODOnDragEnded;
             // audio
@@ -698,7 +698,7 @@ public partial class Menu : Godot.Control {
     }
 
     private void OptionButtonPresetsOnItemSelected(long id) {
-        //NOTE[ALEX]: settings only get applied when the button is clicked
+        ApplySettings();
     }
 
     private void OptionButtonResOnItemSelected(long id) {
@@ -723,16 +723,17 @@ public partial class Menu : Godot.Control {
 
     private void OptionButtonSSILOnItemSelected(long id) {
         XB.AData.S.ChangeSSIL(_obSSIL);
+        XB.AData.S.SC.SSILSel = XB.AData.S.SSIL[_obSSIL.GetSelectedId()];
         ApplySettings();
     }
 
     private void OptionButtonShdwFilterOnItemSelected(long id) {
-        XB.AData.S.ChangeShadowFilter(_obShdwFilter);
+        XB.AData.S.SC.ShadowFilter = XB.AData.S.ShadowFilters[_obShdwFilter.GetSelectedId()];
         ApplySettings();
     }
 
     private void OptionButtonSSAOOnItemSelected(long id) {
-        XB.AData.S.ChangeSSAO(_obSSAO);
+        XB.AData.S.SC.SSAOSel = XB.AData.S.SSAO[_obSSAO.GetSelectedId()];
         ApplySettings();
     }
 

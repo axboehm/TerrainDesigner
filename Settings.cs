@@ -63,6 +63,7 @@ public class SettingsContainer {
 }
 
 public class SettingsStateChange {
+    public bool ChangeCamSens      = false;
     public bool ChangeDebanding    = false;
     public bool ChangeFov          = false;
     public bool ChangeFps          = false;
@@ -82,7 +83,9 @@ public class SettingsStateChange {
     public bool ChangeVolume       = false;
     public bool ChangeVSync        = false;
 
+    //TODO[ALEX]: is this required?
     public void SetAllTrue() {
+        ChangeCamSens      = true;
         ChangeDebanding    = true;
         ChangeFov          = true;
         ChangeFps          = true;
@@ -104,6 +107,7 @@ public class SettingsStateChange {
     }
 
     public void SetAllFalse() {
+        ChangeCamSens      = false;
         ChangeDebanding    = false;
         ChangeFov          = false;
         ChangeFps          = false;
@@ -126,24 +130,24 @@ public class SettingsStateChange {
 }
 
 public class Settings {
-    public XB.SettingsContainer SC     = new XB.SettingsContainer(); // application settings
-    public XB.SettingsContainer _scMod = new XB.SettingsContainer(); // for changing settings
+    public  XB.SettingsContainer SC     = new XB.SettingsContainer(); // application settings
+    private XB.SettingsContainer _scMod = new XB.SettingsContainer(); // for changing settings
     private static SettingsStateChange _chng = new XB.SettingsStateChange();
 
-    public  int[]        FpsOptions     = new int[]    {30, 60, 120, 0};
-    public  string[]     WindowModes    = new string[] {"WINDOWED", "FULLSCREEN"};
-    public  string[]     Languages      = new string[] {"en", "de"};
-    public  string[]     MSAA           = new string[] {"DISABLED", "MSAA2", "MSAA4", "MSAA8"};
-    public  string[]     SSAA           = new string[] {"DISABLED", "FXAA"};
-    public  int[]        ShadowSizes    = new int[]    {512, 1024, 2048, 4096};
-    public  string[]     ShadowFilters  = new string[] {"SHADOWF0", "SHADOWF1", "SHADOWF2",
-                                                        "SHADOWF3", "SHADOWF4", "SHADOWF5"};
-    public  float[]      LOD            = new float[]  {4.0f, 2.0f, 1.0f};
-    public  string[]     SSAO           = new string[] {"SSAO0", "SSAO1", "SSAO2", "SSAO3"};
-    public  string[]     SSIL           = new string[] {"SSIL0", "SSIL1", "SSIL2", "SSIL3"};
+    public  int[]        FpsOptions      = new int[]    {30, 60, 120, 0};
+    public  string[]     WindowModes     = new string[] {"WINDOWED", "FULLSCREEN"};
+    public  string[]     Languages       = new string[] {"en", "de"};
+    public  string[]     MSAA            = new string[] {"DISABLED", "MSAA2", "MSAA4", "MSAA8"};
+    public  string[]     SSAA            = new string[] {"DISABLED", "FXAA"};
+    public  int[]        ShadowSizes     = new int[]    {512, 1024, 2048, 4096};
+    public  string[]     ShadowFilters   = new string[] {"SHADOWF0", "SHADOWF1", "SHADOWF2",
+                                                         "SHADOWF3", "SHADOWF4", "SHADOWF5"};
+    public  float[]      LOD             = new float[]  {4.0f, 2.0f, 1.0f};
+    public  string[]     SSAO            = new string[] {"SSAO0", "SSAO1", "SSAO2", "SSAO3"};
+    public  string[]     SSIL            = new string[] {"SSIL0", "SSIL1", "SSIL2", "SSIL3"};
     private const string _baseResolution = "1920x1080";
-    public  const int    BaseResX       = 1920;
-    public  const int    BaseResY       = 1080;
+    public  const int    BaseResX        = 1920;
+    public  const int    BaseResY        = 1080;
     private string[]     _resStrings     = new string[] {"3840x2160", "2560x1440", "2048x1152",
                                                          "1920x1080", "1280x720"};
     public SysCG.Dictionary<string, Godot.Vector2I> Resolutions
@@ -160,13 +164,6 @@ public class Settings {
             {"Default", XB.SettingsPreset.Default},
             {"Highest", XB.SettingsPreset.Maximum},
         };
-
-    private const float _camSliderMult = 25.0f;
-
-    private ulong     _setCodeR       = 0;
-    private ulong     _setCodeL       = 0;
-    private const int _setCodeLengthR = 47;
-    private const int _setCodeLengthL = 35;
 
     public  const float CamSensMax      = 100.0f;
     public  const float VolumeMin       = -60.0f;
@@ -187,6 +184,7 @@ public class Settings {
     private const int   _ssilBlurPasses     = 4;
     private const float _ssilFadeOutFrom    = 50.0f;
     private const float _ssilFadeOutTo      = 300.0f;
+    private const float _camSliderMult      = 25.0f;
 
     // settings code variables
     private static SysCG.Dictionary<string, ulong> _sPos =
@@ -239,6 +237,10 @@ public class Settings {
                 {"SBlock", (ulong)1 << 45},
                 {"SQTree", (ulong)1 << 46},
             };
+    private ulong        _setCodeR       = 0;
+    private ulong        _setCodeL       = 0;
+    private const  int   _setCodeLengthR = 47;
+    private const  int   _setCodeLengthL = 35;
     private static ulong _sFov  = (ulong)63  << 7+7+7+8+0;
     private static ulong _sCamX = (ulong)127 <<   7+7+8+0;
     private static ulong _sCamY = (ulong)127 <<     7+8+0;
@@ -249,77 +251,63 @@ public class Settings {
     public void UpdateSettings(ref XB.SettingsContainer sc) {
         _chng.SetAllFalse();
 
-        if (SC.FullScreen != sc.FullScreen) { SC.FullScreen = sc.FullScreen; 
-                                              _chng.ChangeScreen = true; }
-        if (SC.Resolution != sc.Resolution) { SC.Resolution = sc.Resolution;
-                                              _chng.ChangeScreen = true; }
-        if (SC.Fps != sc.Fps) { SC.Fps = sc.Fps;               
-                                _chng.ChangeFps = true; }
-        if (SC.ShowFps != sc.ShowFps) { SC.ShowFps = sc.ShowFps;       
-                                        _chng.ChangeHUD = true; }
-        if (SC.BlockGrid != sc.BlockGrid) { SC.BlockGrid = sc.BlockGrid;   
-                                            _chng.ChangeHUD = true; }
-        if (SC.QTreeVis != sc.QTreeVis) { SC.QTreeVis = sc.QTreeVis;    
-                                          _chng.ChangeHUD = true; }
-        if (SC.FovDef != sc.FovDef) { SC.FovDef = sc.FovDef;   
-                                      _chng.ChangeFov = true; }
-        if (SC.CamXSens != sc.CamXSens) { SC.CamXSens = sc.CamXSens; }
-        if (SC.CamYSens != sc.CamYSens) { SC.CamYSens = sc.CamYSens; }
-        if (SC.Volume != sc.Volume) { SC.Volume = sc.Volume; 
-                                      _chng.ChangeVolume = true; }
-        if (SC.VSync != sc.VSync) { SC.VSync = sc.VSync;         
-                                   _chng.ChangeVSync = true; }
-        if (SC.Language != sc.Language) { SC.Language = sc.Language;   
-                                          _chng.ChangeLanguage = true; }
-        if (SC.MSAASel != sc.MSAASel) { SC.MSAASel = sc.MSAASel;  
-                                        _chng.ChangeMSAA = true; }
-        if (SC.SSAASel != sc.SSAASel) { SC.SSAASel = sc.SSAASel;  
-                                        _chng.ChangeSSAA = true; }
-        if (SC.TAA != sc.TAA) { SC.TAA = sc.TAA;     
-                                _chng.ChangeTAA = true; }
-        if (SC.Debanding != sc.Debanding) { SC.Debanding = sc.Debanding;  
-                                            _chng.ChangeDebanding = true; }
-        if (SC.ShadowSize != sc.ShadowSize) { SC.ShadowSize = sc.ShadowSize; 
-                                              _chng.ChangeShadowSize = true; }
-        if (SC.ShadowFilter != sc.ShadowFilter) { SC.ShadowFilter = sc.ShadowFilter;
-                                                  _chng.ChangeShadowFilter = true; }
-        if (SC.ShadowDistance != sc.ShadowDistance) { SC.ShadowDistance = sc.ShadowDistance;
-                                                      _chng.ChangeShadowDist = true; }
-        if (SC.LODSel != sc.LODSel) { SC.LODSel = sc.LODSel;  
-                                      _chng.ChangeLOD = true; }
-        if (SC.SSAOSel != sc.SSAOSel) { SC.SSAOSel = sc.SSAOSel;    
-                                        _chng.ChangeSSAO = true; }
-        if (SC.SSAOHalf != sc.SSAOHalf) { SC.SSAOHalf = sc.SSAOHalf;  
-                                          _chng.ChangeSSAO = true; }
-        if (SC.SSILSel != sc.SSILSel) { SC.SSILSel = sc.SSILSel; 
-                                        _chng.ChangeSSIL = true; }
-        if (SC.SSILHalf != sc.SSILHalf) { SC.SSILHalf = sc.SSILHalf;
-                                          _chng.ChangeSSIL = true; }
-        if (SC.SSR != sc.SSR) { SC.SSR = sc.SSR;    
-                                _chng.ChangeSSR = true; }
+        if (SC.FullScreen != sc.FullScreen)         { _chng.ChangeScreen = true; }
+        if (SC.Resolution != sc.Resolution)         { _chng.ChangeScreen = true; }
+        if (SC.Fps != sc.Fps)                       { _chng.ChangeFps = true; }
+        if (SC.ShowFps != sc.ShowFps)               { _chng.ChangeHUD = true; }
+        if (SC.BlockGrid != sc.BlockGrid)           { _chng.ChangeHUD = true; }
+        if (SC.QTreeVis != sc.QTreeVis)             { _chng.ChangeHUD = true; }
+        if (SC.FovDef != sc.FovDef)                 { _chng.ChangeFov = true; }
+        if (SC.CamXSens != sc.CamXSens)             { _chng.ChangeCamSens = true; }
+        if (SC.CamYSens != sc.CamYSens)             { _chng.ChangeCamSens = true; }
+        if (SC.Volume != sc.Volume)                 { _chng.ChangeVolume = true; }
+        if (SC.VSync != sc.VSync)                   { _chng.ChangeVSync = true; }
+        if (SC.Language != sc.Language)             { _chng.ChangeLanguage = true; }
+        if (SC.MSAASel != sc.MSAASel)               { _chng.ChangeMSAA = true; }
+        if (SC.SSAASel != sc.SSAASel)               { _chng.ChangeSSAA = true; }
+        if (SC.TAA != sc.TAA)                       { _chng.ChangeTAA = true; }
+        if (SC.Debanding != sc.Debanding)           { _chng.ChangeDebanding = true; }
+        if (SC.ShadowSize != sc.ShadowSize)         { _chng.ChangeShadowSize = true; }
+        if (SC.ShadowFilter != sc.ShadowFilter)     { _chng.ChangeShadowFilter = true; }
+        if (SC.ShadowDistance != sc.ShadowDistance) { _chng.ChangeShadowDist = true; }
+        if (SC.LODSel != sc.LODSel)                 { _chng.ChangeLOD = true; }
+        if (SC.SSAOSel != sc.SSAOSel)               { _chng.ChangeSSAO = true; }
+        if (SC.SSAOHalf != sc.SSAOHalf)             { _chng.ChangeSSAO = true; }
+        if (SC.SSILSel != sc.SSILSel)               { _chng.ChangeSSIL = true; }
+        if (SC.SSILHalf != sc.SSILHalf)             { _chng.ChangeSSIL = true; }
+        if (SC.SSR != sc.SSR)                       { _chng.ChangeSSR = true; }
 
-        if (_chng.ChangeDebanding)    { UpdateDebanding(); }
-        if (_chng.ChangeFov)          { UpdateFov(); }
-        if (_chng.ChangeFps)          { UpdateFps(); }
-        if (_chng.ChangeHUD)          { UpdateHUD(); }
-        if (_chng.ChangeLanguage)     { UpdateLanguage(); }
-        if (_chng.ChangeLOD)          { UpdateLOD(); }
-        if (_chng.ChangeMSAA)         { UpdateMSAA(); }
-        if (_chng.ChangeScreen)       { UpdateScreen(); }
-        if (_chng.ChangeShadowDist)   { UpdateShadowDistance(); }
-        if (_chng.ChangeShadowFilter) { UpdateShadowFilter(); }
-        if (_chng.ChangeShadowSize)   { UpdateShadowSize(); }
-        if (_chng.ChangeSSAA)         { UpdateSSAA(); }
-        if (_chng.ChangeSSAO)         { UpdateSSAO(); }
-        if (_chng.ChangeSSIL)         { UpdateSSIL(); }
-        if (_chng.ChangeSSR)          { UpdateSSR(); }
-        if (_chng.ChangeTAA)          { UpdateTAA(); }
-        if (_chng.ChangeVolume)       { UpdateVolume(); }
-        if (_chng.ChangeVSync)        { UpdateVSync(); }
+        if (_chng.ChangeCamSens)      { UpdateCameraSensitivity(sc.CamXSens, sc.CamYSens); }
+        if (_chng.ChangeDebanding)    { UpdateDebanding(sc.Debanding); }
+        if (_chng.ChangeFov)          { UpdateFov(sc.FovDef); }
+        if (_chng.ChangeFps)          { UpdateFps(sc.Fps); }
+        if (_chng.ChangeHUD)          { UpdateHUD(sc.ShowFps, sc.BlockGrid, sc.QTreeVis); }
+        if (_chng.ChangeLanguage)     { UpdateLanguage(sc.Language); }
+        if (_chng.ChangeLOD)          { UpdateLOD(sc.LODSel); }
+        if (_chng.ChangeMSAA)         { UpdateMSAA(sc.MSAASel); }
+        if (_chng.ChangeScreen)       { UpdateScreen(sc.FullScreen, sc.Resolution); }
+        if (_chng.ChangeShadowDist)   { UpdateShadowDistance(sc.ShadowDistance); }
+        if (_chng.ChangeShadowFilter) { UpdateShadowFilter(sc.ShadowFilter); }
+        if (_chng.ChangeShadowSize)   { UpdateShadowSize(sc.ShadowSize); }
+        if (_chng.ChangeSSAA)         { UpdateSSAA(sc.SSAASel); }
+        if (_chng.ChangeSSAO)         { UpdateSSAO(sc.SSAOSel, sc.SSAOHalf); }
+        if (_chng.ChangeSSIL)         { UpdateSSIL(sc.SSILSel, sc.SSILHalf); }
+        if (_chng.ChangeSSR)          { UpdateSSR(sc.SSR); }
+        if (_chng.ChangeTAA)          { UpdateTAA(sc.TAA); }
+        if (_chng.ChangeVolume)       { UpdateVolume(sc.Volume); }
+        if (_chng.ChangeVSync)        { UpdateVSync(sc.VSync); }
+    }
+
+    private void UpdateCameraSensitivity(float camXSens, float camYSens) {
+        SC.CamXSens = camXSens;
+        SC.CamYSens = camYSens;
     }
 
     // resolution and window mode
-    private void UpdateScreen() {
+    private void UpdateScreen(bool fullScreen, string resolution) {
+        SC.FullScreen = fullScreen;
+        SC.Resolution = resolution;
+
         var window  = XB.AData.MainRoot.GetTree().Root;
         window.Size = Resolutions[SC.Resolution];
         float scale = ((float)Resolutions[SC.Resolution].X) / ((float)Resolutions[_baseResolution].X);
@@ -339,39 +327,48 @@ public class Settings {
         }
     }
 
-    private void UpdateFps() {
+    private void UpdateFps(int fps) {
+        SC.Fps = fps;
         Godot.Engine.MaxFps = SC.Fps;
     }
 
-    private void UpdateHUD() {
+    private void UpdateHUD(bool showFps, bool blockGrid, bool qTreeVis) {
+        SC.ShowFps   = showFps;
+        SC.BlockGrid = blockGrid;
+        SC.QTreeVis  = qTreeVis;
         XB.PController.Hud.UpdateHUDElementVisibility(SC.ShowFps, SC.BlockGrid, SC.QTreeVis);
     }
 
-    private void UpdateFov() {
+    private void UpdateFov(float fovDef) {
+        SC.FovDef = fovDef;
         SC.FovAim = SC.FovDef*_fovAimM;
         SC.FovAim = XB.Utils.ClampF(SC.FovAim, FovMin, FovMax);
-        UpdateCamDistance();
-    }
 
-    private void UpdateCamDistance() {
         SC.CamMaxDist = SC.FovDef*FovMult*_camMaxDistMult;
         SC.CamAimDist = SC.FovDef*FovMult*_camAimDistMult;
     }
 
-    private void UpdateVolume() {
+    private void UpdateVolume(float volume) {
+        SC.Volume = volume;
         Godot.AudioServer.SetBusVolumeDb(0, SC.Volume); // 0 is master bus
     }
 
-    private void UpdateLanguage() {
+    private void UpdateLanguage(string language) {
+        SC.Language = language;
         Godot.TranslationServer.SetLocale(SC.Language);
     }
 
-    private void UpdateVSync() {
-        if (SC.VSync) { Godot.DisplayServer.WindowSetVsyncMode(Godot.DisplayServer.VSyncMode.Enabled); }
-        else       { Godot.DisplayServer.WindowSetVsyncMode(Godot.DisplayServer.VSyncMode.Disabled); }
+    private void UpdateVSync(bool vSync) {
+        SC.VSync = vSync;
+        if (SC.VSync) {
+            Godot.DisplayServer.WindowSetVsyncMode(Godot.DisplayServer.VSyncMode.Enabled); 
+        } else {
+            Godot.DisplayServer.WindowSetVsyncMode(Godot.DisplayServer.VSyncMode.Disabled);
+        }
     }
 
-    private void UpdateMSAA() {
+    private void UpdateMSAA(string msaaSel) {
+        SC.MSAASel = msaaSel;
         var viewport = XB.AData.MainRoot.GetViewport();
         switch (SC.MSAASel) {
             case "DISABLED": viewport.Msaa3D = Godot.Viewport.Msaa.Disabled; break;
@@ -381,7 +378,8 @@ public class Settings {
         }
     }
 
-    private void UpdateSSAA() {
+    private void UpdateSSAA(string ssaaSel) {
+        SC.SSAASel = ssaaSel;
         var viewport = XB.AData.MainRoot.GetViewport();
         switch (SC.SSAASel) {
             case "DISABLED": viewport.ScreenSpaceAA = (Godot.Viewport.ScreenSpaceAAEnum)0; break;
@@ -389,21 +387,26 @@ public class Settings {
         }
     }
 
-    private void UpdateDebanding() {
+    private void UpdateDebanding(bool debanding) {
+        SC.Debanding = debanding;
         var viewport = XB.AData.MainRoot.GetViewport();
         viewport.UseDebanding = SC.Debanding;
     }
 
-    private void UpdateTAA() {
+    private void UpdateTAA(bool taa) {
+        SC.TAA = taa;
         var viewport = XB.AData.MainRoot.GetViewport();
         viewport.UseTaa = SC.TAA;
     }
 
-    private void UpdateShadowSize() {
+    private void UpdateShadowSize(int shadowSize) {
+        SC.ShadowSize = shadowSize;
         Godot.RenderingServer.DirectionalShadowAtlasSetSize(SC.ShadowSize, true);
     }
 
-    private void UpdateShadowFilter() {
+    private void UpdateShadowFilter(string shadowFilter) {
+        SC.ShadowFilter = shadowFilter;
+
         var sFQuality = Godot.RenderingServer.ShadowQuality.Hard;
         switch (SC.ShadowFilter) {
             case "SHADOWF0": sFQuality = Godot.RenderingServer.ShadowQuality.Hard;        break;
@@ -416,17 +419,22 @@ public class Settings {
         Godot.RenderingServer.DirectionalSoftShadowFilterSetQuality(sFQuality);
     }
 
-    private void UpdateShadowDistance() {
+    private void UpdateShadowDistance(int shadowDistance) {
+        SC.ShadowDistance = shadowDistance;
         if (XB.AData.MainLight != null) {
             XB.AData.MainLight.DirectionalShadowMaxDistance = SC.ShadowDistance;
         }
     }
 
-    private void UpdateLOD() {
+    private void UpdateLOD(float lodSel) {
+        SC.LODSel = lodSel;
         XB.AData.MainRoot.GetTree().Root.MeshLodThreshold = SC.LODSel;
     }
 
-    private void UpdateSSAO() {
+    private void UpdateSSAO(string ssaoSel, bool ssaoHalf) {
+        SC.SSAOSel  = ssaoSel;
+        SC.SSAOHalf = ssaoHalf;
+
         var ssaoQuality = Godot.RenderingServer.EnvironmentSsaoQuality.VeryLow;
         switch (SC.SSAOSel) {
             case "SSAO0": ssaoQuality = Godot.RenderingServer.EnvironmentSsaoQuality.VeryLow; break;
@@ -439,7 +447,10 @@ public class Settings {
                                                         _ssaoFadeOutFrom, _ssaoFadeOutTo     );
     }
 
-    private void UpdateSSIL() {
+    private void UpdateSSIL(string ssilSel, bool ssilHalf) {
+        SC.SSILSel  = ssilSel;
+        SC.SSILHalf = ssilHalf;
+
         var ssilQuality = Godot.RenderingServer.EnvironmentSsilQuality.VeryLow;
         switch (SC.SSILSel) {
             case "SSIL0": ssilQuality = Godot.RenderingServer.EnvironmentSsilQuality.VeryLow; break; 
@@ -452,7 +463,8 @@ public class Settings {
                                                         _ssilFadeOutFrom, _ssilFadeOutTo     );
     }
 
-    private void UpdateSSR() {
+    private void UpdateSSR(bool ssr) {
+        SC.SSR = ssr;
         XB.AData.Environment.SsrEnabled = SC.SSR;
     }
 
@@ -794,23 +806,25 @@ public class Settings {
     public void UpdateSliders(Godot.Slider slFrame, Godot.Label lbFrame,
                               Godot.Slider slShdwSize, Godot.Label lbShdwSize,
                               Godot.Slider slLOD, Godot.Label lbLOD           ) {
+        _scMod.SetAllFromSettingsContainer(ref SC);
         switch (slFrame.Value) {
-            case 0: SC.Fps = 30;  lbFrame.Text = "30";                              break;
-            case 1: SC.Fps = 60;  lbFrame.Text = "60";                              break;
-            case 2: SC.Fps = 120; lbFrame.Text = "120";                             break;
-            case 3: SC.Fps = 0;   lbFrame.Text = XB.AData.MainRoot.Tr("UNLIMITED"); break;
+            case 0: _scMod.Fps = 30;  lbFrame.Text = "30";                              break;
+            case 1: _scMod.Fps = 60;  lbFrame.Text = "60";                              break;
+            case 2: _scMod.Fps = 120; lbFrame.Text = "120";                             break;
+            case 3: _scMod.Fps = 0;   lbFrame.Text = XB.AData.MainRoot.Tr("UNLIMITED"); break;
         }
         switch (slShdwSize.Value) {
-            case 0: SC.ShadowSize = 512;  lbShdwSize.Text = "512 px";  break;
-            case 1: SC.ShadowSize = 1024; lbShdwSize.Text = "1024 px"; break;
-            case 2: SC.ShadowSize = 2048; lbShdwSize.Text = "2048 px"; break;
-            case 3: SC.ShadowSize = 4096; lbShdwSize.Text = "4096 px"; break;
+            case 0: _scMod.ShadowSize = 512;  lbShdwSize.Text = "512 px";  break;
+            case 1: _scMod.ShadowSize = 1024; lbShdwSize.Text = "1024 px"; break;
+            case 2: _scMod.ShadowSize = 2048; lbShdwSize.Text = "2048 px"; break;
+            case 3: _scMod.ShadowSize = 4096; lbShdwSize.Text = "4096 px"; break;
         }
         switch (slLOD.Value) {
-            case 0: SC.LODSel = 4.0f; lbLOD.Text = "4 px"; break;
-            case 1: SC.LODSel = 2.0f; lbLOD.Text = "2 px"; break;
-            case 2: SC.LODSel = 1.0f; lbLOD.Text = "1 px"; break;
+            case 0: _scMod.LODSel = 4.0f; lbLOD.Text = "4 px"; break;
+            case 1: _scMod.LODSel = 2.0f; lbLOD.Text = "2 px"; break;
+            case 2: _scMod.LODSel = 1.0f; lbLOD.Text = "1 px"; break;
         }
+        UpdateSettings(ref _scMod);
     }
 
     public string ToggleTAA() {
@@ -925,6 +939,49 @@ public class Settings {
         _scMod.Language = obLang.GetItemText(obLang.GetSelectedId());
         UpdateSettings(ref _scMod);
         return XB.AData.MainRoot.Tr("CHANGED_LANGUAGE");
+    }
+    
+    public void ChangeResolution(Godot.OptionButton obRes) {
+        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.Resolution = obRes.GetItemText(obRes.GetSelectedId());
+        UpdateSettings(ref _scMod);
+    }
+
+    public void ChangeMode(Godot.OptionButton obMode) {
+        _scMod.SetAllFromSettingsContainer(ref SC);
+        if (obMode.GetSelectedId() == 1) _scMod.FullScreen = true;
+        else                             _scMod.FullScreen = false;
+        UpdateSettings(ref _scMod);
+    }
+
+    public void ChangeMSAA(Godot.OptionButton obMSAA) {
+        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.MSAASel = obMSAA.GetItemText(obMSAA.GetSelectedId());
+        UpdateSettings(ref _scMod);
+    }
+
+    public void ChangeSSAA(Godot.OptionButton obSSAA) {
+        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SSAASel = obSSAA.GetItemText(obSSAA.GetSelectedId());
+        UpdateSettings(ref _scMod);
+    }
+
+    public void ChangeSSIL(Godot.OptionButton obSSIL) {
+        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SSILSel = obSSIL.GetItemText(obSSIL.GetSelectedId());
+        UpdateSettings(ref _scMod);
+    }
+
+    public void ChangeShadowFilter(Godot.OptionButton obShdwFilter) {
+        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.ShadowFilter = obShdwFilter.GetItemText(obShdwFilter.GetSelectedId());
+        UpdateSettings(ref _scMod);
+    }
+
+    public void ChangeSSAO(Godot.OptionButton obSSAO) {
+        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SSAOSel = obSSAO.GetItemText(obSSAO.GetSelectedId());
+        UpdateSettings(ref _scMod);
     }
 
     public string PresetSettings(XB.SettingsPreset preset) {
