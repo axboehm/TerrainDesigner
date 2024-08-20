@@ -6,7 +6,8 @@ public class QNode {
     public QNode   Parent;
     public QNode[] Children;
     public XB.MeshContainer MeshContainer;
-    public bool  Visible;
+    public bool  MeshVisible;
+    public bool  MeshReady;
     public int   ID;
     public float XPos;  // center x coordinate in meter
     public float ZPos;
@@ -21,7 +22,8 @@ public class QNode {
         for (int i = 0; i < 4; i++) { Children[i] = null; }
 
         MeshContainer = null;
-        Visible       = false;
+        MeshVisible   = false;
+        MeshReady     = false;
 
         ID    = id;
         id   += 1;
@@ -34,9 +36,18 @@ public class QNode {
         //DebugPrint("Called at Creation");
     }
 
+    public bool ChildrenReady() {
+        if (Children[0] == null)    { return false; }
+        if (!Children[0].MeshReady) { return false; }
+        if (!Children[1].MeshReady) { return false; }
+        if (!Children[2].MeshReady) { return false; }
+        if (!Children[3].MeshReady) { return false; }
+        return true;
+    }
+
 #if XBDEBUG
     public void DebugPrint(string note) {
-        string print = "Print Quadtree Node: " + ID.ToString() + ", Is Visible: " + Visible
+        string print = "Print Quadtree Node: " + ID.ToString() + ", Is Visible: " + MeshVisible
                        + " " + note + '\n';
         print += "Ctr Pos: " + XPos.ToString() + "m " + ZPos.ToString() + "m, ";
         print += "Size: " + XSize.ToString() + "m " + ZSize.ToString() + "m, ";
@@ -63,11 +74,17 @@ public class QNode {
 #endif
 
         MeshContainer = mC;
-        Visible       = true;
+        MeshReady     = true;
 
 #if XBDEBUG
         debug.End();
 #endif 
+    }
+
+    public void ShowMeshContainer() {
+        MeshVisible = true;
+        MeshReady   = false;
+        MeshContainer.ShowMesh();
     }
 
     public void ReleaseMeshContainer() {
@@ -75,11 +92,11 @@ public class QNode {
         var debug = new XB.DebugTimedBlock(XB.D.QNodeReleaseMeshContainer);
 #endif
 
-        if (!Visible) { return; }
+        if (!MeshVisible) { return; }
 
         MeshContainer.ReleaseMesh();
         MeshContainer = null;
-        Visible       = false;
+        MeshVisible   = false;
 
 #if XBDEBUG
         debug.End();
@@ -107,6 +124,7 @@ public class QNode {
         else                                                      { worldEdge[(int)XB.Sk.XP] = false; }
 
         MeshContainer.ApplyToMesh(worldEdge);
+        MeshReady = true;
 
 #if XBDEBUG
         debug.End();
@@ -312,12 +330,15 @@ public class MeshContainer {
         MeshDataSkirt[(int)XB.Sk.XM][(int)Godot.Mesh.ArrayType.Index] = TrianglesSkirt[(int)XB.Sk.XM];
         MeshDataSkirt[(int)XB.Sk.XP][(int)Godot.Mesh.ArrayType.Index] = TrianglesSkirt[(int)XB.Sk.XP];
 
-        MeshInst.Show();
         InUse = true;
 
 #if XBDEBUG
         debug.End();
 #endif 
+    }
+
+    public void ShowMesh() {
+        MeshInst.Show();
     }
 
     private void SkirtTriangleIndices(ref int[] triangles, int amount) {
@@ -700,28 +721,29 @@ public class ManagerTerrain {
     private static XB.QNode _qRoot;
     private static int      _nextID      = 0;
     private static int      _divisions   = 0;
-    private static float    _resolutionM = 0.0f; // highest resolution of visible mesh tiles
+    private static float    _resolutionM = 0.0f; // highest resolution of visible mesh tiles (/m)
     private static float    _resolutionC = 0.0f; // resolution of collider tiles, uniform throughout
     private static float    _sizeCTile   = 0.0f; // size of full size collision tiles
     private static float    _worldXSize  = 0.0f;
     private static float    _worldZSize  = 0.0f;
+    private static int      _maxVerts    = 65536; // 256*256 vertices per tile (render maximum)
     private static Godot.Vector2                _qNodeCtr = new Godot.Vector2(0.0f, 0.0f);
     private static SysCG.List<XB.MeshContainer> _terrainMeshes;
     private static XB.CollisionTile[,]          _terrainColTiles;
     private static SysCG.Queue<XB.QNode>        _recQueue;
     private static SysCG.Queue<XB.QNode>        _reqQueue;
-    private static int _queueBudget = 1; // queue processing amount per tick
+    private static int      _queueBudget = 1; // queue processing amount per tick
     private static XB.QNode _recNode;
     private static XB.QNode _reqNode;
 
 
-    //NOTE[ALEX]: there is no safequard against overly large worlds with high resolution
     public static void InitializeQuadTree(float xSize, float zSize, float resM, float resC,
                                           float sizeCTile, float sizeMTileMin, int divMax  ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainInitializeQuadTree);
 #endif
 
+        resM = 1.0f; //TODO test
         _nextID      = 0;
         _resolutionM = resM;
         _resolutionC = resC;
@@ -739,17 +761,25 @@ public class ManagerTerrain {
             }
         }
         _divisions = XB.Utils.MinI(_divisions, divMax);
-
-        // Godot.GD.Print("InitializeQuadTree with Size: " + _worldXSize + " x " + _worldZSize
-        //                + ", Mesh Resolution: " + _resolutionM + ", Divisions: " + _divisions
-        //                + ", Coll Resolution: " + _resolutionC + ", CTile Size: " + _sizeCTile);
+        //TODO test
+        _divisions = 2;
         
         // the lowest division level (highest detail) should have the specified resolution
         for (int i = 0; i < _divisions; i++) { resM = resM/2.0f; }
-        _qRoot = new XB.QNode(ref _nextID, -_worldXSize/2, -_worldZSize/2, 
-                              _worldXSize, _worldZSize, resM            );
-        _reqNode = new XB.QNode(ref _nextID, -_worldXSize/2, -_worldZSize/2, 
-                                _worldXSize, _worldZSize, resM            );
+
+        // check for overly high resolution for tile size
+        int vertPerTile = (int)(resM * (-_worldXSize) * resM * (-_worldZSize));
+        if (vertPerTile > _maxVerts/4) { //NOTE[ALEX]: divided to get better performance
+            Godot.GD.Print("WARNING: Resolution for given tile size is too big.");
+        }
+
+        // Godot.GD.Print("InitializeQuadTree with Size: " + _worldXSize + " x " + _worldZSize
+        //                + ", Mesh Resolution: " + _resolutionM + ", Divisions: " + _divisions
+        //                + ", Coll Resolution: " + _resolutionC + ", CTile Size: " + _sizeCTile
+        //                + ", Vertices per Tile: " + vertPerTile                               );
+
+        _qRoot = new XB.QNode(ref _nextID, -_worldXSize/2.0f, -_worldZSize/2.0f, 
+                              _worldXSize, _worldZSize, resM                    );
 
         DivideQuadNode(ref _qRoot, _divisions);
 
@@ -842,8 +872,6 @@ public class ManagerTerrain {
 #endif 
     }
 
-    // reference position can be the player model or player camera,
-    // depending on where the highest resolution mesh should be prioritized
     public static void UpdateQTreeMeshes(ref Godot.Vector2 refPos, float lowestPoint,
                                          float highestPoint, ref Godot.Image imgHeightMap) {
 #if XBDEBUG
@@ -853,19 +881,19 @@ public class ManagerTerrain {
         UpdateQNodeMesh(ref refPos, ref _qRoot);
         QueueRequestProcess(_queueBudget, lowestPoint, highestPoint, ref imgHeightMap);
         QueueRecycleProcess();
+        QNodeShowReadyMeshes(ref _qRoot);
 
 #if XBDEBUG
         debug.End();
 #endif 
     }
 
-    //TODO[ALEX]: arguments required
     private static void UpdateQNodeMesh(ref Godot.Vector2 refPos, ref XB.QNode qNode) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainUpdateQNodeMesh);
 #endif
         if (qNode.Children[0] == null) {
-            if (!qNode.Visible) {
+            if (!qNode.MeshVisible) {
                 QueueRequestMeshContainer(ref qNode);
             }
             return;
@@ -876,7 +904,7 @@ public class ManagerTerrain {
         float comp = (qNode.XSize + qNode.ZSize) / 2;
 
         if (dist < comp) {
-            if (qNode.Visible) {
+            if (qNode.MeshVisible) {
                 QueueRecycleMeshContainer(ref qNode);
             }
             UpdateQNodeMesh(ref refPos, ref qNode.Children[0]);
@@ -884,7 +912,8 @@ public class ManagerTerrain {
             UpdateQNodeMesh(ref refPos, ref qNode.Children[2]);
             UpdateQNodeMesh(ref refPos, ref qNode.Children[3]);
         } else {
-            if (!qNode.Visible) {
+            if (!qNode.MeshVisible) {
+                Godot.GD.Print("a " + dist);
                 QueueRequestMeshContainer(ref qNode);
             }
         }
@@ -911,15 +940,47 @@ public class ManagerTerrain {
 #endif 
     }
 
+    private static void QNodeShowReadyMeshes(ref XB.QNode qNode) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainQNodeShowReadyMeshes);
+#endif
+
+        if (qNode.Children[0] == null) {
+#if XBDEBUG
+        debug.End();
+#endif 
+            return; 
+        }
+
+        if (qNode.ChildrenReady()) {
+            qNode.Children[0].ShowMeshContainer();
+            qNode.Children[1].ShowMeshContainer();
+            qNode.Children[2].ShowMeshContainer();
+            qNode.Children[3].ShowMeshContainer();
+        } else {
+            QNodeShowReadyMeshes(ref qNode.Children[0]);
+            QNodeShowReadyMeshes(ref qNode.Children[1]);
+            QNodeShowReadyMeshes(ref qNode.Children[2]);
+            QNodeShowReadyMeshes(ref qNode.Children[3]);
+        }
+
+#if XBDEBUG
+        debug.End();
+#endif 
+    }
+
     private static void QueueRequestMeshContainer(ref XB.QNode qNode) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainQueueRequestMeshContainer);
 #endif
 
-        //TODO[ALEX]: just look at ID instead
-        if (!_reqQueue.Contains(qNode)) {
-            _reqQueue.Enqueue(qNode);
+        if (!qNode.MeshVisible) {
+            if (!_reqQueue.Contains(qNode)) {
+                _reqQueue.Enqueue(qNode);
+            }
         }
+
+        Godot.GD.Print("Queue: " + _reqQueue.Count);
 
 #if XBDEBUG
         debug.End();
@@ -931,7 +992,6 @@ public class ManagerTerrain {
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainQueueRecycleMeshContainer);
 #endif
 
-        //TODO[ALEX]: just look at ID instead
         if (!_recQueue.Contains(qNode)) {
             _recQueue.Enqueue(qNode);
         }
@@ -970,8 +1030,8 @@ public class ManagerTerrain {
         for (int i = 0; i < _recQueue.Count; i++) {
             _recNode = _recQueue.Peek();
             if ((_recNode.Children[0] == null)
-                || (   _recNode.Children[0].Visible && _recNode.Children[1].Visible
-                    && _recNode.Children[2].Visible && _recNode.Children[3].Visible)) {
+                || (   _recNode.Children[0].MeshVisible && _recNode.Children[1].MeshVisible
+                    && _recNode.Children[2].MeshVisible && _recNode.Children[3].MeshVisible)) {
                 RecycleMeshContainer(ref _recNode);
                 _recQueue.Dequeue();
             } else {
@@ -988,6 +1048,8 @@ public class ManagerTerrain {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainRequestMeshContainer);
 #endif
+        
+        Godot.GD.Print("RequestTerrainMeshContainer " + qNode.ID);
 
         for (int i = 0; i < _terrainMeshes.Count; i++) {
             if (!_terrainMeshes[i].InUse) {
@@ -1053,7 +1115,7 @@ public class ManagerTerrain {
             return;
         }
 
-        if (qNode.Visible) {
+        if (qNode.MeshVisible) {
             qNode.UpdateAssignedMesh(_worldXSize, _worldZSize, lowestPoint,
                                      highestPoint, ref imgHeightMap        );
         } else {
@@ -1127,7 +1189,7 @@ public class ManagerTerrain {
                                   ref Godot.Rect2I[] rects, ref Godot.Vector2I vect    ) {
         if (qNode == null) { return; }
 
-        if (qNode.Visible) {
+        if (qNode.MeshVisible) {
             // texture has 0|0 in top left, in world coordinates, "top left" has 0|0 with negative axes
             int xCtr = (int)(-qNode.XPos*scaleFactor);
             int yCtr = (int)(-qNode.ZPos*scaleFactor);
