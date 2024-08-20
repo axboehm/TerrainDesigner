@@ -378,7 +378,7 @@ public class ManagerSphere {
 
             int damID = -1;
             RequestDamSegment(ref damID, LinkingID, HLSphereID);
-            DamSegments[damID].UpdateMesh(XB.WorldData.SphereEdgeLength,
+            DamSegments[damID].UpdateMesh(XB.WData.SphereEdgeLength,
                                           Spheres[LinkingID].GlobalPosition,
                                           Spheres[LinkingID].Radius, Spheres[LinkingID].Angle,
                                           Spheres[HLSphereID].GlobalPosition,
@@ -436,7 +436,7 @@ public class ManagerSphere {
 
             if (   DamSegments[i].LinkedIDs[0] == sphereID
                 || DamSegments[i].LinkedIDs[1] == sphereID) {
-                DamSegments[i].UpdateMesh(XB.WorldData.SphereEdgeLength,
+                DamSegments[i].UpdateMesh(XB.WData.SphereEdgeLength,
                                           Spheres[DamSegments[i].LinkedIDs[0]].GlobalPosition,
                                           Spheres[DamSegments[i].LinkedIDs[0]].Radius,
                                           Spheres[DamSegments[i].LinkedIDs[0]].Angle,
@@ -460,18 +460,17 @@ public class ManagerSphere {
         for (int i = 0; i < MaxSphereAmount; i++) {
             if (!Spheres[i].Active) { continue; }
 
-            XB.WorldData.ApplySphereCone(Spheres[i].GlobalPosition, Spheres[i].Radius,
-                                         Spheres[i].Angle                             );
+            XB.WData.ApplySphereCone(Spheres[i].GlobalPosition, Spheres[i].Radius, Spheres[i].Angle);
         }
         for (int i = 0; i < DamSegments.Count; i++) {
             if (!DamSegments[i].InUse) { continue; }
 
-            XB.WorldData.ApplyDamSegment(Spheres[DamSegments[i].LinkedIDs[0]].GlobalPosition,
-                                         Spheres[DamSegments[i].LinkedIDs[0]].Radius,
-                                         Spheres[DamSegments[i].LinkedIDs[0]].Angle,
-                                         Spheres[DamSegments[i].LinkedIDs[1]].GlobalPosition,
-                                         Spheres[DamSegments[i].LinkedIDs[1]].Radius,
-                                         Spheres[DamSegments[i].LinkedIDs[1]].Angle          );
+            XB.WData.ApplyDamSegment(Spheres[DamSegments[i].LinkedIDs[0]].GlobalPosition,
+                                     Spheres[DamSegments[i].LinkedIDs[0]].Radius,
+                                     Spheres[DamSegments[i].LinkedIDs[0]].Angle,
+                                     Spheres[DamSegments[i].LinkedIDs[1]].GlobalPosition,
+                                     Spheres[DamSegments[i].LinkedIDs[1]].Radius,
+                                     Spheres[DamSegments[i].LinkedIDs[1]].Angle          );
             DamSegments[i].ReleaseMesh();
         }
         for (int i = 0; i < MaxSphereAmount; i++) {
@@ -550,7 +549,7 @@ public class ManagerSphere {
         }
 
         int newID = DamSegments.Count;
-        var dS    = new XB.DamSegment(XB.AData.MainRoot, newID, XB.WorldData.DamSegmentDivisions);
+        var dS    = new XB.DamSegment(XB.AData.MainRoot, newID, XB.WData.DamSegmentDivisions);
         DamSegments.Add(dS);
         DamSegments[newID].UseMesh(linkedToID1, linkedToID2);
         damID = newID;

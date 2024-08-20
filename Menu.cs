@@ -84,13 +84,13 @@ public partial class Menu : Godot.Control {
     [Godot.Export] private Godot.OptionButton _obLanguage;
 
     // controls tab
-    [Godot.Export] private Godot.Button[]     _bCK          = new Godot.Button[XB.Input.Amount];
-    [Godot.Export] private Godot.Button       _bDefaultsCK;
-    [Godot.Export] private Godot.Control      _chngMsg;
-                   private bool               _setKey       = false;
-                   private bool               _lockInput    = false;
-                   private bool               _mouseRelease = false;
-                   private int                _setKeyID     = 0;
+    [Godot.Export] private Godot.Button[] _bCK          = new Godot.Button[XB.Input.Amount];
+    [Godot.Export] private Godot.Button   _bDefaultsCK;
+    [Godot.Export] private Godot.Control  _chngMsg;
+                   private bool           _setKey       = false;
+                   private bool           _lockInput    = false;
+                   private bool           _mouseRelease = false;
+                   private int            _setKeyID     = 0;
 
     // popup quit
     [Godot.Export] private Godot.Control _ctrlPopupQ;
@@ -151,28 +151,37 @@ public partial class Menu : Godot.Control {
         // system tab
         _bApplyCode.Pressed    += ButtonApplyCodeOnPressed;
             // camera
-        _slFov.MinValue        = XB.AData.FovMin;
-        _slFov.MaxValue        = XB.AData.FovMax;
+        _slFov.MinValue        = XB.Settings.FovMin;
+        _slFov.MaxValue        = XB.Settings.FovMax;
+        _slFov.Step            = 1;
         _slFov.DragEnded      += SliderFovOnDragEnded;
+        _slCamHor.MinValue     = 0.0f;
+        _slCamHor.MaxValue     = XB.Settings.CamSensMax;
+        _slCamHor.Step         = 1;
         _slCamHor.DragEnded   += SliderCamHorOnDragEnded;
+        _slCamVer.MinValue     = 0.0f;
+        _slCamVer.MaxValue     = XB.Settings.CamSensMax;
+        _slCamVer.Step         = 1;
         _slCamVer.DragEnded   += SliderCamVerOnDragEnded;
         _bAppDefaults.Pressed += ButtonAppDefaultsOnPressed;
         _bApplyPreset.Pressed += ButtonApplyOnPressed;
-        foreach (var preset in XB.AData.Presets) { _obPresets.AddItem(preset.Key); }
-        XB.Settings.AddSeparators(_obPresets);
+        foreach (var preset in XB.AData.S.Presets) { _obPresets.AddItem(preset.Key); }
+        XB.AData.S.AddSeparators(_obPresets);
         _obPresets.Select(1); // select default preset on startup
         _obPresets.ItemSelected += OptionButtonPresetsOnItemSelected;
             // display
-        foreach (var resolution in XB.AData.Resolutions) { _obRes.AddItem(resolution.Key); }
-        XB.Settings.AddSeparators(_obRes);
+        foreach (var resolution in XB.AData.S.Resolutions) { _obRes.AddItem(resolution.Key); }
+        XB.AData.S.AddSeparators(_obRes);
         _obRes.ItemSelected += OptionButtonResOnItemSelected;
-        foreach (var windowMode in XB.AData.WindowModes) { _obMode.AddItem(windowMode); }
-        XB.Settings.AddSeparators(_obMode);
+        foreach (var windowMode in XB.AData.S.WindowModes) { _obMode.AddItem(windowMode); }
+        XB.AData.S.AddSeparators(_obMode);
         _obMode.ItemSelected += OptionButtonModeOnItemSelected;
         _cbFps.Pressed       += ButtonShowFPSOnPressed;
         _cbVSync.Pressed     += ButtonVSyncOnPressed;
         _cbBlock.Pressed     += ButtonBlockGridOnPressed;
         _cbQTVis.Pressed     += ButtonQuadTreeVisOnPressed;
+        _slFrame.MinValue     = 0.0f;
+        _slFrame.MaxValue     = XB.AData.S.FpsOptions.Length;
         _slFrame.DragEnded   += SliderFrameRateOnDragEnded;
             // performance
         _scrPerf.ScrollVertical = 0;
@@ -181,29 +190,41 @@ public partial class Menu : Godot.Control {
         _cbSSAOHalf.Pressed    += ButtonSSAOHalfOnPressed;
         _cbSSILHalf.Pressed    += ButtonSSILHalfOnPressed;
         _cbSSR.Pressed         += ButtonSSROnPressed;
-        foreach (var option in XB.AData.MSAA) { _obMSAA.AddItem(option); }
-        XB.Settings.AddSeparators(_obMSAA);
+        foreach (var option in XB.AData.S.MSAA) { _obMSAA.AddItem(option); }
+        XB.AData.S.AddSeparators(_obMSAA);
         _obMSAA.ItemSelected += OptionButtonMSAAOnItemSelected;
-        foreach (var option in XB.AData.SSAA) { _obSSAA.AddItem(option); }
-        XB.Settings.AddSeparators(_obSSAA);
+        foreach (var option in XB.AData.S.SSAA) { _obSSAA.AddItem(option); }
+        XB.AData.S.AddSeparators(_obSSAA);
         _obSSAA.ItemSelected += OptionButtonSSAAOnItemSelected;
-        foreach (var option in XB.AData.ShadowFilters) { _obShdwFilter.AddItem(option); }
-        XB.Settings.AddSeparators(_obShdwFilter);
+        foreach (var option in XB.AData.S.ShadowFilters) { _obShdwFilter.AddItem(option); }
+        XB.AData.S.AddSeparators(_obShdwFilter);
         _obShdwFilter.ItemSelected += OptionButtonShdwFilterOnItemSelected;
-        foreach (var option in XB.AData.SSAO) { _obSSAO.AddItem(option); }
-        XB.Settings.AddSeparators(_obSSAO);
+        foreach (var option in XB.AData.S.SSAO) { _obSSAO.AddItem(option); }
+        XB.AData.S.AddSeparators(_obSSAO);
         _obSSAO.ItemSelected += OptionButtonSSAOOnItemSelected;
-        foreach (var option in XB.AData.SSIL) { _obSSIL.AddItem(option); }
-        XB.Settings.AddSeparators(_obSSIL);
+        foreach (var option in XB.AData.S.SSIL) { _obSSIL.AddItem(option); }
+        XB.AData.S.AddSeparators(_obSSIL);
         _obSSIL.ItemSelected += OptionButtonSSILOnItemSelected;
-        _slShdwSize.DragEnded += SliderShadowSizeOnDragEnded;
+        _slShdwDist.MinValue   = XB.Settings.ShadowDistMin;
+        _slShdwDist.MaxValue   = XB.Settings.ShadowDistMax;
+        _slShdwDist.Step       = 1;
         _slShdwDist.DragEnded += SliderShadowDistanceOnDragEnded;
-        _slLOD.DragEnded      += SliderLODOnDragEnded;
+        _slShdwSize.MinValue   = 0.0f;
+        _slShdwSize.MaxValue   = XB.AData.S.ShadowSizes.Length;
+        _slShdwSize.Step       = 1;
+        _slShdwSize.DragEnded += SliderShadowSizeOnDragEnded;
+        _slLOD.MinValue   = 0.0f;
+        _slLOD.MaxValue   = XB.AData.S.LOD.Length;
+        _slLOD.Step       = 1;
+        _slLOD.DragEnded += SliderLODOnDragEnded;
             // audio
+        _slVolume.MinValue   = XB.Settings.VolumeMin;
+        _slVolume.MaxValue   = 0.0f;
+        _slVolume.Step       = 1;
         _slVolume.DragEnded += SliderVolumeOnDragEnded;
             // language
-        foreach (var language in XB.AData.Languages) { _obLanguage.AddItem(language); }
-        XB.Settings.AddSeparators(_obLanguage);
+        foreach (var language in XB.AData.S.Languages) { _obLanguage.AddItem(language); }
+        XB.AData.S.AddSeparators(_obLanguage);
         _obLanguage.ItemSelected += OptionButtonLanguageOnItemSelected;
 
         // controls tab
@@ -244,36 +265,36 @@ public partial class Menu : Godot.Control {
         _bPopGenApply.Pressed  += ButtonPopupGenApplyOnPressed;
         _leGenSeed.TextChanged += LineEditGenerateSeedOnTextChanged;
         _bGenSeedApply.Pressed += ButtonGenSeedApplyOnPressed;
-        _slGenHeight.MinValue   = XB.WorldData.GenHeightMin;
-        _slGenHeight.MaxValue   = XB.WorldData.GenHeightMax;
+        _slGenHeight.MinValue   = XB.WData.GenHeightMin;
+        _slGenHeight.MaxValue   = XB.WData.GenHeightMax;
         _slGenHeight.DragEnded += SliderGenHeightOnDragEnded;
-        _slGenHeight.Step       = 0;
-        _slGenScale.MinValue    = XB.WorldData.GenScaleMin;
-        _slGenScale.MaxValue    = XB.WorldData.GenScaleMax;
+        _slGenHeight.Step       = 0; // step 0 is floating point amount
+        _slGenScale.MinValue    = XB.WData.GenScaleMin;
+        _slGenScale.MaxValue    = XB.WData.GenScaleMax;
         _slGenScale.DragEnded  += SliderGenScaleOnDragEnded;
         _slGenScale.Step        = 0;
-        _slGenOffX.MinValue     = XB.WorldData.GenOffXMin;
-        _slGenOffX.MaxValue     = XB.WorldData.GenOffXMax;
+        _slGenOffX.MinValue     = XB.WData.GenOffXMin;
+        _slGenOffX.MaxValue     = XB.WData.GenOffXMax;
         _slGenOffX.DragEnded   += SliderGenOffXOnDragEnded;
         _slGenOffX.Step         = 0;
-        _slGenOffZ.MinValue     = XB.WorldData.GenOffZMin;
-        _slGenOffZ.MaxValue     = XB.WorldData.GenOffZMax;
+        _slGenOffZ.MinValue     = XB.WData.GenOffZMin;
+        _slGenOffZ.MaxValue     = XB.WData.GenOffZMax;
         _slGenOffZ.DragEnded   += SliderGenOffZOnDragEnded;
         _slGenOffZ.Step         = 0;
-        _slGenOct.MinValue      = XB.WorldData.GenOctMin;
-        _slGenOct.MaxValue      = XB.WorldData.GenOctMax;
+        _slGenOct.MinValue      = XB.WData.GenOctMin;
+        _slGenOct.MaxValue      = XB.WData.GenOctMax;
         _slGenOct.DragEnded    += SliderGenOctOnDragEnded;
         _slGenOct.Step          = 1;
-        _slGenPers.MinValue     = XB.WorldData.GenPersMin;
-        _slGenPers.MaxValue     = XB.WorldData.GenPersMax;
+        _slGenPers.MinValue     = XB.WData.GenPersMin;
+        _slGenPers.MaxValue     = XB.WData.GenPersMax;
         _slGenPers.DragEnded   += SliderGenPersOnDragEnded;
         _slGenPers.Step         = 0;
-        _slGenLac.MinValue      = XB.WorldData.GenLacMin;
-        _slGenLac.MaxValue      = XB.WorldData.GenLacMax;
+        _slGenLac.MinValue      = XB.WData.GenLacMin;
+        _slGenLac.MaxValue      = XB.WData.GenLacMax;
         _slGenLac.DragEnded    += SliderGenLacOnDragEnded;
         _slGenLac.Step          = 0;
-        _slGenExp.MinValue      = XB.WorldData.GenExpMin;
-        _slGenExp.MaxValue      = XB.WorldData.GenExpMax;
+        _slGenExp.MinValue      = XB.WData.GenExpMin;
+        _slGenExp.MaxValue      = XB.WData.GenExpMax;
         _slGenExp.DragEnded    += SliderGenExpOnDragEnded;
         _slGenExp.Step          = 0;
         _cbGenUpd.Pressed      += ButtonGenUpdOnPressed;
@@ -437,7 +458,7 @@ public partial class Menu : Godot.Control {
         _crMsg.Hide();
         UpdatePauseTab();
         UpdateTabNames();
-        XB.Settings.SettingsCodeFromSettings(_leSetCode);
+        XB.AData.S.SettingsCodeFromSettings(_leSetCode);
     }
 
     private void UpdatePauseTab() {
@@ -474,30 +495,28 @@ public partial class Menu : Godot.Control {
     }
 
     private void UpdateSettingsTab() {
-        XB.Settings.UpdateSettingsTabs(_slCamHor, _lbCamHor, _slCamVer, _lbCamVer,
-                                       _slFov, _lbFov, _slFrame, _lbFrame,
-                                       _obRes, _obMode,
-                                       _cbFps, _cbVSync, _cbBlock, _cbQTVis,
-                                       _obMSAA, _obSSAA,
-                                       _cbTAA, _cbDebanding,
-                                       _lbShdwSize, _slShdwSize, _obShdwFilter,
-                                       _lbShdwDist, _slShdwDist,
-                                       _lbLOD, _slLOD,
-                                       _obSSAO, _cbSSAOHalf,
-                                       _obSSIL, _cbSSILHalf,
-                                       _cbSSR, _slVolume, _lbVolume, _obLanguage  );
+        XB.AData.S.UpdateSettingsTabs(_slCamHor, _lbCamHor, _slCamVer, _lbCamVer,
+                                      _slFov, _lbFov, _slFrame, _lbFrame,
+                                      _obRes, _obMode,
+                                      _cbFps, _cbVSync, _cbBlock, _cbQTVis,
+                                      _obMSAA, _obSSAA,
+                                      _cbTAA, _cbDebanding,
+                                      _lbShdwSize, _slShdwSize, _obShdwFilter,
+                                      _lbShdwDist, _slShdwDist,
+                                      _lbLOD, _slLOD,
+                                      _obSSAO, _cbSSAOHalf,
+                                      _obSSIL, _cbSSILHalf,
+                                      _cbSSR, _slVolume, _lbVolume, _obLanguage  );
     }
 
     private void UpdateSettingsSliders() {
-        XB.Settings.UpdateSliders(_slFrame, _lbFrame, _slShdwSize, _lbShdwSize, _slLOD, _lbLOD);
+        XB.AData.S.UpdateSliders(_slFrame, _lbFrame, _slShdwSize, _lbShdwSize, _slLOD, _lbLOD);
     }
 
     private void ApplySettings() {
         UpdateSettingsTab();
-        XB.PersistData.UpdateScreen();
-        XB.PersistData.UpdateAudio();
-        XB.PersistData.UpdateLanguage();
-        XB.Settings.SettingsCodeFromSettings(_leSetCode);
+        XB.AData.S.UpdateSettings(ref XB.AData.S.SC);
+        XB.AData.S.SettingsCodeFromSettings(_leSetCode);
     }
 
     private void ShowMessage(string msg) {
@@ -522,27 +541,27 @@ public partial class Menu : Godot.Control {
     }
 
     private void SliderShadowDistanceOnDragEnded(bool valueChanged) {
-        ShowMessage(XB.Settings.ChangeShadowDistance(_slShdwDist));
+        ShowMessage(XB.AData.S.ChangeShadowDistance(_slShdwDist));
         ApplySettings();
     }
 
     private void SliderFovOnDragEnded(bool valueChanged) {
-        ShowMessage(XB.Settings.ChangeFov(_slFov));
+        ShowMessage(XB.AData.S.ChangeFov(_slFov));
         ApplySettings();
     }
 
     private void SliderCamHorOnDragEnded(bool valueChanged) {
-        ShowMessage(XB.Settings.ChangeSensitivityHorizontal(_slCamHor));
+        ShowMessage(XB.AData.S.ChangeSensitivityHorizontal(_slCamHor));
         ApplySettings();
     }
 
     private void SliderCamVerOnDragEnded(bool valueChanged) {
-        ShowMessage(XB.Settings.ChangeSensitivityVertical(_slCamVer));
+        ShowMessage(XB.AData.S.ChangeSensitivityVertical(_slCamVer));
         ApplySettings();
     }
 
     private void SliderVolumeOnDragEnded(bool valueChanged) {
-        ShowMessage(XB.Settings.ChangeVolume(_slVolume));
+        ShowMessage(XB.AData.S.ChangeVolume(_slVolume));
         ApplySettings();
     }
 
@@ -563,59 +582,59 @@ public partial class Menu : Godot.Control {
 
     private void ButtonAppDefaultsOnPressed() {
         XB.Utils.PlayUISound(XB.ResourcePaths.ButtonAudio);
-        ShowMessage(XB.Settings.ApplicationDefaults());
+        ShowMessage(XB.AData.S.ApplicationDefaults());
         ApplySettings();
     }
 
     private void ButtonApplyOnPressed () {
         XB.Utils.PlayUISound(XB.ResourcePaths.ButtonAudio);
         string preset = _obPresets.GetItemText(_obPresets.GetSelectedId());
-        ShowMessage(XB.Settings.PresetSettings(XB.AData.Presets[preset]));
+        ShowMessage(XB.AData.S.PresetSettings(XB.AData.S.Presets[preset]));
         ApplySettings();
     }
 
     private void ButtonTAAOnPressed() {
-        ShowMessage(XB.Settings.ToggleTAA());
+        ShowMessage(XB.AData.S.ToggleTAA());
         ApplySettings();
     }
 
     private void ButtonDebandingOnPressed() {
-        ShowMessage(XB.Settings.ToggleDebanding());
+        ShowMessage(XB.AData.S.ToggleDebanding());
         ApplySettings();
     }
 
     private void ButtonSSAOHalfOnPressed() {
-        ShowMessage(XB.Settings.ToggleSSAOHalf());
+        ShowMessage(XB.AData.S.ToggleSSAOHalf());
         ApplySettings();
     }
 
     private void ButtonSSILHalfOnPressed() {
-        ShowMessage(XB.Settings.ToggleSSILHalf());
+        ShowMessage(XB.AData.S.ToggleSSILHalf());
         ApplySettings();
     }
 
     private void ButtonSSROnPressed() {
-        ShowMessage(XB.Settings.ToggleSSR());
+        ShowMessage(XB.AData.S.ToggleSSR());
         ApplySettings();
     }
 
     private void ButtonShowFPSOnPressed() {
-        ShowMessage(XB.Settings.ToggleShowFPS());
+        ShowMessage(XB.AData.S.ToggleShowFPS());
         ApplySettings();
     }
 
     private void ButtonVSyncOnPressed() {
-        ShowMessage(XB.Settings.ToggleVSync());
+        ShowMessage(XB.AData.S.ToggleVSync());
         ApplySettings();
     }
 
     private void ButtonBlockGridOnPressed() {
-        ShowMessage(XB.Settings.ToggleBlockGrid());
+        ShowMessage(XB.AData.S.ToggleBlockGrid());
         ApplySettings();
     }
 
     private void ButtonQuadTreeVisOnPressed() {
-        ShowMessage(XB.Settings.ToggleQuadTreeVis());
+        ShowMessage(XB.AData.S.ToggleQuadTreeVis());
         ApplySettings();
     }
 
@@ -673,7 +692,7 @@ public partial class Menu : Godot.Control {
     }
 
     private void OptionButtonLanguageOnItemSelected(long id) {
-        ShowMessage(XB.Settings.ChangeLanguage(_obLanguage));
+        ShowMessage(XB.AData.S.ChangeLanguage(_obLanguage));
         ApplySettings();
         UpdateSystemTabContainer();
         UpdateTabNames();
@@ -684,80 +703,72 @@ public partial class Menu : Godot.Control {
     }
 
     private void OptionButtonResOnItemSelected(long id) {
-        XB.AData.Resolution = _obRes.GetItemText(_obRes.GetSelectedId());
+        XB.AData.S.SC.Resolution = _obRes.GetItemText(_obRes.GetSelectedId());
         ApplySettings();
     }
 
     private void OptionButtonModeOnItemSelected(long id) {
-        if (_obMode.GetSelectedId() == 1) XB.AData.FullScreen = true;
-        else                              XB.AData.FullScreen = false;
+        if (_obMode.GetSelectedId() == 1) XB.AData.S.SC.FullScreen = true;
+        else                              XB.AData.S.SC.FullScreen = false;
         ApplySettings();
     }
 
     private void OptionButtonMSAAOnItemSelected(long id) {
-        XB.AData.MSAASel = XB.AData.MSAA[_obMSAA.GetSelectedId()];
+        XB.AData.S.SC.MSAASel = XB.AData.S.MSAA[_obMSAA.GetSelectedId()];
         ApplySettings();
     }
 
     private void OptionButtonSSAAOnItemSelected(long id) {
-        XB.AData.SSAASel = XB.AData.SSAA[_obSSAA.GetSelectedId()];
+        XB.AData.S.SC.SSAASel = XB.AData.S.SSAA[_obSSAA.GetSelectedId()];
         ApplySettings();
     }
 
     private void OptionButtonSSILOnItemSelected(long id) {
-        XB.AData.SSILSel = XB.AData.SSIL[_obSSIL.GetSelectedId()];
+        XB.AData.S.SC.SSILSel = XB.AData.S.SSIL[_obSSIL.GetSelectedId()];
         ApplySettings();
     }
 
     private void OptionButtonShdwFilterOnItemSelected(long id) {
-        XB.AData.ShadowFilter = XB.AData.ShadowFilters[_obShdwFilter.GetSelectedId()];
+        XB.AData.S.SC.ShadowFilter = XB.AData.S.ShadowFilters[_obShdwFilter.GetSelectedId()];
         ApplySettings();
     }
 
     private void OptionButtonSSAOOnItemSelected(long id) {
-        XB.AData.SSAOSel = XB.AData.SSAO[_obSSAO.GetSelectedId()];
+        XB.AData.S.SC.SSAOSel = XB.AData.S.SSAO[_obSSAO.GetSelectedId()];
         ApplySettings();
     }
 
     private void ButtonApplyCodeOnPressed() {
         string code = _leSetCode.Text;
-        if (code.Length != (XB.AData.SetCodeLengthL+XB.AData.SetCodeLengthR)) {
-            XB.Settings.SettingsCodeFromSettings(_leSetCode);
+        if (XB.AData.S.ValidateSettingsCode(code)) {
+            XB.AData.S.SettingsFromSettingsCode(code);
+            ApplySettings();
+            ShowMessage(Tr("SETCODE_APPLIED"));
+        } else {
+            XB.AData.S.SettingsCodeFromSettings(_leSetCode);
             ShowMessage(Tr("INCORRECT_SETCODE"));
-            return;
         }
-        for (int i = 0; i < (XB.AData.SetCodeLengthL+XB.AData.SetCodeLengthR); i++) {
-            if (code[i] != '0' && code[i] != '1') {
-                XB.Settings.SettingsCodeFromSettings(_leSetCode);
-                ShowMessage(Tr("INCORRECT_SETCODE"));
-                return;
-            }
-        }
-
-        XB.Settings.SettingsFromSettingsCode(code);
-        ApplySettings();
-        ShowMessage(Tr("SETCODE_APPLIED"));
     }
 
     private void ButtonGenerateTerrainOnPressed() {
         XB.Utils.PlayUISound(XB.ResourcePaths.ButtonAudio);
         _ctrlPopupG.Show();
         // restore values to defaults when opening the generation dialog
-        _slGenHeight.Value = XB.WorldData.GenHeightDef;
+        _slGenHeight.Value = XB.WData.GenHeightDef;
         _lbGenHeight.Text  = _slGenHeight.Value.ToString();
-        _slGenScale.Value  = XB.WorldData.GenScaleDef;
+        _slGenScale.Value  = XB.WData.GenScaleDef;
         _lbGenScale.Text   = _slGenScale.Value.ToString();
-        _slGenOffX.Value   = XB.WorldData.GenOffXDef;
+        _slGenOffX.Value   = XB.WData.GenOffXDef;
         _lbGenOffX.Text    = _slGenOffX.Value.ToString();
-        _slGenOffZ.Value   = XB.WorldData.GenOffZDef;
+        _slGenOffZ.Value   = XB.WData.GenOffZDef;
         _lbGenOffZ.Text    = _slGenOffZ.Value.ToString();
-        _slGenOct.Value    = XB.WorldData.GenOctDef;
+        _slGenOct.Value    = XB.WData.GenOctDef;
         _lbGenOct.Text     = _slGenOct.Value.ToString();
-        _slGenPers.Value   = XB.WorldData.GenPersDef;
+        _slGenPers.Value   = XB.WData.GenPersDef;
         _lbGenPers.Text    = _slGenPers.Value.ToString();
-        _slGenLac.Value    = XB.WorldData.GenLacDef;
+        _slGenLac.Value    = XB.WData.GenLacDef;
         _lbGenLac.Text     = _slGenLac.Value.ToString();
-        _slGenExp.Value    = XB.WorldData.GenExpDef;
+        _slGenExp.Value    = XB.WData.GenExpDef;
         _lbGenExp.Text     = _slGenExp.Value.ToString();
         _updateGenTex      = true;
         _cbGenUpd.ButtonPressed = _updateGenTex;
@@ -768,7 +779,7 @@ public partial class Menu : Godot.Control {
 
     private void ButtonApplySpheresOnPressed() {
         XB.ManagerSphere.ApplyTerrain();
-        XB.WorldData.UpdateTerrain(false);
+        XB.WData.UpdateTerrain(false);
         _player.SpawnPlayer(new Godot.Vector2(_player.GlobalPosition.X,
                                               _player.GlobalPosition.Z));
         ShowMessage(Tr("APPLIED_SPHERES"));
@@ -783,12 +794,10 @@ public partial class Menu : Godot.Control {
 
     private void ButtonPopupGenApplyOnPressed() {
         if (!_updateGenTex) { GenerateTerrainHeights(); } // only if heightmap has not been generated yet
-        XB.Terrain.HeightReplace(ref XB.WorldData.TerrainHeights,
-                                 ref XB.WorldData.TerrainHeightsMod,
-                                 XB.WorldData.WorldVerts.X, XB.WorldData.WorldVerts.Y);
-        XB.WorldData.UpdateTerrain(false);
-        _player.SpawnPlayer(new Godot.Vector2(-XB.WorldData.WorldDim.X/2.0f,
-                                              -XB.WorldData.WorldDim.Y/2.0f));
+        XB.Terrain.HeightReplace(ref XB.WData.TerrainHeights, ref XB.WData.TerrainHeightsMod,
+                                 XB.WData.WorldVerts.X, XB.WData.WorldVerts.Y                );
+        XB.WData.UpdateTerrain(false);
+        _player.SpawnPlayer(new Godot.Vector2(-XB.WData.WorldDim.X/2.0f, -XB.WData.WorldDim.Y/2.0f));
         ShowMessage(Tr("GENERATED_TERRAIN"));
         _ctrlPopupG.Hide();
         ButtonResumeOnPressed();
@@ -853,21 +862,20 @@ public partial class Menu : Godot.Control {
     }
 
     private void GenerateTerrainHeights() {
-        XB.Terrain.FBM(XB.WorldData.WorldVerts.X, XB.WorldData.WorldVerts.Y,
-                       XB.WorldData.WorldDim.X, XB.WorldData.WorldDim.Y,
+        XB.Terrain.FBM(XB.WData.WorldVerts.X, XB.WData.WorldVerts.Y,
+                       XB.WData.WorldDim.X, XB.WData.WorldDim.Y,
                        (float)_slGenHeight.Value, (float)_slGenScale.Value,
                        (float)_slGenOffX.Value, (float)_slGenOffZ.Value,
                        (int)_slGenOct.Value, (float)_slGenPers.Value,
                        (float)_slGenLac.Value, (float)_slGenExp.Value       );
         float lowest  = 0.0f;
         float highest = 0.0f;
-        XB.Terrain.FindLowestHighest(ref XB.WorldData.TerrainHeightsMod, 
-                                     XB.WorldData.WorldVerts.X, XB.WorldData.WorldVerts.Y,
-                                     ref lowest, ref highest                              );
-        XB.Terrain.UpdateHeightMap(ref XB.WorldData.TerrainHeightsMod,
+        XB.Terrain.FindLowestHighest(ref XB.WData.TerrainHeightsMod, XB.WData.WorldVerts.X, 
+                                     XB.WData.WorldVerts.Y, ref lowest, ref highest        );
+        XB.Terrain.UpdateHeightMap(ref XB.WData.TerrainHeightsMod,
                                    lowest, highest, ref _imgGenMap    );
-        _lbGenLow.Text     = lowest.ToString(_heightFormat);
-        _lbGenHigh.Text    = highest.ToString(_heightFormat);
+        _lbGenLow.Text     = lowest.ToString(_heightFormat)  + "m";
+        _lbGenHigh.Text    = highest.ToString(_heightFormat) + "m";
         _lbGenCurSeed.Text = XB.Random.RandomSeed.ToString();
 
         _texGenMap.Update(_imgGenMap);

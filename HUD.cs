@@ -77,6 +77,8 @@ public partial class HUD : Godot.Control {
     private const int          _dimThick = 1;
     private int                _rows     = 0;
     private int                _columns  = 0;
+    private Godot.Color        _dColor   = new Godot.Color(0.0f, 0.0f, 0.0f, 0.0f);
+    private Godot.Color        _pColor   = new Godot.Color(0.0f, 0.0f, 0.0f, 0.0f);
 
     public  Godot.ImageTexture TexMiniMap;
     private Godot.Image        _imgMiniMapQT;
@@ -156,25 +158,26 @@ public partial class HUD : Godot.Control {
         var texCrosshairs = Godot.ResourceLoader.Load<Godot.Texture2D>(XB.ResourcePaths.CrosshairsTex);
         _trCrosshairs.Texture  = texCrosshairs;
         var crosshairsSize     = new Godot.Vector2I(_dimCrosshairs, _dimCrosshairs);
-        _trCrosshairs.Position = new Godot.Vector2I(XB.AData.BaseResX/2 - crosshairsSize.X/2,
-                                                    XB.AData.BaseResY/2 - crosshairsSize.Y/2 );
+        _trCrosshairs.Position = new Godot.Vector2I(XB.Settings.BaseResX/2 - crosshairsSize.X/2,
+                                                    XB.Settings.BaseResY/2 - crosshairsSize.Y/2 );
         _trCrosshairs.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
         _trCrosshairs.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
         _trCrosshairs.Size        = crosshairsSize;
 
-        _imgLinking = Godot.Image.Create(XB.AData.BaseResX, XB.AData.BaseResY,
+        _imgLinking = Godot.Image.Create(XB.Settings.BaseResX, XB.Settings.BaseResY,
                                          false, Godot.Image.Format.Rgba8      );
         _texLinking.SetImage(_imgLinking);
         _trLinking.Position    = new Godot.Vector2I(0, 0);
         _trLinking.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
         _trLinking.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
-        _trLinking.Size        = new Godot.Vector2I(XB.AData.BaseResX, XB.AData.BaseResY);
+        _trLinking.Size        = new Godot.Vector2I(XB.Settings.BaseResX, XB.Settings.BaseResY);
         _trLinking.Texture     = _texLinking;
         _matLinking            = new Godot.ShaderMaterial();
         _matLinking.Shader     = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.LinkingShader);
         _matLinking.SetShaderParameter("colBright",   XB.Col.LinkBri);
         _matLinking.SetShaderParameter("colDim",      XB.Col.LinkDim);
-        _matLinking.SetShaderParameter("squareRatio", (float)XB.AData.BaseResX/(float)XB.AData.BaseResY);
+        _matLinking.SetShaderParameter("squareRatio", (float)XB.Settings.BaseResX/
+                                                      (float)XB.Settings.BaseResY );
         _matLinking.SetShaderParameter("ringRad",     _linkingRingRadius);
         _matLinking.SetShaderParameter("alphaMult",   1.0f);
         _trLinking.Material    = _matLinking;
@@ -191,8 +194,8 @@ public partial class HUD : Godot.Control {
         _imgSpheres.Fill(XB.Col.Transp);
         _imgSpheresBG = Godot.Image.Create(_dimSpX, _dimSpY, false, Godot.Image.Format.Rgba8);
         _imgSpheresBG.Fill(XB.Col.BG);
-        var spPosition = new Godot.Vector2I(XB.AData.BaseResX - 2*_offsetH - _dimSpX,
-                                            _offsetT - _offsetH                      );
+        var spPosition = new Godot.Vector2I(XB.Settings.BaseResX - 2*_offsetH - _dimSpX,
+                                            _offsetT - _offsetH                         );
         _trSpheres.Position      = spPosition;
         _trSpheresBG.Position    = spPosition - new Godot.Vector2I(_offsetH, _offsetH);
         _trSpheres.ExpandMode    = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
@@ -218,7 +221,7 @@ public partial class HUD : Godot.Control {
         int dimMMBGY  = _dimMMY + 2*_offsetH + 3*_dimMMSp + _dimMMGY + _gradLbFontSize;
         _imgMiniMapBG = Godot.Image.Create(dimMMBGX, dimMMBGY, false, Godot.Image.Format.Rgba8);
         _imgMiniMapBG.Fill(XB.Col.BG);
-        var miniMapPosition = new Godot.Vector2I(2*_offsetH, XB.AData.BaseResY/2 - dimMMBGY/2);
+        var miniMapPosition = new Godot.Vector2I(2*_offsetH, XB.Settings.BaseResY/2 - dimMMBGY/2);
         _trMiniMap.Position      = miniMapPosition;
         _trMiniMapQT.Position    = miniMapPosition;
         _trMiniMapO.Position     = miniMapPosition;
@@ -317,8 +320,8 @@ public partial class HUD : Godot.Control {
         var debug = new XB.DebugTimedBlock(XB.D.HUDUpdateMiniMap);
 #endif
 
-        TexMiniMap.SetImage(XB.WorldData.ImgMiniMap);
-        TexMiniMap.Update(XB.WorldData.ImgMiniMap);
+        TexMiniMap.SetImage(XB.WData.ImgMiniMap);
+        TexMiniMap.Update(XB.WData.ImgMiniMap);
         _lbHeightL.Text = low.ToString (_heightFormat) + "m";
         _lbHeightH.Text = high.ToString(_heightFormat) + "m";
 
@@ -344,12 +347,12 @@ public partial class HUD : Godot.Control {
 
             XB.Utils.BeveledRectangle(xStart, yStart, dimSp-2*dimThick, 
                                       ref rects, ref rSize, ref vect   );
-            XB.Utils.FillRectanglesInImage(ref image, ref rects, ref rSize, ref XB.Col.Outline);
+            XB.Utils.FillRectanglesInImage(ref image, ref rects, rSize, ref XB.Col.Outline);
 
             XB.Utils.BeveledRectangle(xStart+dimBord, yStart+dimBord,
                                       dimSp-2*dimBord-2*dimThick, 
                                       ref rects, ref rSize, ref vect );
-            XB.Utils.FillRectanglesInImage(ref image, ref rects, ref rSize, ref XB.Col.InAct);
+            XB.Utils.FillRectanglesInImage(ref image, ref rects, rSize, ref XB.Col.InAct);
 
             AddDigitTexture(i, xStart+2*dimBord, yStart+2*dimBord, dimThick, ref XB.Col.White);
             if (counter == 0) {
@@ -395,12 +398,12 @@ public partial class HUD : Godot.Control {
         if (digit > 9) { // decimal digit
             XB.Utils.DigitRectangles(digit/10, xStart, yStart, xSize, ySize, thickness,
                                      ref _rects, ref _rSize, ref _vect                 );
-            XB.Utils.FillRectanglesInImage(ref _imgSpheres, ref _rects, ref _rSize, ref digitColor);
+            XB.Utils.FillRectanglesInImage(ref _imgSpheres, ref _rects, _rSize, ref digitColor);
             xStart += xSize;
         }
         XB.Utils.DigitRectangles(digit%10, xStart, yStart, xSize, ySize, thickness,
                                  ref _rects, ref _rSize, ref _vect                 );
-        XB.Utils.FillRectanglesInImage(ref _imgSpheres, ref _rects, ref _rSize, ref digitColor);
+        XB.Utils.FillRectanglesInImage(ref _imgSpheres, ref _rects, _rSize, ref digitColor);
 
 #if XBDEBUG
         debug.End();
@@ -415,21 +418,23 @@ public partial class HUD : Godot.Control {
         int xStart = (id%_columns)*_dimSp;
         int yOff   = (id/_columns)*_dimSp;
         int yStart = _dimSpY-yOff-_dimSp;
-        Godot.Color pColor = new Godot.Color(0.0f, 0.0f, 0.0f, 0.0f);
-        Godot.Color dColor = new Godot.Color(0.0f, 0.0f, 0.0f, 0.0f);
         switch (state) {
-            case XB.SphereTexSt.Inactive:      { pColor = XB.Col.InAct;   dColor = XB.Col.White; break; }
-            case XB.SphereTexSt.Active:        { pColor = XB.Col.Act;     dColor = XB.Col.Black; break; }
-            case XB.SphereTexSt.ActiveLinking: { pColor = XB.Col.LinkBri; dColor = XB.Col.Black; break; }
-            case XB.SphereTexSt.ActiveLinked:  { pColor = XB.Col.LinkDim; dColor = XB.Col.Black; break; }
+            case XB.SphereTexSt.Inactive:      { _pColor = XB.Col.InAct;   
+                                                 _dColor = XB.Col.White;   break; }
+            case XB.SphereTexSt.Active:        { _pColor = XB.Col.Act;    
+                                                 _dColor = XB.Col.Black;   break; }
+            case XB.SphereTexSt.ActiveLinking: { _pColor = XB.Col.LinkBri; 
+                                                 _dColor = XB.Col.Black;   break; }
+            case XB.SphereTexSt.ActiveLinked:  { _pColor = XB.Col.LinkDim; 
+                                                 _dColor = XB.Col.Black;   break; }
         }
 
         XB.Utils.BeveledRectangle(xStart+_dimBord, yStart+_dimBord,
                                   _dimSp-2*_dimBord-2*_dimThick, 
                                   ref _rects, ref _rSize, ref _vect);
-        XB.Utils.FillRectanglesInImage(ref _imgSpheres, ref _rects, ref _rSize, ref pColor);
+        XB.Utils.FillRectanglesInImage(ref _imgSpheres, ref _rects, _rSize, ref _pColor);
 
-        AddDigitTexture(id, xStart+2*_dimBord, yStart+2*_dimBord, _dimThick, ref dColor);
+        AddDigitTexture(id, xStart+2*_dimBord, yStart+2*_dimBord, _dimThick, ref _dColor);
         _texSpheres.Update(_imgSpheres);
 
 #if XBDEBUG
@@ -449,7 +454,7 @@ public partial class HUD : Godot.Control {
 
             XB.Utils.RectangleOutline(xStart, yStart, _dimSp, _dimThick, 
                                       ref _rects, ref _rSize, ref _vect );
-            XB.Utils.FillRectanglesInImage(ref _imgSpheres, ref _rects, ref _rSize, ref XB.Col.Transp);
+            XB.Utils.FillRectanglesInImage(ref _imgSpheres, ref _rects, _rSize, ref XB.Col.Transp);
         }
         if (to < XB.ManagerSphere.MaxSphereAmount) {
             int xStart = (to%_columns)*_dimSp;
@@ -458,7 +463,7 @@ public partial class HUD : Godot.Control {
             
             XB.Utils.RectangleOutline(xStart, yStart, _dimSp, _dimThick, 
                                       ref _rects, ref _rSize, ref _vect );
-            XB.Utils.FillRectanglesInImage(ref _imgSpheres, ref _rects, ref _rSize, ref XB.Col.Hl);
+            XB.Utils.FillRectanglesInImage(ref _imgSpheres, ref _rects, _rSize, ref XB.Col.Hl);
         }
         _texSpheres.Update(_imgSpheres);
 
@@ -477,8 +482,8 @@ public partial class HUD : Godot.Control {
         //            world has z+ going forward and x+ going left,
         //            so 0|0 in world coordinates is 0|0 in world coordinates
         //            but the axes of the terrain in world space go in negative direction
-        float posX = -XB.PController.PModel.GlobalPosition.X/XB.WorldData.WorldDim.X;
-        float posZ = -XB.PController.PModel.GlobalPosition.Z/XB.WorldData.WorldDim.Y;
+        float posX = -XB.PController.PModel.GlobalPosition.X/XB.WData.WorldDim.X;
+        float posZ = -XB.PController.PModel.GlobalPosition.Z/XB.WData.WorldDim.Y;
         float xDir = XB.PController.CCtrH.GlobalTransform.Basis.Z.X; // X coordinate of Z basis vector
         float zDir = XB.PController.CCtrH.GlobalTransform.Basis.Z.Z;
 
@@ -493,8 +498,8 @@ public partial class HUD : Godot.Control {
                 _spherePositions[i].Y = -1.0f; // to effectively ignore it
                 _sphereColors[i]      = XB.Col.Transp;
             } else {
-                posX = -XB.ManagerSphere.Spheres[i].GlobalPosition.X/XB.WorldData.WorldDim.X;
-                posZ = -XB.ManagerSphere.Spheres[i].GlobalPosition.Z/XB.WorldData.WorldDim.Y;
+                posX = -XB.ManagerSphere.Spheres[i].GlobalPosition.X/XB.WData.WorldDim.X;
+                posZ = -XB.ManagerSphere.Spheres[i].GlobalPosition.Z/XB.WData.WorldDim.Y;
                 _spherePositions[i].X = posX;
                 _spherePositions[i].Y = posZ;
 
@@ -517,6 +522,12 @@ public partial class HUD : Godot.Control {
 
     public void ToggleHUD() {
         _hudVisible = !_hudVisible;
+    }
+
+    public void UpdateHUDElementVisibility(bool showFps, bool showBlockGrid, bool showQTreeVis) {
+        FpsVisible       = showFps;
+        BlockGridVisible = showBlockGrid;
+        QTreeVisible     = showQTreeVis;
     }
 
     public void UpdateHUD(float dt) {
@@ -575,9 +586,9 @@ public partial class HUD : Godot.Control {
 
         UpdateMiniMapOverlayTexture();
 
-        if (XB.AData.QTreeVis) {
+        if (XB.AData.S.SC.QTreeVis) {
             XB.ManagerTerrain.UpdateQTreeTexture(ref _imgMiniMapQT,
-                                                 _imgMiniMapQT.GetWidth()/XB.WorldData.WorldDim.X);
+                                                 _imgMiniMapQT.GetWidth()/XB.WData.WorldDim.X);
             _texMiniMapQT.Update(_imgMiniMapQT);
         }
 

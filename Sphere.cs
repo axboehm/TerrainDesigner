@@ -47,6 +47,25 @@ public partial class Sphere : Godot.CharacterBody3D {
     private const float _hlSm           = 12.0f;
     private const float _fresnelPower   = 2.0f;
 
+    private Godot.Vector3 _move     = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _hitPosT  = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _hitPosP  = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _hitNrmT  = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _rOrig    = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _rDest    = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _rDir     = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _toPosT   = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _toPosP   = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _pToT     = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _hitPrevG = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _hitThisG = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _pos      = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _dir      = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _dirAng   = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _nrmAng   = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Collections.Dictionary _resultT = new Godot.Collections.Dictionary();
+    private Godot.Collections.Dictionary _resultP = new Godot.Collections.Dictionary();
+
     private Godot.Collections.Array _meshDataCone;
     private Godot.ArrayMesh         _arrMesh;
     private Godot.ShaderMaterial    _materialCone;
@@ -104,6 +123,7 @@ public partial class Sphere : Godot.CharacterBody3D {
         _trianglesCone = new int          [3*_circleSteps + 6*_circleSteps];
 
         // see UpdateConeMesh() for layout of cone mesh
+        _verticesCone[0] = new Godot.Vector3(0.0f, 0.0f, 0.0f); // center vertex does never change
         var v2 = new Godot.Vector2(0.0f, 0.0f);
         _uvsCone[0] = v2; // cone plateau center
         for (int i = 0; i <= _circleSteps; i++) {
@@ -186,13 +206,12 @@ public partial class Sphere : Godot.CharacterBody3D {
             if (ID > 9) { // decimal digit
                 XB.Utils.DigitRectangles(ID/10, xStart+_dimThick, _dimThick, _dimDigitX,
                                          _dimDigitY, _dimThick, ref rects, ref rSize, ref vect);
-                XB.Utils.FillRectanglesInImage(ref _imgScrolling, ref rects, ref rSize,
-                                               ref XB.Col.White                        );
+                XB.Utils.FillRectanglesInImage(ref _imgScrolling, ref rects, rSize, ref XB.Col.White);
                 xStart += _dimDigitX;
             }
             XB.Utils.DigitRectangles(ID%10, xStart+_dimThick, _dimThick, _dimDigitX,
                                      _dimDigitY, _dimThick, ref rects, ref rSize, ref vect);
-            XB.Utils.FillRectanglesInImage(ref _imgScrolling, ref rects, ref rSize, ref XB.Col.White);
+            XB.Utils.FillRectanglesInImage(ref _imgScrolling, ref rects, rSize, ref XB.Col.White);
         }
 
         _texScrolling = new Godot.ImageTexture();
@@ -381,54 +400,63 @@ public partial class Sphere : Godot.CharacterBody3D {
     // when sphere gets moved
     // move sphere by taking the current frames relation of the camera to the sphere and comparing
     // to the previous frame's, then calculating an offset vector and moving the sphere accordingly
+    // all parameters are only read from
     //NOTE[ALEX]: sphere movement gets slightly off when the player is moving into the terrain's
     //            edge aggressively, this limitation is acceptable for now
-    public void MoveSphere(Godot.Transform3D camTrans, Godot.Transform3D camTransPrev,
-                           Godot.PhysicsDirectSpaceState3D spaceState, Godot.Vector3 playerMovement) {
+    public void MoveSphere(ref Godot.Transform3D camTrans, ref Godot.Transform3D camTransPrev,
+                           ref Godot.PhysicsDirectSpaceState3D spaceState,
+                           ref Godot.Vector3 playerMovement, float dt                         ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.SphereMoveSphere);
 #endif
 
-        var   move     = new Godot.Vector3(0.0f, 0.0f, 0.0f);
-        var   rayOrigT = camTrans.Origin; 
-        var   rayOrigP = camTransPrev.Origin; 
-        float rayDist  = XB.WorldData.WorldDim.X+XB.WorldData.WorldDim.Y;
-        var   rayDestT = camTrans.Origin    -rayDist*camTrans.Basis.Z;
-        var   rayDestP = camTransPrev.Origin-rayDist*camTransPrev.Basis.Z;
-        var   resultT  = XB.Utils.Raycast(spaceState, rayOrigT, rayDestT, XB.LayerMasks.SphereMask);
-        var   resultP  = XB.Utils.Raycast(spaceState, rayOrigP, rayDestP, XB.LayerMasks.SphereMask);
+        float rayDist = XB.WData.WorldDim.X + XB.WData.WorldDim.Y;
+        _rOrig = camTrans.Origin; 
+        _rDest = camTrans.Origin - rayDist*camTrans.Basis.Z;
+        XB.Utils.Raycast(ref spaceState, ref _rOrig, ref _rDest, XB.LayerMasks.SphereMask,
+                         ref _resultT                                                     );
+        _rOrig = camTransPrev.Origin; 
+        _rDest = camTransPrev.Origin - rayDist*camTransPrev.Basis.Z;
+        XB.Utils.Raycast(ref spaceState, ref _rOrig, ref _rDest, XB.LayerMasks.SphereMask, 
+                         ref _resultP                                                     );
 
-        if (resultT.Count > 0 && resultP.Count > 0) {
-            var hitPosT = (Godot.Vector3)resultT["position"];
-            var hitPosP = (Godot.Vector3)resultP["position"];
+        if (_resultT.Count > 0 && _resultP.Count > 0) {
+            _hitPosT = (Godot.Vector3)_resultT["position"];
+            _hitPosP = (Godot.Vector3)_resultP["position"];
 
             // vertical movement
-            var hitNrmT    = new Godot.Vector3(camTrans.Origin.X, 0.0f, camTrans.Origin.Z);
-                hitNrmT.X -= hitPosT.X; // sphere to player this frame
-                hitNrmT.Z -= hitPosT.Z;
+            _hitNrmT.X = camTrans.Origin.X;
+            _hitNrmT.Y = 0.0f;
+            _hitNrmT.Z = camTrans.Origin.Z;
+            _hitNrmT.X -= _hitPosT.X; // sphere to player this frame
+            _hitNrmT.Z -= _hitPosT.Z;
             //NOTE[ALEX]: when using the previous frames hit vector in the following calculation, 
             //            the sphere jitters heavily, so using the same one is intentional
             //            as the player's movement has to be compensated for
             //            from the previous frame's camera position 
-            var hitPrevG = XB.Utils.IntersectRayPlaneV3(camTransPrev.Origin + playerMovement,
-                                                        camTransPrev.Basis.Z, hitPosT, hitNrmT);
-            var hitThisG = XB.Utils.IntersectRayPlaneV3(camTrans.Origin, camTrans.Basis.Z,
-                                                        hitPosT, hitNrmT                  );
+            _rOrig = camTransPrev.Origin + playerMovement*dt;
+            _rDir  = camTransPrev.Basis.Z;
+            XB.Utils.IntersectRayPlaneV3(ref _rOrig, ref _rDir, ref _hitPosT, ref _hitNrmT,
+                                         ref _hitPrevG                                     );
+            _rOrig = camTrans.Origin;
+            _rDir  = camTrans.Basis.Z;
+            XB.Utils.IntersectRayPlaneV3(ref _rOrig, ref _rDir, ref _hitPosT, ref _hitNrmT,
+                                         ref _hitThisG                                     );
 
             // horizontal movement
-            var   toPosT      = hitPosT-camTrans.Origin;
-            var   toPosP      = (hitPosP-camTrans.Origin).Normalized();
-                  toPosP     *= toPosT.Length(); // previous position with same distance as current frame
-            var   prevToThis  = toPosT-toPosP;
+            _toPosT  = _hitPosT-camTrans.Origin;
+            _toPosP  = (_hitPosP-camTrans.Origin).Normalized();
+            _toPosP *= _toPosT.Length(); // previous position with same distance as current frame
+            _pToT    = _toPosT-_toPosP;
 
             // apply movement
-            move.X = prevToThis.X + playerMovement.X;
-            move.Y = hitThisG.Y-hitPrevG.Y;
-            move.Z = prevToThis.Z + playerMovement.Z;
-            var pos   = GlobalPosition + move;
-                pos.Y = XB.Utils.ClampF(GlobalPosition.Y + move.Y, XB.WorldData.KillPlane,
-                                                                  -XB.WorldData.KillPlane);
-            GlobalPosition = pos; // since the sphere does not have in-world collisions
+            _move.X = _pToT.X + playerMovement.X*dt;
+            _move.Y = _hitThisG.Y-_hitPrevG.Y;
+            _move.Z = _pToT.Z + playerMovement.Z*dt;
+            _pos    = GlobalPosition + _move;
+            _pos.Y  = XB.Utils.ClampF(GlobalPosition.Y + _move.Y, +XB.WData.KillPlane,
+                                                                  -XB.WData.KillPlane);
+            GlobalPosition = _pos; // since the sphere does not have in-world collisions
         }
 
         UpdateConeMesh();
@@ -445,8 +473,7 @@ public partial class Sphere : Godot.CharacterBody3D {
 #endif
 
         Radius += amount*_radiusMult; // mouse down will reduce radius
-        Radius  = XB.Utils.ClampF(Radius, _radiusMin,
-                                  XB.WorldData.WorldDim.X + XB.WorldData.WorldDim.Y);
+        Radius  = XB.Utils.ClampF(Radius, _radiusMin, XB.WData.WorldDim.X + XB.WData.WorldDim.Y);
         UpdateConeMesh();
         XB.ManagerSphere.UpdateDam(ID);
 
@@ -491,20 +518,21 @@ public partial class Sphere : Godot.CharacterBody3D {
         var debug = new XB.DebugTimedBlock(XB.D.SphereUpdateConeMesh);
 #endif
 
-        _verticesCone[0] = new Godot.Vector3(0.0f, 0.0f, 0.0f);
-        var dir    = new Godot.Vector3(Radius, 0.0f, 0.0f);
-        var dirAng =              dir.Rotated(Godot.Vector3.Forward, Angle*XB.Constants.Deg2Rad);
-            dirAng = dirAng.Normalized();
-        var nrmAng = Godot.Vector3.Up.Rotated(Godot.Vector3.Forward, Angle*XB.Constants.Deg2Rad);
+        _dir.X = Radius;
+        _dir.Y = 0.0f;
+        _dir.Z = 0.0f;
+        _dirAng = _dir.Rotated(Godot.Vector3.Forward, Angle*XB.Constants.Deg2Rad);
+        _dirAng = _dirAng.Normalized();
+        _nrmAng = Godot.Vector3.Up.Rotated(Godot.Vector3.Forward, Angle*XB.Constants.Deg2Rad);
         for (int i = 0; i <= _circleSteps; i++) {
             float rotAmnt = (i/(float)_circleSteps)*XB.Constants.Tau;
             _verticesCone[1 + 0*(_circleSteps+1) + i] = _verticesCone[0]
-                +dir.Rotated(Godot.Vector3.Up, rotAmnt);
+                + _dir.Rotated(Godot.Vector3.Up, rotAmnt);
             _verticesCone[1 + 1*(_circleSteps+1) + i] = _verticesCone[1 + 0*(_circleSteps+1) + i];
-            _normalsCone [1 + 1*(_circleSteps+1) + i] = nrmAng.Rotated(Godot.Vector3.Up, rotAmnt);
+            _normalsCone [1 + 1*(_circleSteps+1) + i] = _nrmAng.Rotated(Godot.Vector3.Up, rotAmnt);
             _verticesCone[1 + 2*(_circleSteps+1) + i] = _verticesCone[1 + 0*(_circleSteps+1) + i] 
-                + XB.WorldData.SphereEdgeLength*dirAng.Rotated(Godot.Vector3.Up, rotAmnt);
-            _normalsCone [1 + 2*(_circleSteps+1) + i] = nrmAng.Rotated(Godot.Vector3.Up, rotAmnt);
+                + XB.WData.SphereEdgeLength*_dirAng.Rotated(Godot.Vector3.Up, rotAmnt);
+            _normalsCone [1 + 2*(_circleSteps+1) + i] = _nrmAng.Rotated(Godot.Vector3.Up, rotAmnt);
         }
 
         _meshDataCone[(int)Godot.Mesh.ArrayType.Vertex] = _verticesCone;

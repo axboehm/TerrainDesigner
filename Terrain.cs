@@ -73,7 +73,7 @@ public class Terrain {
             float total = 0.0f;
             float value = 0.0f;
 
-            for (int j = 0; j < XB.WorldData.WorldVerts.Y; j++) {
+            for (int j = 0; j < XB.WData.WorldVerts.Y; j++) {
                 amp   = 1.0f;
                 freq  = 1.0f;
                 total = 0.0f;
@@ -91,7 +91,7 @@ public class Terrain {
 
                 total /= normalization;
                 total  = System.MathF.Pow(total, exponentation) * height;
-                XB.WorldData.TerrainHeightsMod[i, j] = total;
+                XB.WData.TerrainHeightsMod[i, j] = total;
             }
         });
 #endif
@@ -236,8 +236,8 @@ public class Terrain {
         var debug = new XB.DebugTimedBlock(XB.D.TerrainFlat);
 #endif
 
-        XB.WorldData.LowestPoint  = height;
-        XB.WorldData.HighestPoint = height;
+        XB.WData.LowestPoint  = height;
+        XB.WData.HighestPoint = height;
         for (int i = 0; i < amountX; i++) {
             for (int j = 0; j < amountZ; j++) {
                 tHeights[i, j] = height;
@@ -255,8 +255,8 @@ public class Terrain {
         var debug = new XB.DebugTimedBlock(XB.D.TerrainGradientX);
 #endif
 
-        XB.WorldData.LowestPoint  = low;
-        XB.WorldData.HighestPoint = high;
+        XB.WData.LowestPoint  = low;
+        XB.WData.HighestPoint = high;
 
         float diff = high - low;
         for (int i = 0; i < amountX; i++) {
@@ -276,8 +276,8 @@ public class Terrain {
         var debug = new XB.DebugTimedBlock(XB.D.TerrainGradientY);
 #endif
 
-        XB.WorldData.LowestPoint  = low;
-        XB.WorldData.HighestPoint = high;
+        XB.WData.LowestPoint  = low;
+        XB.WData.HighestPoint = high;
 
         float diff = high - low;
         for (int i = 0; i < amountZ; i++) {
@@ -470,8 +470,8 @@ public class Terrain {
         var debug = new XB.DebugTimedBlock(XB.D.TerrainResetLowestHighest);
 #endif
 
-        XB.WorldData.LowestPoint  = float.MaxValue;
-        XB.WorldData.HighestPoint = float.MinValue;
+        XB.WData.LowestPoint  = float.MaxValue;
+        XB.WData.HighestPoint = float.MinValue;
 
         // Godot.GD.Print("ResetLowestHighest, Low to: " + XB.WorldData.LowestPoint
         //                + "m, High to: " + XB.WorldData.HighestPoint + "m"       );
@@ -487,11 +487,8 @@ public class Terrain {
 #endif
 
         //NOTE[ALEX]: does not use min max functions for easier debugging/logging
-        if (value < XB.WorldData.LowestPoint) {
-            XB.WorldData.LowestPoint = value;
-        } else if ( value > XB.WorldData.HighestPoint) {
-            XB.WorldData.HighestPoint = value;
-        }
+        if      (value < XB.WData.LowestPoint)   { XB.WData.LowestPoint  = value; }
+        else if ( value > XB.WData.HighestPoint) { XB.WData.HighestPoint = value; }
 
 #if XBDEBUG
         debug.End();

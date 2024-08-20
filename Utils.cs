@@ -2,6 +2,13 @@
 namespace XB { // namespace open
 public class Utils {
     public static int MaxRectSize = 5; // maximum amount of Rect2I used in functions in Utils
+    private static Godot.Vector3 _v0 = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+
+    private static void ClearInternalVariables() {
+        _v0.X = 0.0f;
+        _v0.Y = 0.0f;
+        _v0.Z = 0.0f;
+    }
 
     public static float ClampF(float a, float b, float c) {
         if (a < b) return b;
@@ -89,42 +96,43 @@ public class Utils {
         else       return a;
     }
 
-    public static Godot.Vector3 IntersectRayPlaneV3(Godot.Vector3 rPoint, Godot.Vector3 rDir,
-                                                    Godot.Vector3 pPoint, Godot.Vector3 pNormal) {
+    public static void IntersectRayPlaneV3(ref Godot.Vector3 rOrig, ref Godot.Vector3 rDir,
+                                           ref Godot.Vector3 pOrig, ref Godot.Vector3 pNormal,
+                                           ref Godot.Vector3 result                            ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.UtilsIntersectRayPlaneV3);
 #endif
 
-        var res   = new Godot.Vector3(0.0f, 0.0f, 0.0f);
-        var diff  = rPoint-pPoint;
-        var prod1 = diff.Dot(pNormal);
-        var prod2 = rDir.Dot(pNormal);
-        if (prod2 == 0) return res; // ray is parallel to plane
-        var prod3 = prod1/prod2;
-            res   = rPoint - rDir*prod3;
+        ClearInternalVariables();
+        _v0 = rOrig - pOrig;
+        float prod1 = _v0.Dot(pNormal);
+        float prod2 = rDir.Dot(pNormal);
+        if (prod2 == 0) { // ray is parallel to plane
+            result.X = 0;
+            result.Y = 0;
+            result.Z = 0;
+        }
+        float prod3 = prod1/prod2;
+        result = rOrig - rDir*prod3;
 
 #if XBDEBUG
         debug.End();
 #endif 
-
-        return res;
     }
 
-    public static Godot.Collections.Dictionary Raycast(Godot.PhysicsDirectSpaceState3D spaceState,
-                                                       Godot.Vector3 from, Godot.Vector3 to,
-                                                       uint layerMask) {
+    public static void Raycast(ref Godot.PhysicsDirectSpaceState3D spaceState,
+                               ref Godot.Vector3 from, ref Godot.Vector3 to, uint layerMask,
+                               ref Godot.Collections.Dictionary result                      ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.UtilsRaycast);
 #endif
 
-        var res =  spaceState.IntersectRay
+        result =  spaceState.IntersectRay
             (Godot.PhysicsRayQueryParameters3D.Create(from, to, layerMask));
 
 #if XBDEBUG
         debug.End();
 #endif 
-
-        return res;
     }
 
     public static void PlayUISound(string path) {
@@ -187,7 +195,7 @@ public class Utils {
     }
 
     public static void FillRectanglesInImage(ref Godot.Image image, ref Godot.Rect2I[] rects,
-                                             ref int rSize, ref Godot.Color color            ) {
+                                             int rSize, ref Godot.Color color                ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.UtilsFillRectanglesInImage);
 #endif

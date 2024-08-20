@@ -17,6 +17,9 @@ public partial class Initialize : Godot.Node3D {
         XB.AData.MainRoot    = this;
         XB.AData.Environment = _environment.Environment;
         XB.AData.MainLight   = _mainLight;
+
+        XB.AData.S = new XB.Settings();
+
         XB.Random.InitializeRandom(XB.AData.InitialSeed); // fixed startup seed for reproducable runs
 
         XB.Resources.InitializeTerrainTextures();
@@ -32,25 +35,23 @@ public partial class Initialize : Godot.Node3D {
 #endif
 
         XB.AData.MainRoot.AddChild(XB.AData.Input);
-        XB.PersistData.SetPresetSettings(XB.SettingsPreset.Default);
-        XB.PersistData.SetApplicationDefaults();
+        XB.AData.S.SetPresetSettings(XB.SettingsPreset.Default);
+        XB.AData.S.SetApplicationDefaults();
         XB.ManagerSphere.InitializeSpheres();
 
         _player.InitializePController();
         _player.InitializeHud();
         _player.InitializeMenu();
-        XB.PersistData.UpdateScreen();
 
         // world dimensions given in exponent for power of 2:
         // 1 - 2m, 2 - 4m, 3 - 8m, 4 - 16m, 5 - 32m, 6 - 64m, 7 - 128m, 8 - 256m, 9 - 512m
         int worldSizeExpX = 6; // 64m
         int worldSizeExpZ = 6; // 64m
-        XB.WorldData.InitializeTerrainMesh(worldSizeExpX, worldSizeExpZ);
-        XB.WorldData.GenerateRandomTerrain();
-        XB.WorldData.UpdateTerrain(true);
+        XB.WData.InitializeTerrainMesh(worldSizeExpX, worldSizeExpZ);
+        XB.WData.GenerateRandomTerrain();
+        XB.WData.UpdateTerrain(true);
 
-        _player.SpawnPlayer(new Godot.Vector2(-XB.WorldData.WorldDim.X/2.0f,
-                                              -XB.WorldData.WorldDim.Y/2.0f));
+        _player.SpawnPlayer(new Godot.Vector2(-XB.WData.WorldDim.X/2.0f, -XB.WData.WorldDim.Y/2.0f));
 
 #if XBDEBUG
         _player.InitializeDebugHud();

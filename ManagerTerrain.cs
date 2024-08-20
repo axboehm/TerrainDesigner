@@ -151,9 +151,9 @@ public class MeshContainer {
 
         MaterialTile = new Godot.ShaderMaterial();
         MaterialTile.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.TerrainShader);
-        MaterialTile.SetShaderParameter("albedoMult", XB.WorldData.AlbedoMult);
+        MaterialTile.SetShaderParameter("albedoMult", XB.WData.AlbedoMult);
         MaterialTile.SetShaderParameter("tBlock",     XB.Resources.BlockTex);
-        MaterialTile.SetShaderParameter("blockStr",   XB.WorldData.BlockStrength);
+        MaterialTile.SetShaderParameter("blockStr",   XB.WData.BlockStrength);
         MaterialTile.SetShaderParameter("tNoiseP",    XB.Resources.NoiseBombing);
         MaterialTile.SetShaderParameter("tAlbedoM1",  XB.Resources.Terrain1CATex);
         MaterialTile.SetShaderParameter("tRMM1",      XB.Resources.Terrain1RMTex);
@@ -416,13 +416,13 @@ public class MeshContainer {
         var debug = new XB.DebugTimedBlock(XB.D.MeshContainerSetTerrainShaderAttributes);
 #endif
 
-        MaterialTile.SetShaderParameter("scaleX",      WorldData.WorldDim.X);
-        MaterialTile.SetShaderParameter("scaleY",      WorldData.WorldDim.Y);
-        MaterialTile.SetShaderParameter("blockScale",  WorldData.BlockUVScale);
-        MaterialTile.SetShaderParameter("uv1Scale",    WorldData.Mat1UVScale);
-        MaterialTile.SetShaderParameter("uv2Scale",    WorldData.Mat2UVScale);
-        MaterialTile.SetShaderParameter("noisePScale", WorldData.NoisePScale);
-        MaterialTile.SetShaderParameter("blendDepth",  WorldData.BlendDepth);
+        MaterialTile.SetShaderParameter("scaleX",      WData.WorldDim.X);
+        MaterialTile.SetShaderParameter("scaleY",      WData.WorldDim.Y);
+        MaterialTile.SetShaderParameter("blockScale",  WData.BlockUVScale);
+        MaterialTile.SetShaderParameter("uv1Scale",    WData.Mat1UVScale);
+        MaterialTile.SetShaderParameter("uv2Scale",    WData.Mat2UVScale);
+        MaterialTile.SetShaderParameter("noisePScale", WData.NoisePScale);
+        MaterialTile.SetShaderParameter("blendDepth",  WData.BlendDepth);
         MaterialTile.SetShaderParameter("tHeight",     XB.PController.Hud.TexMiniMap);
 
 #if XBDEBUG
@@ -470,7 +470,7 @@ public class MeshContainer {
         }
 
         for (int i = 0; i < VerticesSkirt[d].Length/2; i++) {
-            VerticesSkirt[d][2*i+1].Y = XB.WorldData.KillPlane;
+            VerticesSkirt[d][2*i+1].Y = XB.WData.KillPlane;
             NormalsSkirt [d][2*i+0]   = n;
             NormalsSkirt [d][2*i+1]   = n;
         }
@@ -705,8 +705,10 @@ public class ManagerTerrain {
     private static float    _sizeCTile   = 0.0f; // size of full size collision tiles
     private static float    _worldXSize  = 0.0f;
     private static float    _worldZSize  = 0.0f;
+    private static Godot.Vector2                _qNodeCtr = new Godot.Vector2(0.0f, 0.0f);
     private static SysCG.List<XB.MeshContainer> _terrainMeshes;
     private static XB.CollisionTile[,]          _terrainColTiles;
+
 
     //NOTE[ALEX]: there is no safequard against overly large worlds with high resolution
     public static void InitializeQuadTree(float xSize, float zSize, float resM, float resC,
@@ -832,30 +834,29 @@ public class ManagerTerrain {
 
     // reference position can be the player model or player camera,
     // depending on where the highest resolution mesh should be prioritized
-    public static void UpdateQTreeMeshes(Godot.Vector2 refPos, float lowestPoint,
+    public static void UpdateQTreeMeshes(ref Godot.Vector2 refPos, float lowestPoint,
                                          float highestPoint, ref Godot.Image imgHeightMap) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainUpdateQTreeMeshes);
 #endif
 
-        UpdateQNodeMesh(refPos, ref _qRoot, lowestPoint, highestPoint, ref imgHeightMap);   
+        UpdateQNodeMesh(ref refPos, ref _qRoot, lowestPoint, highestPoint, ref imgHeightMap);   
 
 #if XBDEBUG
         debug.End();
 #endif 
     }
 
-    private static void UpdateQNodeMesh(Godot.Vector2 refPos, ref XB.QNode qNode,
-                                        float lowestPoint, float highestPoint,
-                                        ref Godot.Image imgHeightMap             ) {
+    private static void UpdateQNodeMesh(ref Godot.Vector2 refPos, ref XB.QNode qNode,
+                                        float lowest, float highest, ref Godot.Image imgHeightMap) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainUpdateQNodeMesh);
 #endif
         if (qNode.Children[0] == null) {
             if (!qNode.Visible) {
                 RequestMeshContainer(ref qNode);
-                qNode.UpdateAssignedMesh(_worldXSize, _worldZSize, lowestPoint, 
-                                         highestPoint, ref imgHeightMap        );
+                qNode.UpdateAssignedMesh(_worldXSize, _worldZSize, lowest, 
+                                         highest, ref imgHeightMap        );
                 RecycleChildMesh(ref qNode.Children[0]);
                 RecycleChildMesh(ref qNode.Children[1]);
                 RecycleChildMesh(ref qNode.Children[2]);
@@ -864,23 +865,22 @@ public class ManagerTerrain {
             return;
         }
 
-        var   qNodeCtr = new Godot.Vector2(qNode.XPos, qNode.ZPos);
-        float dist     = (refPos-qNodeCtr).Length();
-        float comp     = (qNode.XSize + qNode.ZSize) / 2;
+        _qNodeCtr  = new Godot.Vector2(qNode.XPos, qNode.ZPos);
+        float dist = (refPos-_qNodeCtr).Length();
+        float comp = (qNode.XSize + qNode.ZSize) / 2;
 
         if (dist < comp) {
             if (qNode.Visible) {
                 RecycleMeshContainer(ref qNode);
             }
-            UpdateQNodeMesh(refPos, ref qNode.Children[0], lowestPoint, highestPoint, ref imgHeightMap);
-            UpdateQNodeMesh(refPos, ref qNode.Children[1], lowestPoint, highestPoint, ref imgHeightMap);
-            UpdateQNodeMesh(refPos, ref qNode.Children[2], lowestPoint, highestPoint, ref imgHeightMap);
-            UpdateQNodeMesh(refPos, ref qNode.Children[3], lowestPoint, highestPoint, ref imgHeightMap);
+            UpdateQNodeMesh(ref refPos, ref qNode.Children[0], lowest, highest, ref imgHeightMap);
+            UpdateQNodeMesh(ref refPos, ref qNode.Children[1], lowest, highest, ref imgHeightMap);
+            UpdateQNodeMesh(ref refPos, ref qNode.Children[2], lowest, highest, ref imgHeightMap);
+            UpdateQNodeMesh(ref refPos, ref qNode.Children[3], lowest, highest, ref imgHeightMap);
         } else {
             if (!qNode.Visible) {
                 RequestMeshContainer(ref qNode);
-                qNode.UpdateAssignedMesh(_worldXSize, _worldZSize, lowestPoint,
-                                         highestPoint, ref imgHeightMap        );
+                qNode.UpdateAssignedMesh(_worldXSize, _worldZSize, lowest, highest, ref imgHeightMap);
                 RecycleChildMesh(ref qNode.Children[0]);
                 RecycleChildMesh(ref qNode.Children[1]);
                 RecycleChildMesh(ref qNode.Children[2]);
@@ -1001,8 +1001,7 @@ public class ManagerTerrain {
 
         for (int i = 0; i < _terrainMeshes.Count; i++) {
             if (_terrainMeshes[i].InUse) {
-                _terrainMeshes[i].SetShaderAttribute("blockStr",
-                                                     multiplier*XB.WorldData.BlockStrength);
+                _terrainMeshes[i].SetShaderAttribute("blockStr", multiplier*XB.WData.BlockStrength);
             }
         }
 
@@ -1018,8 +1017,7 @@ public class ManagerTerrain {
 
         for (int i = 0; i < _terrainMeshes.Count; i++) {
             if (_terrainMeshes[i].InUse) {
-                _terrainMeshes[i].SetShaderAttribute("albVisStr",
-                                                     multiplier*XB.WorldData.QTreeStrength);
+                _terrainMeshes[i].SetShaderAttribute("albVisStr", multiplier*XB.WData.QTreeStrength);
             }
         }
 

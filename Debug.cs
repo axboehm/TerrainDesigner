@@ -25,7 +25,7 @@ public partial class DebugHUD : Godot.Control {
         _trBlueNoise          = new Godot.TextureRect();
         Godot.Vector2I sizeBN = XB.Random.BlueNoise.GetSize();
         _trBlueNoise.Size     = sizeBN;
-        _trBlueNoise.Position = new Godot.Vector2I(XB.AData.BaseResX-_dimSpacer-_edgeOff-sizeBN.X,
+        _trBlueNoise.Position = new Godot.Vector2I(XB.Settings.BaseResX-_dimSpacer-_edgeOff-sizeBN.X,
                                                    _dimSpacer);
         _texBlueNoise         = new Godot.ImageTexture();
         _texBlueNoise.SetImage(XB.Random.BlueNoise);
@@ -56,8 +56,8 @@ public partial class DebugHUD : Godot.Control {
             var tPos = new Godot.Vector2I(_dimSpacer, 2*_dimSpacer+sizeBN.Y + _debugLabelSpacing*i);
             _lbDebugStats[i].HorizontalAlignment = Godot.HorizontalAlignment.Right;
             _lbDebugStats[i].Position = tPos;
-            _lbDebugStats[i].Size     = new Godot.Vector2I(XB.AData.BaseResX-2*_dimSpacer-_edgeOff,
-                                                           _debugLabelSpacing+_debugLabelFontSize);
+            _lbDebugStats[i].Size     = new Godot.Vector2I(XB.Settings.BaseResX-2*_dimSpacer-_edgeOff,
+                                                           _debugLabelSpacing+_debugLabelFontSize     );
             _lbDebugStats[i].AddThemeFontOverride    ("font",               font                  );
             _lbDebugStats[i].AddThemeFontSizeOverride("font_size",          _debugLabelFontSize   );
             _lbDebugStats[i].AddThemeConstantOverride("outline_size",       _debugLabelOutlineSize);
