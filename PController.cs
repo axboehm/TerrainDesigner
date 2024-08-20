@@ -52,6 +52,8 @@ public partial class PController : Godot.CharacterBody3D {
 
     private       bool          _thirdP           = true;
     private       bool          _canShoot         = false;
+    private       bool          _stickyDrag       = false; // for when drag modifying spheres
+    private       int           _stickyID         = -1;
     private const float         _respawnOff       = 0.1f;  // distance to ground when respawning
     private const float         _sphereSpawnDist  = 6.0f;  // distance to newly placed sphere in meter
     private       bool          _spawn            = false; // spawn player delayed for raycast to work
@@ -124,7 +126,7 @@ public partial class PController : Godot.CharacterBody3D {
     private Godot.Vector2     _pModelPos    = new Godot.Vector2(0.0f, 0.0f);
     private Godot.Transform3D _camTransThis = new Godot.Transform3D(); // for moving spheres
     private Godot.Transform3D _camTransPrev = new Godot.Transform3D(); // for moving spheres
-    private Godot.Collections.Dictionary _resultRC = new Godot.Collections.Dictionary();
+    private Godot.Collections.Dictionary   _resultRC = new Godot.Collections.Dictionary();
     private Godot.CameraAttributesPhysical _cAP;
     private XB.Sphere _sphere;
 #if XBDEBUG
@@ -547,7 +549,9 @@ public partial class PController : Godot.CharacterBody3D {
             if (_resultRC.Count > 0) { _canShoot = false; }
             _fov = XB.AData.S.SC.FovAim;
         } else {
-            _canShoot = false;
+            _canShoot   = false;
+            _stickyDrag = false;
+            _stickyID   = XB.ManagerSphere.MaxSphereAmount;
             _fov = XB.AData.S.SC.FovDef;
         }
 
@@ -697,8 +701,11 @@ public partial class PController : Godot.CharacterBody3D {
             if (_canShoot && XB.AData.Input.SRTop) { // remove sphere
                 if (XB.ManagerSphere.HLSphereID < XB.ManagerSphere.MaxSphereAmount) {
                     XB.ManagerSphere.Spheres[XB.ManagerSphere.HLSphereID].RemoveSphere();
+                    _stickyDrag = false;
+                    _stickyID   = XB.ManagerSphere.MaxSphereAmount;
                 }
             }
+            // SRBot - Sphere interactions
             if (_canShoot && XB.AData.Input.SRBot
                     && !XB.AData.Input.DLeft && !XB.AData.Input.DRight) {
                 if (XB.ManagerSphere.HLSphereID < XB.ManagerSphere.MaxSphereAmount) {
@@ -707,17 +714,27 @@ public partial class PController : Godot.CharacterBody3D {
                         (ref _camTransThis, ref _camTransPrev, ref _spaceSt, ref _spV, dt);
                 }
             }
-            //TODO[ALEX]: this should continue until let go of mouse, not when sphere is out of reticle
-            if (_canShoot && XB.AData.Input.DLeft && XB.AData.Input.SRBot) {
-                if (XB.ManagerSphere.HLSphereID < XB.ManagerSphere.MaxSphereAmount) {
-                    XB.ManagerSphere.Spheres[XB.ManagerSphere.HLSphereID].ChangeSphereRadius
-                        (XB.AData.Input.CamY*dt);
-                }
+            if (!_stickyDrag
+                && (   (_canShoot && XB.AData.Input.SRBot && XB.AData.Input.DLeft)
+                    || (_canShoot && XB.AData.Input.SRBot && XB.AData.Input.DRight))) {
+                _stickyDrag = true;
+                _stickyID   = XB.ManagerSphere.HLSphereID;
             }
-            if (_canShoot && XB.AData.Input.DRight && XB.AData.Input.SRBot) {
-                if (XB.ManagerSphere.HLSphereID < XB.ManagerSphere.MaxSphereAmount) {
-                    XB.ManagerSphere.Spheres[XB.ManagerSphere.HLSphereID].ChangeSphereAngle
-                        (XB.AData.Input.CamY*dt);
+            if (_stickyDrag) {
+                if (XB.AData.Input.SRBot) {
+                    if (_stickyID < XB.ManagerSphere.MaxSphereAmount) {
+                        if (XB.AData.Input.DLeft) {
+                            XB.ManagerSphere.Spheres[_stickyID].ChangeSphereRadius
+                                (XB.AData.Input.CamY*dt);
+                        }
+                        if (XB.AData.Input.DRight) {
+                            XB.ManagerSphere.Spheres[_stickyID].ChangeSphereAngle
+                                (XB.AData.Input.CamY*dt);
+                        }
+                    }
+                } else {
+                    _stickyDrag = false;
+                    _stickyID   = XB.ManagerSphere.MaxSphereAmount;
                 }
             }
         }
