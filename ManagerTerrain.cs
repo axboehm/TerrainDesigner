@@ -46,24 +46,45 @@ public class QNode {
     }
 
     public void Activate() {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.QNodeActivate);
+#endif
+
         Active = true;
         if (Children[0] == null) { return; }
         Children[0].DeActivate();
         Children[1].DeActivate();
         Children[2].DeActivate();
         Children[3].DeActivate();
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public void DeActivate() {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.QNodeDeActivate);
+#endif
+
         Active = false;
         if (Children[0] == null) { return; }
         Children[0].DeActivate();
         Children[1].DeActivate();
         Children[2].DeActivate();
         Children[3].DeActivate();
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public bool ChildrenReady() {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.QNodeChildrenReady);
+        debug.End();
+#endif
+
         if (Children[0] == null)    { return false; }
         if (!Children[0].MeshReady) { return false; }
         if (!Children[1].MeshReady) { return false; }
@@ -73,20 +94,16 @@ public class QNode {
     }
 
     public bool ChildrenActive() {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.QNodeChildrenActive);
+        debug.End();
+#endif
+
         if (Children[0] == null) { return false; }
         if (!Children[0].Active) { return false; }
         if (!Children[1].Active) { return false; }
         if (!Children[2].Active) { return false; }
         if (!Children[3].Active) { return false; }
-        return true;
-    }
-
-    public bool ChildrenVisible() {
-        if (Children[0] == null)      { return false; }
-        if (!Children[0].MeshVisible) { return false; }
-        if (!Children[1].MeshVisible) { return false; }
-        if (!Children[2].MeshVisible) { return false; }
-        if (!Children[3].MeshVisible) { return false; }
         return true;
     }
 
@@ -129,9 +146,17 @@ public class QNode {
     }
 
     public void ShowMeshContainer() {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.QNodeShowMeshContainer);
+#endif
+
         MeshVisible = true;
         MeshReady   = false;
         MeshContainer.ShowMesh();
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public void ReleaseMeshContainer() {
@@ -670,6 +695,10 @@ public class CollisionTile {
     
     public CollisionTile(Godot.Node root, float xPos, float zPos, float xSize, float zSize,
                          float res, uint collisionLayer, uint collisionMask                ) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.CollisionTile);
+#endif
+
         XPos    = xPos;
         ZPos    = zPos;
         XSize   = xSize;
@@ -705,6 +734,10 @@ public class CollisionTile {
         MaterialVis.SetShaderParameter("albVis",    col);
         MaterialVis.SetShaderParameter("albVisStr", 1.0f);
 #endif
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
 #if XBDEBUG

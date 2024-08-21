@@ -9,7 +9,7 @@ public partial class DebugHUD : Godot.Control {
     private const int    _debugLabelFontSize    = 18;
     private const int    _debugLabelOutlineSize = 4;
     private const int    _edgeOff               = 100; // distance to right edge
-    private const int    _bgOffset              = 500; // distance of background to left edge
+    private const int    _bgOffset              = 350; // distance of background to left edge
     private Godot.Color  _debugLabelFontOutline = new Godot.Color(0.0f, 0.0f, 0.0f, 1.0f);
     private const string _timeFormat            = "F6";
     private const string _playerPosFormat       = "F3";
@@ -104,35 +104,48 @@ public partial class DebugHUD : Godot.Control {
         if (!_visible)    { return; }
 
         // debug stats text
+        //NOTE[ALEX]: if values stay within reasonable ranges, the debug strings are
+        //            vertically aligned with spaces inbetween for easier comparing
+        XB.DebugStatisticEntry[] stats = XB.DebugProfiling.DebugStatEntries;
         for (int i = 0; i < _lbDebugStats.Length; i++) {
-            if (XB.DebugProfiling.DebugStatEntries[i].HitsTot == 0) {
+            if (stats[i].HitsTot == 0) {
                 _lbDebugStats[i].Text = "";
             } else {
                 _lbDebugStats[i].AddThemeColorOverride("font_color", 
-                    _debugColors[XB.DebugProfiling.DebugStatEntries[i].D]);
+                    _debugColors[stats[i].D]);
                 string spacerName = "";
                 int diff = XB.DebugProfiling.DebugFunctionNameMax -
-                           XB.DebugProfiling.DebugStatEntries[i].D.ToString().Length;
+                           stats[i].D.ToString().Length;
                 for (int j = 0; j < diff; j++) { spacerName += " "; }
+                string spacerTimeTot = "";
+                if      (stats[i].TimeTot < 10.0f)   { spacerTimeTot += "   "; }
+                else if (stats[i].TimeTot < 100.0f)  { spacerTimeTot += "  ";  }
+                else if (stats[i].TimeTot < 1000.0f) { spacerTimeTot += " ";   }
+                string spacerTimeAvg = "";
+                if      (stats[i].TimeAvg < 10.0f)   { spacerTimeAvg += "   "; }
+                else if (stats[i].TimeAvg < 100.0f)  { spacerTimeAvg += "  ";  }
+                else if (stats[i].TimeAvg < 1000.0f) { spacerTimeAvg += " ";   }
+                string spacerTimeMax = "";
+                if      (stats[i].TimeMax < 10.0f)   { spacerTimeMax += "   "; }
+                else if (stats[i].TimeMax < 100.0f)  { spacerTimeMax += "  ";  }
+                else if (stats[i].TimeMax < 1000.0f) { spacerTimeMax += " ";   }
                 string spacerHits = ""; 
-                if      (XB.DebugProfiling.DebugStatEntries[i].Hits < 10)  { spacerHits += "  "; }
-                else if (XB.DebugProfiling.DebugStatEntries[i].Hits < 100) { spacerHits += " ";  }
+                if      (stats[i].Hits < 10)    { spacerHits += "    "; }
+                else if (stats[i].Hits < 100)   { spacerHits += "   ";  }
+                else if (stats[i].Hits < 1000)  { spacerHits += "  ";   }
+                else if (stats[i].Hits < 10000) { spacerHits += " ";    }
                 string spacerHitsMax = ""; 
-                if      (XB.DebugProfiling.DebugStatEntries[i].HitsMax < 10)  { spacerHitsMax += "  "; }
-                else if (XB.DebugProfiling.DebugStatEntries[i].HitsMax < 100) { spacerHitsMax += " ";  }
+                if      (stats[i].HitsMax < 10)    { spacerHitsMax += "    "; }
+                else if (stats[i].HitsMax < 100)   { spacerHitsMax += "   ";  }
+                else if (stats[i].HitsMax < 1000)  { spacerHitsMax += "  ";   }
+                else if (stats[i].HitsMax < 10000) { spacerHitsMax += " ";    }
                 _lbDebugStats[i].Text = 
-                    XB.DebugProfiling.DebugStatEntries[i].D.ToString()
-                    + spacerName + ": "
-                    + XB.DebugProfiling.DebugStatEntries[i].TimeTot.ToString(_timeFormat)
-                    + " ms across "
-                    + XB.DebugProfiling.DebugStatEntries[i].Hits.ToString()
-                    + spacerHits + " hits, max: "
-                    + XB.DebugProfiling.DebugStatEntries[i].TimeMax.ToString(_timeFormat)
-                    + " ms, max hits: "
-                    + XB.DebugProfiling.DebugStatEntries[i].HitsMax.ToString()
-                    + spacerHitsMax + " avg: "
-                    + XB.DebugProfiling.DebugStatEntries[i].TimeAvg.ToString(_timeFormat)
-                    + " ms";
+                    stats[i].D.ToString()
+                    + ": " + spacerName + spacerTimeTot + stats[i].TimeTot.ToString(_timeFormat)
+                    + " ms across " + spacerHits + stats[i].Hits.ToString()
+                    + " hits, max: " + spacerTimeMax + stats[i].TimeMax.ToString(_timeFormat)
+                    + " ms, max hits: " + spacerHitsMax + stats[i].HitsMax.ToString()
+                    + " avg: " + spacerTimeAvg + stats[i].TimeAvg.ToString(_timeFormat) + " ms";
             }
         }
 
@@ -195,9 +208,11 @@ public partial class DebugHUD : Godot.Control {
 
 public enum D { // unique debug identifier, naming scheme: "ClassFunction"
     Uninit,
+    CollisionTile,
     CollisionTileInitializeCollisionMesh,
     CollisionTileSampleTerrainNoise,
     CollisionTileApplyToCollisionMesh,
+    DamSegment,
     DamSegmentApplyToMesh,
     DamSegmentReleaseMesh,
     DamSegmentUpdateMesh,
@@ -212,6 +227,9 @@ public enum D { // unique debug identifier, naming scheme: "ClassFunction"
     HUDUpdateSphereTexture,
     HUDUpdateSphereTextureHighlight,
     Initialize_Ready,
+    InputConsumeAllInputs,
+    InputConsumeInputStart,
+    InputGetInputs,
     ManagerSphereApplyTerrain,
     ManagerSphereChangeHighlightSphere,
     ManagerSphereClearSpheres,
@@ -267,10 +285,20 @@ public enum D { // unique debug identifier, naming scheme: "ClassFunction"
     PControllerUpdatePlayerMaterial,
     PControllerUpdateInputs,
     QNode,
+    QNodeActivate,
     QNodeAssignMeshContainer,
+    QNodeChildrenActive,
+    QNodeChildrenReady,
+    QNodeDeActivate,
     QNodeReleaseMeshContainer,
+    QNodeShowMeshContainer,
     QNodeUpdateAssignedMesh,
     RandomInitializeRandom,
+    RandomRandomInRangeF,
+    RandomRandomInRangeI,
+    RandomRandomInRangeU,
+    RandomRandomUInt,
+    RandomXorshift,
     SphereChangeSphereAngle,
     SphereChangeSphereRadius,
     SphereInitializeSphere,
@@ -300,6 +328,11 @@ public enum D { // unique debug identifier, naming scheme: "ClassFunction"
     TerrainUpdateHeightMap,
     TerrainUpdateLowestHighest,
     UtilsBeveledRectangle,
+    UtilsLerpV2,
+    UtilsLerpV3,
+    UtilsMinV2I,
+    UtilsMaxInArrayF,
+    UtilsClearInternalVariables,
     UtilsDigitRectangles,
     UtilsFillRectanglesInImage,
     UtilsIntersectRayPlaneV3,

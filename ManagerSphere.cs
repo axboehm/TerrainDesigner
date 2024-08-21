@@ -33,6 +33,10 @@ public class DamSegment {
     //  0 1   5 6
     //
     public DamSegment(Godot.Node root, int id, int segmentDivisions) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.DamSegment);
+#endif
+
         MeshInst = new Godot.MeshInstance3D();
         root.AddChild(MeshInst);
 
@@ -122,6 +126,10 @@ public class DamSegment {
 
         MeshDataDam[(int)Godot.Mesh.ArrayType.TexUV] = UVsDam;
         MeshDataDam[(int)Godot.Mesh.ArrayType.Index] = TrianglesDam;
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public void ReleaseMesh() {

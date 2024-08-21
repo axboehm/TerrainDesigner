@@ -48,16 +48,27 @@ public class Random {
 
     // returns 4 random bytes (uint 0-255)
     private static uint[] Xorshift() {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.RandomXorshift);
+#endif
+
         uint t  = _x ^ (_x << 11);
              _x = _y;
              _y = _z;
              _z = _w;
              _w = _w ^ (_w >> 19) ^ (t ^ (t >> 8));
+#if XBDEBUG
+        debug.End();
+#endif 
         return new uint[4] {_w & 0xFF, (_w >> 8) & 0xFF, (_w >> 16) & 0xFF, (_w >> 24) & 0xFF};
     }
 
     //NOTE[ALEX]: not thread-safe
     public static uint RandomUInt() {
+#if XBDEBUG
+       var debug = new XB.DebugTimedBlock(XB.D.RandomRandomUInt);
+#endif
+
         if (_rVPosition > 3) {
             _rVPosition = 0;
             _randomValues = Xorshift();
@@ -66,10 +77,17 @@ public class Random {
         }
         uint res          = _randomValues[_rVPosition];
              _rVPosition += 1;
+#if XBDEBUG
+        debug.End();
+#endif 
         return res;
     }
 
     public static float RandomInRangeF(float a, float b) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.RandomRandomInRangeF);
+#endif
+
         float low    = 0;
         float high   = 0;
         if (a < b) {
@@ -102,11 +120,18 @@ public class Random {
               result -= offset;
               result  = XB.Utils.ClampF(result, a, b);
 
+#if XBDEBUG
+        debug.End();
+#endif 
         return result;
     }
 
     // returns a random integer between a and b, a and b included
     public static int RandomInRangeI(int a, int b) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.RandomRandomInRangeI);
+#endif
+
         int low    = 0;
         int high   = 0;
         if (a < b) {
@@ -131,10 +156,17 @@ public class Random {
             result -= offset;
             result  = XB.Utils.ClampI(result, a, b);
 
+#if XBDEBUG
+        debug.End();
+#endif 
         return result;
     }
 
     public static uint RandomInRangeU(uint a, uint b) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.RandomRandomInRangeU);
+#endif
+
         uint low    = 0;
         uint high   = 0;
         if (a < b) {
@@ -151,13 +183,15 @@ public class Random {
              result += low;
              result  = XB.Utils.ClampU(result, a, b);
 
+#if XBDEBUG
+        debug.End();
+#endif 
         return result;
     }
 
     public static float RandomBlueNoise(int x, int y) {
         x %= _blueNoiseSize;
         y %= _blueNoiseSize;
-
         return BlueNoise.GetPixel(x, y).R;
     }
 
@@ -177,7 +211,6 @@ public class Random {
 
         float bot = XB.Utils.LerpF(a, b, interpX);
         float top = XB.Utils.LerpF(c, d, interpX);
-
         return XB.Utils.LerpF(bot, top, interpY);
     }
 }

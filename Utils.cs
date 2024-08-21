@@ -5,9 +5,17 @@ public class Utils {
     private static Godot.Vector3 _v0 = new Godot.Vector3(0.0f, 0.0f, 0.0f);
 
     private static void ClearInternalVariables() {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.UtilsClearInternalVariables);
+#endif
+
         _v0.X = 0.0f;
         _v0.Y = 0.0f;
         _v0.Z = 0.0f;
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public static float ClampF(float a, float b, float c) {
@@ -54,6 +62,11 @@ public class Utils {
     }
 
     public static float MaxInArrayF(float[] a) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.UtilsMaxInArrayF);
+        debug.End();
+#endif 
+
         float res = 0;
         for (int i = 0; i < a.Length; i++) {
             res = XB.Utils.MaxF(res, a[i]);
@@ -62,12 +75,19 @@ public class Utils {
     }
 
     public static Godot.Vector2I MinV2I(Godot.Vector2I a, Godot.Vector2I b) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.UtilsMinV2I);
+#endif
+
         Godot.Vector2I res = new Godot.Vector2I(0, 0);
         if (a.X > b.X) { res.X = b.X; }
         else           { res.X = a.X; }
         if (a.Y > b.Y) { res.Y = b.Y; }
         else           { res.Y = a.Y; }
 
+#if XBDEBUG
+        debug.End();
+#endif 
         return res;
     }
 
@@ -77,11 +97,21 @@ public class Utils {
     }
 
     public static Godot.Vector2 LerpV2(Godot.Vector2 a, Godot.Vector2 b, float t) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.UtilsLerpV2);
+        debug.End();
+#endif 
+
         t = XB.Utils.ClampF(t, 0.0f, 1.0f);
         return (a + (b-a)*t);
     }
 
     public static Godot.Vector3 LerpV3(Godot.Vector3 a, Godot.Vector3 b, float t) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.UtilsLerpV3);
+        debug.End();
+#endif 
+
         t = XB.Utils.ClampF(t, 0.0f, 1.0f);
         return (a + (b-a)*t);
     }

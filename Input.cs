@@ -111,6 +111,10 @@ public partial class Input : Godot.Node {
 
 
     public void GetInputs() {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.InputGetInputs);
+#endif
+
         // clear old input values, then get input for current tick
         // IsActionPressed will continually trigger, IsActionJustPressed only on pushing down
         ConsumeAllInputs();
@@ -165,6 +169,10 @@ public partial class Input : Godot.Node {
         if (Godot.Input.IsActionJustPressed("Debug4")) { Debug4 = true; }
         if (Godot.Input.IsActionJustPressed("Debug5")) { Debug5 = true; }
 #endif
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public void DefaultInputActions() {
@@ -303,6 +311,10 @@ public partial class Input : Godot.Node {
 #endif
 
     public void ConsumeAllInputs() {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.InputConsumeAllInputs);
+#endif
+
         Start  = false;
         Select = false;
         CamY   = 0.0f;
@@ -332,14 +344,22 @@ public partial class Input : Godot.Node {
         Debug4 = false;
         Debug5 = false;
 #endif 
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public void ConsumeInputStart() {
-        Start = false;
-    }
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.InputConsumeInputStart);
+#endif
 
-    public void ConsumeInputFRight() {
-        FRight = false;
+        Start = false;
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 }
 } // namespace close
