@@ -339,6 +339,7 @@ public class WData { // world data
     }
 }
 
+//TODO[ALEX]: 
 public class AData { // application data
     public static XB.Input                 Input;
     public static XB.Settings              S;
