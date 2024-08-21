@@ -848,9 +848,9 @@ public partial class PController : Godot.CharacterBody3D {
             if (canShoot && XB.AData.Input.SLTop) { // place sphere
                 var spawnPos =   cCtrH.GlobalPosition
                                + cam.GlobalTransform.Basis.Z*-sphereSpawnDist;
-                // if (!XB.ManagerSphere.RequestSphere(spawnPos)) {
-                //     Godot.GD.Print("all spheres used");
-                // }
+                if (!XB.ManagerSphere.RequestSphere(spawnPos)) {
+                    // Godot.GD.Print("all spheres used");
+                }
             }
             // SLBot - aiming (handled earlier)
             if (canShoot && XB.AData.Input.SRTop) { // remove sphere
