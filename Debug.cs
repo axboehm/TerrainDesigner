@@ -134,6 +134,7 @@ public partial class DebugHUD : Godot.Control {
 
     public void Debug3() {
         Godot.GD.Print("Debug3");
+        XB.ManagerTerrain.PrintQTReeExternal();
     }
 
     public void Debug4() {
@@ -208,9 +209,8 @@ public enum D { // unique debug identifier, naming scheme: "ClassFunction"
     ManagerTerrainQueueRecycleProcess,
     ManagerTerrainQueueRequestProcess,
     ManagerTerrainQueueRecycleMeshContainer,
-    ManagerTerrainQueueRequestMeshContainer,
+    ManagerTerrainQueueRequestMeshUpdate,
     ManagerTerrainRecycleChildMesh,
-    ManagerTerrainRecycleMeshContainer,
     ManagerTerrainRequestMeshContainer,
     ManagerTerrainResampleMeshes,
     ManagerTerrainResampleQNode,
