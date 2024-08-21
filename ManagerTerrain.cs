@@ -571,18 +571,6 @@ public class MeshContainer {
 #endif 
     }
 
-    public void SetShaderAttribute(string attName, Godot.ImageTexture img) {
-#if XBDEBUG
-        var debug = new XB.DebugTimedBlock(XB.D.MeshContainerSetShaderAttribute);
-#endif
-
-        MaterialTile.SetShaderParameter(attName, img);
-
-#if XBDEBUG
-        debug.End();
-#endif 
-    }
-
     private void AdjustWorldEdgeSkirt(XB.Sk direction) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.MeshContainerAdjustWorldEdgeSkirt);
