@@ -9,6 +9,7 @@ public partial class DebugHUD : Godot.Control {
     private const int    _debugLabelFontSize    = 18;
     private const int    _debugLabelOutlineSize = 4;
     private const int    _edgeOff               = 100; // distance to right edge
+    private const int    _bgOffset              = 550; // distance of background to left edge
     private Godot.Color  _debugLabelFontOutline = new Godot.Color(0.0f, 0.0f, 0.0f, 1.0f);
     private const string _timeFormat            = "F6";
     private const string _playerPosFormat       = "F3";
@@ -19,6 +20,9 @@ public partial class DebugHUD : Godot.Control {
     private Godot.TextureRect  _trBlueNoise;
     private Godot.ImageTexture _texBlueNoise;
     private Godot.Label[]      _lbDebugStats;
+    private Godot.TextureRect  _trDebugStatsBG;
+    private Godot.ImageTexture _texDebugStatsBG;
+    private Godot.Image        _imgDebugStatsBG;
     private Godot.Label        _lbPlayerPos;
 
     public void InitializeDebugHUD() {
@@ -49,6 +53,20 @@ public partial class DebugHUD : Godot.Control {
         }
 
         _lbDebugStats = new Godot.Label[System.Enum.GetValues(typeof(XB.D)).Length];
+
+        // darker background for easier reading of debug stats
+        _trDebugStatsBG = new Godot.TextureRect();
+        var bGSize      = new Godot.Vector2I(XB.Settings.BaseResX-2*_dimSpacer-_edgeOff-_bgOffset,
+                                             XB.Settings.BaseResY-3*_dimSpacer-sizeBN.Y);
+        _trDebugStatsBG.Size     = bGSize;
+        _trDebugStatsBG.Position = new Godot.Vector2I(_dimSpacer+_bgOffset, 2*_dimSpacer+sizeBN.Y);
+        _texDebugStatsBG = new Godot.ImageTexture();
+        _imgDebugStatsBG = Godot.Image.Create(bGSize.X, bGSize.Y, false, Godot.Image.Format.Rgba8  );
+        _imgDebugStatsBG.Fill(XB.Col.BG);
+        _texDebugStatsBG.SetImage(_imgDebugStatsBG);
+        _trDebugStatsBG.Texture = _texDebugStatsBG;
+        AddChild(_trDebugStatsBG);
+
         var font = Godot.ResourceLoader.Load<Godot.Font>(XB.ResourcePaths.FontLibMono);
         for (int i = 0; i < _lbDebugStats.Length; i++) {
             _lbDebugStats[i] = new Godot.Label();
@@ -206,11 +224,10 @@ public enum D { // unique debug identifier, naming scheme: "ClassFunction"
     ManagerTerrainDivideQuadNode,
     ManagerTerrainInitializeQuadTree,
     ManagerTerrainQNodeShowReadyMeshes,
-    ManagerTerrainQueueRecycleProcess,
     ManagerTerrainQueueRequestProcess,
-    ManagerTerrainQueueRecycleMeshContainer,
     ManagerTerrainQueueRequestMeshUpdate,
     ManagerTerrainRecycleChildMesh,
+    ManagerTerrainRecycleMeshContainer,
     ManagerTerrainRequestMeshContainer,
     ManagerTerrainResampleMeshes,
     ManagerTerrainResampleQNode,

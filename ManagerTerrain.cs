@@ -68,6 +68,24 @@ public class QNode {
         return true;
     }
 
+    public bool ChildrenActive() {
+        if (Children[0] == null) { return false; }
+        if (!Children[0].Active) { return false; }
+        if (!Children[1].Active) { return false; }
+        if (!Children[2].Active) { return false; }
+        if (!Children[3].Active) { return false; }
+        return true;
+    }
+
+    public bool ChildrenVisible() {
+        if (Children[0] == null)      { return false; }
+        if (!Children[0].MeshVisible) { return false; }
+        if (!Children[1].MeshVisible) { return false; }
+        if (!Children[2].MeshVisible) { return false; }
+        if (!Children[3].MeshVisible) { return false; }
+        return true;
+    }
+
 #if XBDEBUG
     public void DebugPrint(string note) {
         string print = "Print Quadtree Node: " + ID.ToString() + " " + note + '\n';
@@ -121,7 +139,7 @@ public class QNode {
             MeshContainer.ReleaseMesh();
             MeshContainer = null;
         }
-        MeshVisible   = false;
+        MeshVisible = false;
 
 #if XBDEBUG
         debug.End();
@@ -243,7 +261,6 @@ public class MeshContainer {
         var debug = new XB.DebugTimedBlock(XB.D.MeshContainerReleaseMesh);
 #endif
 
-        Godot.GD.Print("ReleaseMesh");
         MeshInst.Hide();
         InUse = false;
 
@@ -664,7 +681,6 @@ public class CollisionTile {
         var debug = new XB.DebugTimedBlock(XB.D.CollisionTileInitializeCollisionMesh);
 #endif
 
-        //TODO[ALEX]: some mess with collisionres and sizemult
         Vertices  = new Godot.Vector3[XAmount*ZAmount];
         Triangles = new int[(XAmount-1)*(ZAmount-1)*6];
 
@@ -754,15 +770,13 @@ public class ManagerTerrain {
     private static float    _sizeCTile   = 0.0f; // size of full size collision tiles
     private static float    _worldXSize  = 0.0f;
     private static float    _worldZSize  = 0.0f;
-    private static int      _maxVerts    = 65536; // 256*256 vertices per tile (render maximum)
+    private static int      _maxVerts    = 65536; // 256*256 vertices per tile (technical maximum)
     private static Godot.Vector2                _qNodeCtr = new Godot.Vector2(0.0f, 0.0f);
     private static SysCG.List<XB.MeshContainer> _terrainMeshes;
-    private static XB.CollisionTile[,]          _terrainColTiles;
-    private static SysCG.Queue<XB.QNode>        _recQueue;
-    private static SysCG.Queue<XB.QNode>        _reqQueue;
-    private static int      _queueBudget = 1; // queue processing amount per tick
-    private static XB.QNode _recNode;
-    private static XB.QNode _reqNode;
+    private static XB.CollisionTile[,]   _terrainColTiles;
+    private static SysCG.Queue<XB.QNode> _reqQueue;
+    private static XB.QNode              _reqNode;
+    private static int                   _queueBudget = 1; // queue processing amount per tick
 
 
     public static void InitializeQuadTree(float xSize, float zSize, float resM, float resC,
@@ -771,7 +785,6 @@ public class ManagerTerrain {
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainInitializeQuadTree);
 #endif
 
-        resM = 1.0f; //TODO test
         _nextID      = 0;
         _resolutionM = resM;
         _resolutionC = resC;
@@ -789,8 +802,6 @@ public class ManagerTerrain {
             }
         }
         _divisions = XB.Utils.MinI(_divisions, divMax);
-        //TODO test
-        _divisions = 2;
         
         // the lowest division level (highest detail) should have the specified resolution
         for (int i = 0; i < _divisions; i++) { resM = resM/2.0f; }
@@ -834,7 +845,6 @@ public class ManagerTerrain {
             }
         }
 
-        _recQueue = new SysCG.Queue<XB.QNode>();
         _reqQueue = new SysCG.Queue<XB.QNode>();
 
 #if XBDEBUG
@@ -908,7 +918,6 @@ public class ManagerTerrain {
 
         UpdateQNodeMesh(ref refPos, ref _qRoot);
         QueueRequestProcess(_queueBudget, lowestPoint, highestPoint, ref imgHeightMap);
-        QueueRecycleProcess();
         QNodeShowReadyMeshes(ref _qRoot);
 
 #if XBDEBUG
@@ -942,7 +951,7 @@ public class ManagerTerrain {
             if (qNode.Active) {
                 Godot.GD.Print("UpdateQNodeMesh close enough " + qNode.ID + " " + refPos);
                 qNode.DeActivate();
-                QueueRecycleMeshContainer(ref qNode);
+                // recycling happens in QNodeShowReadyMeshes after updating the request queue
             }
             UpdateQNodeMesh(ref refPos, ref qNode.Children[0]);
             UpdateQNodeMesh(ref refPos, ref qNode.Children[1]);
@@ -962,24 +971,6 @@ public class ManagerTerrain {
 #endif 
     }
 
-    private static void RecycleChildMesh(ref XB.QNode qNode) {
-        if (qNode == null) { return; }
-        if (qNode.Active)  { return; }
-#if XBDEBUG
-        var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainRecycleChildMesh);
-#endif
-
-        QueueRecycleMeshContainer(ref qNode);
-        RecycleChildMesh(ref qNode.Children[0]);
-        RecycleChildMesh(ref qNode.Children[1]);
-        RecycleChildMesh(ref qNode.Children[2]);
-        RecycleChildMesh(ref qNode.Children[3]);
-
-#if XBDEBUG
-        debug.End();
-#endif 
-    }
-
     private static void QNodeShowReadyMeshes(ref XB.QNode qNode) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainQNodeShowReadyMeshes);
@@ -991,23 +982,45 @@ public class ManagerTerrain {
 #endif 
             return;
         }
-        //TODO[ALEX]: this is working again but not showing things at the correct time (overlap)
-        //            when is the release of the parent tile happening, should it rather be here?
-        //            check with MeshVisible as well
-        if (qNode.Active) {
-            qNode.ShowMeshContainer();
+
+        if (qNode.Active) { // should be visible
+            if (!qNode.MeshVisible && qNode.MeshReady) {
+                    qNode.ShowMeshContainer();
+            }
+        } else { // should not be visible
+            if (qNode.MeshVisible) {
+                if (qNode.ChildrenActive() && qNode.ChildrenReady()) {
+                    RecycleMeshContainer(ref qNode);
+                    qNode.Children[0].ShowMeshContainer();
+                    qNode.Children[1].ShowMeshContainer();
+                    qNode.Children[2].ShowMeshContainer();
+                    qNode.Children[3].ShowMeshContainer();
+                } // if nothing is ready, maintain current status until next tick
+            } else { // go one division level deeper
+                QNodeShowReadyMeshes(ref qNode.Children[0]);
+                QNodeShowReadyMeshes(ref qNode.Children[1]);
+                QNodeShowReadyMeshes(ref qNode.Children[2]);
+                QNodeShowReadyMeshes(ref qNode.Children[3]);
+            }
         }
-        if (qNode.ChildrenReady()) {
-            qNode.Children[0].ShowMeshContainer();
-            qNode.Children[1].ShowMeshContainer();
-            qNode.Children[2].ShowMeshContainer();
-            qNode.Children[3].ShowMeshContainer();
-        } else {
-            QNodeShowReadyMeshes(ref qNode.Children[0]);
-            QNodeShowReadyMeshes(ref qNode.Children[1]);
-            QNodeShowReadyMeshes(ref qNode.Children[2]);
-            QNodeShowReadyMeshes(ref qNode.Children[3]);
-        }
+
+#if XBDEBUG
+        debug.End();
+#endif 
+    }
+
+    private static void RecycleChildMesh(ref XB.QNode qNode) {
+        if (qNode == null) { return; }
+        if (qNode.Active)  { return; }
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainRecycleChildMesh);
+#endif
+
+        RecycleMeshContainer(ref qNode);
+        RecycleChildMesh(ref qNode.Children[0]);
+        RecycleChildMesh(ref qNode.Children[1]);
+        RecycleChildMesh(ref qNode.Children[2]);
+        RecycleChildMesh(ref qNode.Children[3]);
 
 #if XBDEBUG
         debug.End();
@@ -1029,20 +1042,8 @@ public class ManagerTerrain {
 #endif 
     }
 
-    private static void QueueRecycleMeshContainer(ref XB.QNode qNode) {
-#if XBDEBUG
-        var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainQueueRecycleMeshContainer);
-#endif
-
-        if (!_recQueue.Contains(qNode)) {
-            _recQueue.Enqueue(qNode);
-        }
-
-#if XBDEBUG
-        debug.End();
-#endif 
-    }
-
+    // only the assignment of the newly sampled mesh data is limited to processAmount tiles per tick
+    // using the queue, other parts are much faster to do and can be done immediately
     private static void QueueRequestProcess(int processAmount, float lowest, float highest,
                                             ref Godot.Image imgHeightMap                   ) {
 #if XBDEBUG
@@ -1051,7 +1052,7 @@ public class ManagerTerrain {
 
         for (int i = 0; i < XB.Utils.MinF(processAmount, _reqQueue.Count); i++) {
             _reqNode = _reqQueue.Dequeue();
-            if (!_reqNode.Active) { 
+            if (!_reqNode.Active) { // if a node gets deactivated while in the queue
                 Godot.GD.Print("inactive node skipped " + _reqNode.ID);
                 continue; 
             }
@@ -1072,23 +1073,13 @@ public class ManagerTerrain {
 #endif 
     }
 
-    private static void QueueRecycleProcess() {
+    private static void RecycleMeshContainer(ref XB.QNode qNode) {
 #if XBDEBUG
-        var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainQueueRequestProcess);
+        var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainRecycleMeshContainer);
 #endif
 
-        for (int i = 0; i < _recQueue.Count; i++) {
-            _recNode = _recQueue.Peek();
-            if ((_recNode.Children[0] == null)
-                || (   _recNode.Children[0].MeshVisible && _recNode.Children[1].MeshVisible
-                    && _recNode.Children[2].MeshVisible && _recNode.Children[3].MeshVisible)) {
-                Godot.GD.Print("QueueRecycleProcess iter: " + i + ", ID: " + _recNode.ID);
-                _recNode.ReleaseMeshContainer();
-                _recQueue.Dequeue();
-            } else {
-                return;
-            }
-        }
+        Godot.GD.Print("RecycleMeshContainer, ID: " + qNode.ID);
+        qNode.ReleaseMeshContainer();
 
 #if XBDEBUG
         debug.End();
