@@ -9,7 +9,7 @@ public partial class DebugHUD : Godot.Control {
     private const int    _debugLabelFontSize    = 18;
     private const int    _debugLabelOutlineSize = 4;
     private const int    _edgeOff               = 100; // distance to right edge
-    private const int    _bgOffset              = 550; // distance of background to left edge
+    private const int    _bgOffset              = 500; // distance of background to left edge
     private Godot.Color  _debugLabelFontOutline = new Godot.Color(0.0f, 0.0f, 0.0f, 1.0f);
     private const string _timeFormat            = "F6";
     private const string _playerPosFormat       = "F3";
@@ -117,17 +117,22 @@ public partial class DebugHUD : Godot.Control {
                 string spacerHits = ""; 
                 if      (XB.DebugProfiling.DebugStatEntries[i].Hits < 10)  { spacerHits += "  "; }
                 else if (XB.DebugProfiling.DebugStatEntries[i].Hits < 100) { spacerHits += " ";  }
+                string spacerHitsMax = ""; 
+                if      (XB.DebugProfiling.DebugStatEntries[i].HitsMax < 10)  { spacerHitsMax += "  "; }
+                else if (XB.DebugProfiling.DebugStatEntries[i].HitsMax < 100) { spacerHitsMax += " ";  }
                 _lbDebugStats[i].Text = 
-                    XB.DebugProfiling.DebugStatEntries[i].D.ToString() + 
-                    spacerName + ": " +
-                    XB.DebugProfiling.DebugStatEntries[i].TimeTot.ToString(_timeFormat) + 
-                    " ms across " + 
-                    XB.DebugProfiling.DebugStatEntries[i].Hits.ToString() +
-                    spacerHits + " hits, max: " +
-                    XB.DebugProfiling.DebugStatEntries[i].TimeMax.ToString(_timeFormat) +
-                    " ms, avg: " +
-                    XB.DebugProfiling.DebugStatEntries[i].TimeAvg.ToString(_timeFormat) +
-                    " ms";
+                    XB.DebugProfiling.DebugStatEntries[i].D.ToString()
+                    + spacerName + ": "
+                    + XB.DebugProfiling.DebugStatEntries[i].TimeTot.ToString(_timeFormat)
+                    + " ms across "
+                    + XB.DebugProfiling.DebugStatEntries[i].Hits.ToString()
+                    + spacerHits + " hits, max: "
+                    + XB.DebugProfiling.DebugStatEntries[i].TimeMax.ToString(_timeFormat)
+                    + " ms, max hits: "
+                    + XB.DebugProfiling.DebugStatEntries[i].HitsMax.ToString()
+                    + spacerHitsMax + " avg: "
+                    + XB.DebugProfiling.DebugStatEntries[i].TimeAvg.ToString(_timeFormat)
+                    + " ms";
             }
         }
 
@@ -236,12 +241,16 @@ public enum D { // unique debug identifier, naming scheme: "ClassFunction"
     ManagerTerrainUpdateQNodeMesh,
     ManagerTerrainUpdateQTreeMeshes,
     ManagerTerrainUpdateQTreeStrength,
+    MeshContainer,
     MeshContainerAdjustWorldEdgeSkirt,
     MeshContainerApplyToMesh,
     MeshContainerReleaseMesh,
     MeshContainerSampleTerrainNoise,
     MeshContainerSetShaderAttribute,
     MeshContainerSetTerrainShaderAttributes,
+    MeshContainerShowMesh,
+    MeshContainerSkirtTriangleIndices,
+    MeshContainerUse,
     MeshContainerUseMesh,
     PController_Input,
     PController_PhysicsProcess,
@@ -249,6 +258,7 @@ public enum D { // unique debug identifier, naming scheme: "ClassFunction"
     PControllerPlacePlayer,
     PControllerSpawnPlayer,
     PControllerSpawnPlayerDelayed,
+    QNode,
     QNodeAssignMeshContainer,
     QNodeReleaseMeshContainer,
     QNodeUpdateAssignedMesh,
@@ -347,6 +357,7 @@ public class DebugStatisticEntry {
     public XB.D   D       = XB.D.Uninit;
     public int    Hits    = 0;
     public int    HitsTot = 0;
+    public int    HitsMax = 0;
     public double TimeTot = 0.0;
     public double TimeMax = 0.0;
     public double TimeAvg = 0.0;
@@ -402,21 +413,24 @@ public class DebugProfiling {
 
         foreach (XB.D d in System.Enum.GetValues(typeof(XB.D))) {
             // maximum and average time per hit during monitored period
-            double max       = 0.0;
-            double avg       = 0.0;
+            double timeMax   = 0.0;
+            double timeAvg   = 0.0;
+            int    hitsMax   = 0;
             int    hitsTotal = 0;
             for (int i = DebugPos+DebugStats.Length; i > (DebugPos+1)%DebugStats.Length; i--) {
                 int pos = i%DebugStats.Length;
-                max        = XB.Utils.MaxD(max, DebugStats[pos].FrameData[d].TimeMax);
-                avg       += DebugStats[pos].FrameData[d].Time;
+                timeMax    = XB.Utils.MaxD(timeMax, DebugStats[pos].FrameData[d].TimeMax);
+                timeAvg   += DebugStats[pos].FrameData[d].Time;
+                hitsMax    = XB.Utils.MaxI(hitsMax, DebugStats[pos].FrameData[d].HitCount);
                 hitsTotal += DebugStats[pos].FrameData[d].HitCount;
             }
             DebugStatEntries[(int)d].D       = d;
             DebugStatEntries[(int)d].Hits    = DebugStats[DebugPos].FrameData[d].HitCount;
+            DebugStatEntries[(int)d].HitsMax = hitsMax;
             DebugStatEntries[(int)d].HitsTot = hitsTotal;
             DebugStatEntries[(int)d].TimeTot = DebugStats[DebugPos].FrameData[d].Time;
-            DebugStatEntries[(int)d].TimeMax = max;
-            DebugStatEntries[(int)d].TimeAvg = avg/hitsTotal;
+            DebugStatEntries[(int)d].TimeMax = timeMax;
+            DebugStatEntries[(int)d].TimeAvg = timeAvg/hitsTotal;
         }
 
         int highestEntry = 0; // last position in the array that has hitsTot > 0

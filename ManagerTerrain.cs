@@ -18,6 +18,10 @@ public class QNode {
 
     public QNode(ref int id, float xPos, float zPos, float xSize, float zSize,
                  float res, QNode parent = null                               ) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.QNode);
+#endif
+
         Parent   = parent;
         Children = new QNode[4];
         for (int i = 0; i < 4; i++) { Children[i] = null; }
@@ -36,12 +40,13 @@ public class QNode {
         ZSize = zSize;
         Res   = res;
 
-        //DebugPrint("Called at Creation");
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public void Activate() {
         Active = true;
-        Godot.GD.Print("Activate " + ID);
         if (Children[0] == null) { return; }
         Children[0].DeActivate();
         Children[1].DeActivate();
@@ -51,7 +56,6 @@ public class QNode {
 
     public void DeActivate() {
         Active = false;
-        Godot.GD.Print("Deactivate " + ID);
         if (Children[0] == null) { return; }
         Children[0].DeActivate();
         Children[1].DeActivate();
@@ -207,6 +211,10 @@ public class MeshContainer {
     private const float      _skirtLength = 8.0f;
 
     public MeshContainer(Godot.Node root, int id, float lerpRAmount, float lerpGAmount) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.MeshContainer);
+#endif
+
         MeshInst = new Godot.MeshInstance3D();
         root.AddChild(MeshInst);
 
@@ -254,6 +262,10 @@ public class MeshContainer {
         ZAmount = 0;
         ID      = id;
         InUse   = true;
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public void ReleaseMesh() {
@@ -378,15 +390,37 @@ public class MeshContainer {
 #endif 
     }
 
+    // separate from UseMesh, as the MeshContainer can be assigned but not updated yet
+    // for a few frames (in queue)
     public void Use() {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.MeshContainerSampleTerrainNoise);
+#endif
+
         InUse = true;
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public void ShowMesh() {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.MeshContainerSampleTerrainNoise);
+#endif
+
         MeshInst.Show();
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     private void SkirtTriangleIndices(ref int[] triangles, int amount) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.MeshContainerSampleTerrainNoise);
+#endif
+
         int tri  = 0;
         int vert = 0;
         for (int i = 0; i < amount; i++) {
@@ -399,6 +433,10 @@ public class MeshContainer {
             tri  += 6;
             vert += 2;
         }
+
+#if XBDEBUG
+        debug.End();
+#endif 
     }
 
     public void SampleTerrainNoise(float xPos, float zPos, float xSize,  float zSize,
@@ -931,7 +969,7 @@ public class ManagerTerrain {
 #endif
         if (qNode.Children[0] == null) { // no further divisions possible
             if (!qNode.Active) {
-                Godot.GD.Print("UpdateQNodeMesh no children " + qNode.ID);
+                //Godot.GD.Print("UpdateQNodeMesh no children " + qNode.ID);
                 qNode.Activate();
                 RequestMeshContainer(ref qNode);
                 QueueRequestMeshUpdate(ref qNode);
@@ -949,7 +987,7 @@ public class ManagerTerrain {
 
         if (dist < comp) { // close enough to replace with higher resolution tile
             if (qNode.Active) {
-                Godot.GD.Print("UpdateQNodeMesh close enough " + qNode.ID + " " + refPos);
+                //Godot.GD.Print("UpdateQNodeMesh close enough " + qNode.ID + " " + refPos);
                 qNode.DeActivate();
                 // recycling happens in QNodeShowReadyMeshes after updating the request queue
             }
@@ -959,7 +997,7 @@ public class ManagerTerrain {
             UpdateQNodeMesh(ref refPos, ref qNode.Children[3]);
         } else { // reached correct resolution
             if (!qNode.Active) {
-                Godot.GD.Print("UpdateQNodeMesh correct resolution " + qNode.ID);
+                //Godot.GD.Print("UpdateQNodeMesh correct resolution " + qNode.ID);
                 qNode.Activate();
                 RequestMeshContainer(ref qNode);
                 QueueRequestMeshUpdate(ref qNode);
@@ -972,16 +1010,10 @@ public class ManagerTerrain {
     }
 
     private static void QNodeShowReadyMeshes(ref XB.QNode qNode) {
+        if (qNode == null) { return; }
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainQNodeShowReadyMeshes);
 #endif
-
-        if (qNode == null) {
-#if XBDEBUG
-        debug.End();
-#endif 
-            return;
-        }
 
         if (qNode.Active) { // should be visible
             if (!qNode.MeshVisible && qNode.MeshReady) {
@@ -1034,7 +1066,7 @@ public class ManagerTerrain {
 
         if (!_reqQueue.Contains(qNode)) {
             _reqQueue.Enqueue(qNode);
-            Godot.GD.Print("Add to Request Queue: " + qNode.ID);
+            //Godot.GD.Print("Add to Request Queue: " + qNode.ID);
         }
 
 #if XBDEBUG
@@ -1053,7 +1085,7 @@ public class ManagerTerrain {
         for (int i = 0; i < XB.Utils.MinF(processAmount, _reqQueue.Count); i++) {
             _reqNode = _reqQueue.Dequeue();
             if (!_reqNode.Active) { // if a node gets deactivated while in the queue
-                Godot.GD.Print("inactive node skipped " + _reqNode.ID);
+                //Godot.GD.Print("inactive node skipped " + _reqNode.ID);
                 continue; 
             }
             _reqNode.MeshContainer.UseMesh(_reqNode.XPos, _reqNode.ZPos,
@@ -1061,7 +1093,7 @@ public class ManagerTerrain {
                                            _worldXSize, _worldZSize, _reqNode.Res);
             _reqNode.MeshContainer.SetTerrainShaderAttributes();
             _reqNode.UpdateAssignedMesh(_worldXSize, _worldZSize, lowest, highest, ref imgHeightMap);
-            Godot.GD.Print("Queue Assigned " + _reqNode.ID + " recycling children");
+            //Godot.GD.Print("Queue Assigned " + _reqNode.ID + " recycling children");
             RecycleChildMesh(ref _reqNode.Children[0]);
             RecycleChildMesh(ref _reqNode.Children[1]);
             RecycleChildMesh(ref _reqNode.Children[2]);
@@ -1078,7 +1110,7 @@ public class ManagerTerrain {
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainRecycleMeshContainer);
 #endif
 
-        Godot.GD.Print("RecycleMeshContainer, ID: " + qNode.ID);
+        //Godot.GD.Print("RecycleMeshContainer, ID: " + qNode.ID);
         qNode.ReleaseMeshContainer();
 
 #if XBDEBUG
@@ -1091,7 +1123,7 @@ public class ManagerTerrain {
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainRequestMeshContainer);
 #endif
         
-        Godot.GD.Print("RequestTerrainMeshContainer " + qNode.ID);
+        //Godot.GD.Print("RequestTerrainMeshContainer " + qNode.ID);
 
         for (int i = 0; i < _terrainMeshes.Count; i++) {
             if (!_terrainMeshes[i].InUse) {
@@ -1134,13 +1166,14 @@ public class ManagerTerrain {
 #endif
 
         if (qNode == null) { //NOTE[ALEX]: this should never happen
-            Godot.GD.Print("ResampleQNode with null child");
+            Godot.GD.Print("WARNING: ResampleQNode with null child");
 #if XBDEBUG
         debug.End();
 #endif 
             return;
         }
 
+        //TODO[ALEX]: should this check for active instead?
         if (qNode.MeshVisible) {
             qNode.UpdateAssignedMesh(_worldXSize, _worldZSize, lowestPoint,
                                      highestPoint, ref imgHeightMap        );
