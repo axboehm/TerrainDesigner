@@ -120,8 +120,8 @@ public class QNode {
         debug.End();
 #endif
         if (Children[0] == null) {
-            if (!Active) { return true; }
-            if (Active && MeshReady) { return true; }
+            if (!Active)              { return true; }
+            if (Active && MeshReady)  { return true; }
             if (Active && !MeshReady) { return false; }
         }
         if (   (Children[0].Active && !Children[0].MeshReady)
@@ -289,6 +289,14 @@ public class MeshContainer {
         MaterialTile.SetShaderParameter("tRMM2",      XB.Resources.Terrain2RMTex);
         MaterialTile.SetShaderParameter("tNormalM2",  XB.Resources.Terrain2NTex );
         MaterialTile.SetShaderParameter("tHeightM2",  XB.Resources.Terrain2HTex );
+        MaterialTile.SetShaderParameter("tAlbedoM3",  XB.Resources.Terrain3CATex);
+        MaterialTile.SetShaderParameter("tRMM3",      XB.Resources.Terrain3RMTex);
+        MaterialTile.SetShaderParameter("tNormalM3",  XB.Resources.Terrain3NTex );
+        MaterialTile.SetShaderParameter("tHeightM3",  XB.Resources.Terrain3HTex );
+        MaterialTile.SetShaderParameter("tAlbedoM4",  XB.Resources.Terrain4CATex);
+        MaterialTile.SetShaderParameter("tRMM4",      XB.Resources.Terrain4RMTex);
+        MaterialTile.SetShaderParameter("tNormalM4",  XB.Resources.Terrain4NTex );
+        MaterialTile.SetShaderParameter("tHeightM4",  XB.Resources.Terrain4HTex );
         // visualization colors initially represent somewhat of a gradient 
         // but will quickly get shuffled around as MeshContainers get reused
         float r = 1.0f - XB.Utils.LerpF(0.0f, 1.0f, -lerpRAmount);
@@ -583,8 +591,14 @@ public class MeshContainer {
         MaterialTile.SetShaderParameter("blockScale",  WData.BlockUVScale);
         MaterialTile.SetShaderParameter("uv1Scale",    WData.Mat1UVScale);
         MaterialTile.SetShaderParameter("uv2Scale",    WData.Mat2UVScale);
+        MaterialTile.SetShaderParameter("uv3Scale",    WData.Mat3UVScale);
+        MaterialTile.SetShaderParameter("uv4Scale",    WData.Mat4UVScale);
         MaterialTile.SetShaderParameter("noisePScale", WData.NoisePScale);
         MaterialTile.SetShaderParameter("blendDepth",  WData.BlendDepth);
+        MaterialTile.SetShaderParameter("blendWidth",  WData.BlendWidth);
+        MaterialTile.SetShaderParameter("blend12",     WData.Blend12);
+        MaterialTile.SetShaderParameter("blend23",     WData.Blend23);
+        MaterialTile.SetShaderParameter("blend34",     WData.Blend34);
         MaterialTile.SetShaderParameter("tHeight",     XB.PController.Hud.TexMiniMap);
 
 #if XBDEBUG
@@ -889,7 +903,7 @@ public class ManagerTerrain {
         _divisions = 0;
         for (int i = 0; i < divMax; i++) {
             temp *= 2;
-            if (temp > _worldXSize) {
+            if (temp > XB.Utils.MaxF(_worldXSize, _worldZSize)) {
                 _divisions = i;
                 break;
             }

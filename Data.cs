@@ -82,14 +82,22 @@ public struct ResourcePaths {
     public static string TSkirtShader     = "res://code/shaders/terrainSkirt.gdshader";
     public static string BlueNoiseTex     = "res://materials/data/blueNoise64px.png";
     public static string BlockTexture     = "res://materials/data/blockTexture2048.png";
-    public static string Terrain1CATex    = "res://materials/data/asteroidStone1_CA.png";
-    public static string Terrain1RMTex    = "res://materials/data/asteroidStone1_RM.png";
-    public static string Terrain1NTex     = "res://materials/data/asteroidStone1_N.png";
-    public static string Terrain1HTex     = "res://materials/data/asteroidStone1_HEIGHT.png";
-    public static string Terrain2CATex    = "res://materials/data/grdAsteroid1_C.png";
-    public static string Terrain2RMTex    = "res://materials/data/grdAsteroid1_RM.png";
-    public static string Terrain2NTex     = "res://materials/data/grdAsteroid1_N.png";
-    public static string Terrain2HTex     = "res://materials/data/grdAsteroid1_HEIGHT.png";
+    public static string Terrain1CATex    = "res://materials/data/stoneVeinsExtraFlat_CA.png";
+    public static string Terrain1RMTex    = "res://materials/data/stoneVeinsExtraFlat_RM.png";
+    public static string Terrain1NTex     = "res://materials/data/stoneVeinsExtraFlat_N.png";
+    public static string Terrain1HTex     = "res://materials/data/stoneVeinsExtraFlat_HEIGHT.png";
+    public static string Terrain2CATex    = "res://materials/data/stoneVeinsFlat_CA.png";
+    public static string Terrain2RMTex    = "res://materials/data/stoneVeinsFlat_RM.png";
+    public static string Terrain2NTex     = "res://materials/data/stoneVeinsFlat_N.png";
+    public static string Terrain2HTex     = "res://materials/data/stoneVeinsFlat_HEIGHT.png";
+    public static string Terrain3CATex    = "res://materials/data/stoneVeinsDirt_CA.png";
+    public static string Terrain3RMTex    = "res://materials/data/stoneVeinsDirt_RM.png";
+    public static string Terrain3NTex     = "res://materials/data/stoneVeinsDirt_N.png";
+    public static string Terrain3HTex     = "res://materials/data/stoneVeinsDirt_HEIGHT.png";
+    public static string Terrain4CATex    = "res://materials/data/stoneVeinsGravel_CA.png";
+    public static string Terrain4RMTex    = "res://materials/data/stoneVeinsGravel_RM.png";
+    public static string Terrain4NTex     = "res://materials/data/stoneVeinsGravel_N.png";
+    public static string Terrain4HTex     = "res://materials/data/stoneVeinsGravel_HEIGHT.png";
     public static string FontLibMono      = "res://assets/ui/fonts/LiberationMono-Regular.ttf";
     public static string SpShellShader    = "res://code/shaders/sphereShell.gdshader";
     public static string SpScreenShader   = "res://code/shaders/sphereScreen.gdshader";
@@ -120,7 +128,7 @@ public struct Resources {
     public static Godot.Texture SpScreenE;
     public static Godot.Texture SpEMask;
 
-    public static int                  NoiseRes      = 256; // resolution of large scale noise
+    public static int                  NoiseRes = 256; // resolution of large scale noise
                                                             // texture for texture bombing
     public static Godot.NoiseTexture2D NoiseBombing;
     public static Godot.Texture        BlockTex;
@@ -132,6 +140,14 @@ public struct Resources {
     public static Godot.Texture        Terrain2RMTex;
     public static Godot.Texture        Terrain2NTex;
     public static Godot.Texture        Terrain2HTex;
+    public static Godot.Texture        Terrain3CATex;
+    public static Godot.Texture        Terrain3RMTex;
+    public static Godot.Texture        Terrain3NTex;
+    public static Godot.Texture        Terrain3HTex;
+    public static Godot.Texture        Terrain4CATex;
+    public static Godot.Texture        Terrain4RMTex;
+    public static Godot.Texture        Terrain4NTex;
+    public static Godot.Texture        Terrain4HTex;
 
     public static void InitializeTerrainTextures() {
         var fastNoise = new Godot.FastNoiseLite();
@@ -152,6 +168,14 @@ public struct Resources {
         Terrain2RMTex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain2RMTex);
         Terrain2NTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain2NTex);
         Terrain2HTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain2HTex);
+        Terrain3CATex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain3CATex);
+        Terrain3RMTex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain3RMTex);
+        Terrain3NTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain3NTex);
+        Terrain3HTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain3HTex);
+        Terrain4CATex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain4CATex);
+        Terrain4RMTex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain4RMTex);
+        Terrain4NTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain4NTex);
+        Terrain4HTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain4HTex);
     }
 
     public static void InitializeSphereTextures() {
@@ -213,12 +237,18 @@ public class WData { // world data
     public static float BlockStrength = 0.8f; // for visualizing grid
     public static float QTreeStrength = 0.6f; // for visualizing quad tree tiles
     public static float AlbedoMult    = 0.6f;
-    public static float Mat1UVScale   = 1.0f/4.0f;          // empirical value
-    public static float Mat2UVScale   = 1.0f/4.0f;          // empirical value
+    public static float Mat1UVScale   = 1.0f/2.0f;          // empirical value
+    public static float Mat2UVScale   = 1.0f/2.0f;
+    public static float Mat3UVScale   = 1.0f/2.0f;
+    public static float Mat4UVScale   = 1.0f/2.0f;
     public static float NoisePScale   = 0.1f;               // perlin noise for bombing
     public static float BlockUVScale  = 1.0f/(2.0f*10.0f);  // block texture has 2x2 large squares
                                                             // with 10 subdivisions each per tile
     public static float BlendDepth    = 0.2f;               // height blending edge
+    public static float BlendWidth    = 0.25f;
+    public static float Blend12       = 0.75f;
+    public static float Blend23       = 0.38f;
+    public static float Blend34       = 0.08f;
 
 
     public static void InitializeTerrainMesh(int expX, int expZ) {

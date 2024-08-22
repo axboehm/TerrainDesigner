@@ -13,6 +13,18 @@ uniform sampler2D tNormalM2 : hint_roughness_normal, filter_linear_mipmap, repea
 uniform sampler2D tHeightM2 : hint_default_black,    filter_linear_mipmap, repeat_enable;
 uniform float     uv2Scale  = 1.0;
 
+uniform sampler2D tAlbedoM3 : source_color,          filter_linear_mipmap, repeat_enable;
+uniform sampler2D tRMM3     : hint_default_black,    filter_linear_mipmap, repeat_enable;
+uniform sampler2D tNormalM3 : hint_roughness_normal, filter_linear_mipmap, repeat_enable;
+uniform sampler2D tHeightM3 : hint_default_black,    filter_linear_mipmap, repeat_enable;
+uniform float     uv3Scale  = 1.0;
+
+uniform sampler2D tAlbedoM4 : source_color,          filter_linear_mipmap, repeat_enable;
+uniform sampler2D tRMM4     : hint_default_black,    filter_linear_mipmap, repeat_enable;
+uniform sampler2D tNormalM4 : hint_roughness_normal, filter_linear_mipmap, repeat_enable;
+uniform sampler2D tHeightM4 : hint_default_black,    filter_linear_mipmap, repeat_enable;
+uniform float     uv4Scale  = 1.0;
+
 uniform sampler2D tBlock  : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D tHeight : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D tNoiseP : source_color, filter_linear,        repeat_enable;
@@ -27,6 +39,10 @@ uniform float noisePScale = 0.1;
 uniform float blockStr    = 1.0;
 uniform float albedoMult  = 0.8;
 uniform float blendDepth  = 0.2;
+uniform float blendWidth  = 0.1;
+uniform float blend34     = 0.25;
+uniform float blend23     = 0.5;
+uniform float blend12     = 0.75;
 
 float v3Sum(vec3 v) {
     return (v.x + v.y + v.z);
@@ -87,7 +103,6 @@ void fragment() {
     vec2  uv1          = UVscaled*uv1Scale;
     vec3  albedoM1     = textureBomb(tAlbedoM1, uv1, noiseP);
     vec3  albedoM1Dark = albedoM1*albedoMult;
-          //albedoM1     = vec3(1.0, 0.0, 0.0); // for visualization
     float roughnessM1  = textureBomb(tRMM1,     uv1, noiseP).r;
     vec3  normalM1     = textureBomb(tNormalM1, uv1, noiseP);
     float heightM1     = textureBomb(tHeightM1, uv1, noiseP).r;
@@ -95,35 +110,66 @@ void fragment() {
     vec2  uv2          = UVscaled*uv2Scale;
     vec3  albedoM2     = textureBomb(tAlbedoM2, uv2, noiseP);
     vec3  albedoM2Dark = albedoM2*albedoMult;
-          //albedoM2     = vec3(0.0, 0.0, 1.0); // for visualization
     float roughnessM2  = textureBomb(tRMM2,     uv2, noiseP).r;
     vec3  normalM2     = textureBomb(tNormalM2, uv2, noiseP);
     float heightM2     = textureBomb(tHeightM2, uv2, noiseP).r;
 
+    vec2  uv3          = UVscaled*uv3Scale;
+    vec3  albedoM3     = textureBomb(tAlbedoM3, uv3, noiseP);
+    vec3  albedoM3Dark = albedoM3*albedoMult;
+    float roughnessM3  = textureBomb(tRMM3,     uv3, noiseP).r;
+    vec3  normalM3     = textureBomb(tNormalM3, uv3, noiseP);
+    float heightM3     = textureBomb(tHeightM3, uv3, noiseP).r;
+
+    vec2  uv4          = UVscaled*uv4Scale;
+    vec3  albedoM4     = textureBomb(tAlbedoM4, uv4, noiseP);
+    vec3  albedoM4Dark = albedoM4*albedoMult;
+    float roughnessM4  = textureBomb(tRMM4,     uv4, noiseP).r;
+    vec3  normalM4     = textureBomb(tNormalM4, uv4, noiseP);
+    float heightM4     = textureBomb(tHeightM4, uv4, noiseP).r;
+
     float block = texture(tBlock, UVscaled*blockScale).r;
-    float mask1 = texture(tHeight, UV).r;
 
-    float mask2 = pow(mask1, 0.5);
-          mask2 = clamp(mask2, 0.0, 1.0);
+    float height  = texture(tHeight, UV).r;
+          height += 0.1*(noiseP-0.5);
+    float blend   = blendWidth;
+          blend  += 0.3*(height-0.5);
+    float mask34  = smoothstep(blend34 - blend, blend34 + blend, height);
+    float mask23  = smoothstep(blend23 - blend, blend23 + blend, height);
+    float mask12  = smoothstep(blend12 - blend, blend12 + blend, height);
 
-          mask1 = 2.0*mask1;
-          mask1 = pow(mask1, 2.4);
-          mask1 = clamp(mask1, 0.0, 1.0);
+    float maskDark = pow(height, 0.5);
+          maskDark = clamp(maskDark, 0.0, 1.0);
 
-          albedoM1 = mix(albedoM1Dark, albedoM1, mask2);
-          albedoM2 = mix(albedoM2Dark, albedoM2, mask2);
+    // gradient inside of each material
+    albedoM1 = mix(albedoM1Dark, albedoM1, maskDark);
+    albedoM2 = mix(albedoM2Dark, albedoM2, maskDark);
+    albedoM3 = mix(albedoM3Dark, albedoM3, maskDark);
+    albedoM4 = mix(albedoM4Dark, albedoM4, maskDark);
 
-    vec3  albedo = heightBlendV3(albedoM1, albedoM2, heightM1, heightM2,
-                                 mask1, 1.0-mask1, blendDepth           );
-          albedo = mix(albedo, albedo*albVis, albVisStr);
-          albedo = mix(albedo, albedo*block, blockStr);;
-          //albedo = vec3(UV.x, UV.y, 0.0);
+    vec3 albedo = heightBlendV3(albedoM3, albedoM4, heightM3, heightM4,
+                                mask34, 1.0-mask34, blendDepth         );
+         albedo = heightBlendV3(albedoM2, albedo, heightM2, heightM3,
+                                mask23, 1.0-mask23, blendDepth       );
+         albedo = heightBlendV3(albedoM1, albedo, heightM1, heightM2,
+                                mask12, 1.0-mask12, blendDepth       );
+         albedo = mix(albedo, albedo*albVis, albVisStr);
+         albedo = mix(albedo, albedo*block, blockStr);;
+         //albedo = vec3(UV.x, UV.y, 0.0);
 
-    float roughness = heightBlendF(roughnessM1, roughnessM2, heightM1, heightM2,
-                                   mask1, 1.0-mask1, blendDepth                 );
+    float roughness = heightBlendF(roughnessM3, roughnessM4, heightM3, heightM4,
+                                   mask34, 1.0-mask34, blendDepth               );
+          roughness = heightBlendF(roughnessM2, roughness, heightM2, heightM3,
+                                   mask23, 1.0-mask23, blendDepth             );
+          roughness = heightBlendF(roughnessM1, roughness, heightM1, heightM2,
+                                   mask12, 1.0-mask12, blendDepth             );
 
-    vec3  normal = heightBlendV3(normalM1, normalM2, heightM1, heightM2,
-                                 mask1, 1.0-mask1, blendDepth           );
+    vec3 normal = heightBlendV3(normalM3, normalM4, heightM3, heightM4,
+                                mask34, 1.0-mask34, blendDepth         );
+         normal = heightBlendV3(normalM2, normal, heightM2, heightM3,
+                                mask23, 1.0-mask23, blendDepth       );
+         normal = heightBlendV3(normalM1, normal, heightM1, heightM2,
+                                mask12, 1.0-mask12, blendDepth       );
 
     ALBEDO     = albedo;
     ROUGHNESS  = roughness;

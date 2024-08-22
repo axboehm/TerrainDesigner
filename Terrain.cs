@@ -33,7 +33,6 @@ public class Terrain {
             normalization += amplitude;
             amplitude     *= ampMult;
         }
-        //TODO[ALEX]: is normalization too big?
 
         //TODO[ALEX]: retime this
         // non parallel way: 508.2472 - 535.7532
@@ -404,10 +403,10 @@ public class Terrain {
         var debug = new XB.DebugTimedBlock(XB.D.TerrainUpdateHeightMap);
 #endif
 
-        var height = new Godot.Color(0.0f, 0.0f, 1.0f, 0.0f); // only the blue value will be used
+        var height = new Godot.Color(0.0f, 0.0f, 0.0f, 1.0f);
         for (int i = 0; i < img.GetWidth(); i++) {
             for (int j = 0; j < img.GetHeight(); j++) {
-                height.B = (tHeights[i, j] - lowest) / (highest - lowest);
+                height.R = (tHeights[i, j] - lowest) / (highest - lowest);
                 img.SetPixel(i, j, height);
             }
         }
