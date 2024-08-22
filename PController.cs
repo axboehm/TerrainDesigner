@@ -253,16 +253,14 @@ public partial class PController : Godot.CharacterBody3D {
     //NOTE[ALEX]: the update is split into functions to make timing easier
     //            and to make explicit, which variables are touched by each part
     public override void _PhysicsProcess(double delta) {
+        float dt = (float)delta;
+
 #if XBDEBUG
+         DebugHud.UpdateDebugHUD(dt); // not part of the debug block or it will be included in the time
         var debug = new XB.DebugTimedBlock(XB.D.PController_PhysicsProcess);
 #endif
 
-        float dt = (float)delta;
         UpdateGeneral(dt, ref Hud, ref _pModelPos, ref PModel, ref _spaceSt);
-
-#if XBDEBUG
-         DebugHud.UpdateDebugHUD(dt);
-#endif
 
         if (GetTree().Paused) {
 #if XBDEBUG

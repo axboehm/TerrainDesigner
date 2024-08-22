@@ -304,8 +304,8 @@ public partial class Menu : Godot.Control {
         _texGenMap = new Godot.ImageTexture();
         _texGenMap.SetImage(_imgGenMap);
         _trGenMap.Texture = _texGenMap;
-        //TODO[ALEX]: trGenMap aspect ratio?
-        // and scaling etc
+        _trGenMap.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
+        _trGenMap.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
         _ctrlPopupG.Hide();
     }
 
