@@ -126,7 +126,6 @@ public partial class Menu : Godot.Control {
     [Godot.Export] private Godot.TextureRect  _trGenMap;
                    private Godot.Image        _imgGenMap;
                    private Godot.ImageTexture _texGenMap;
-                   private const int          _sizeGenMap   = 512;
                    private const string       _valueFormat  = "F2";
                    private const string       _scaleFormat  = "F4"; // more precision for scale
                    private const string       _heightFormat = "F2";
@@ -298,11 +297,15 @@ public partial class Menu : Godot.Control {
         _slGenExp.DragEnded    += SliderGenExpOnDragEnded;
         _slGenExp.Step          = 0;
         _cbGenUpd.Pressed      += ButtonGenUpdOnPressed;
-        _imgGenMap = Godot.Image.Create(_sizeGenMap, _sizeGenMap, false, Godot.Image.Format.L8);
+        _imgGenMap = Godot.Image.Create(XB.WData.ImgMiniMap.GetWidth(),
+                                        XB.WData.ImgMiniMap.GetHeight(),
+                                        false, Godot.Image.Format.L8    );
         _imgGenMap.Fill(XB.Col.Black);
         _texGenMap = new Godot.ImageTexture();
         _texGenMap.SetImage(_imgGenMap);
         _trGenMap.Texture = _texGenMap;
+        //TODO[ALEX]: trGenMap aspect ratio?
+        // and scaling etc
         _ctrlPopupG.Hide();
     }
 
@@ -778,8 +781,7 @@ public partial class Menu : Godot.Control {
     private void ButtonApplySpheresOnPressed() {
         XB.ManagerSphere.ApplyTerrain();
         XB.WData.UpdateTerrain(false);
-        _player.SpawnPlayer(new Godot.Vector2(_player.GlobalPosition.X,
-                                              _player.GlobalPosition.Z));
+        _player.SpawnPlayer(new Godot.Vector2(_player.GlobalPosition.X, _player.GlobalPosition.Z));
         ShowMessage(Tr("APPLIED_SPHERES"));
         ButtonResumeOnPressed();
     }
@@ -796,7 +798,7 @@ public partial class Menu : Godot.Control {
         XB.Terrain.HeightReplace(ref XB.WData.TerrainHeights, ref XB.WData.TerrainHeightsMod,
                                  XB.WData.WorldVerts.X, XB.WData.WorldVerts.Y                );
         XB.WData.UpdateTerrain(false);
-        _player.SpawnPlayer(new Godot.Vector2(-XB.WData.WorldDim.X/2.0f, -XB.WData.WorldDim.Y/2.0f));
+        _player.SpawnPlayer(new Godot.Vector2(_player.GlobalPosition.X, _player.GlobalPosition.Z));
         ShowMessage(Tr("GENERATED_TERRAIN"));
         _ctrlPopupG.Hide();
         ButtonResumeOnPressed();

@@ -41,7 +41,6 @@ public partial class Initialize : Godot.Node3D {
 
         _player.InitializePController();
         _player.InitializeHud();
-        _player.InitializeMenu();
 
         // world dimensions given in exponent for power of 2:
         // 1 - 2m, 2 - 4m, 3 - 8m, 4 - 16m, 5 - 32m, 6 - 64m, 7 - 128m, 8 - 256m, 9 - 512m
@@ -51,6 +50,11 @@ public partial class Initialize : Godot.Node3D {
         XB.WData.GenerateRandomTerrain();
         XB.WData.UpdateTerrain(true);
 
+        _player.InitializeMenu(); // after terrain init for _imgGenMap size
+
+        //NOTE[ALEX]: since spawning happens one tick delayed, the first frame's UpdateQTreeMeshes
+        //            uses the incorrect location for distance calculations, consider this when
+        //            debugging
         _player.SpawnPlayer(new Godot.Vector2(-XB.WData.WorldDim.X/2.0f, -XB.WData.WorldDim.Y/2.0f));
 
 #if XBDEBUG

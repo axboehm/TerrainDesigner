@@ -274,9 +274,10 @@ public class WData { // world data
         if (reInitialize) {
             XB.ManagerTerrain.InitializeQuadTree(WorldDim.X, WorldDim.Y, WorldRes,
                                                  CollisionRes, ColliderSizeMult*TerrainTileMinimum,
-                                                 TerrainTileMinimum, TerrainDivisionsMax           );
+                                                 TerrainTileMinimum, TerrainDivisionsMax,
+                                                 LowestPoint, HighestPoint, ref ImgMiniMap         );
         } else {
-            XB.ManagerTerrain.ResampleMeshes(LowestPoint, HighestPoint, ref ImgMiniMap);
+            XB.ManagerTerrain.ResetQuadTree(LowestPoint, HighestPoint, ref ImgMiniMap);
         }
 
         XB.ManagerTerrain.UpdateCollisionTiles(LowestPoint, HighestPoint, ref ImgMiniMap);
