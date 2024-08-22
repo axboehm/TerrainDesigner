@@ -324,6 +324,7 @@ public enum D { // unique debug identifier, naming scheme: "ClassFunction"
     TerrainHeightMax,
     TerrainHeightMin,
     TerrainHeightReplace,
+    TerrainHeightScale,
     TerrainResetLowestHighest,
     TerrainUnevenCapsule,
     TerrainUpdateHeightMap,

@@ -797,6 +797,9 @@ public partial class Menu : Godot.Control {
         if (!_updateGenTex) { GenerateTerrainHeights(); } // only if heightmap has not been generated yet
         XB.Terrain.HeightReplace(ref XB.WData.TerrainHeights, ref XB.WData.TerrainHeightsMod,
                                  XB.WData.WorldVerts.X, XB.WData.WorldVerts.Y                );
+        XB.Terrain.HeightScale(ref XB.WData.TerrainHeights, XB.WData.WorldVerts.X,
+                               XB.WData.WorldVerts.Y, (float)_slGenHeight.Value,
+                               ref XB.WData.LowestPoint, ref XB.WData.HighestPoint);
         XB.WData.UpdateTerrain(false);
         _player.SpawnPlayer(new Godot.Vector2(_player.GlobalPosition.X, _player.GlobalPosition.Z));
         ShowMessage(Tr("GENERATED_TERRAIN"));
@@ -865,18 +868,18 @@ public partial class Menu : Godot.Control {
     private void GenerateTerrainHeights() {
         XB.Terrain.FBM(XB.WData.WorldVerts.X, XB.WData.WorldVerts.Y,
                        XB.WData.WorldDim.X, XB.WData.WorldDim.Y,
-                       (float)_slGenHeight.Value, (float)_slGenScale.Value,
+                       (float)_slGenScale.Value,
                        (float)_slGenOffX.Value, (float)_slGenOffZ.Value,
                        (int)_slGenOct.Value, (float)_slGenPers.Value,
-                       (float)_slGenLac.Value, (float)_slGenExp.Value       );
+                       (float)_slGenLac.Value, (float)_slGenExp.Value   );
         float lowest  = 0.0f;
         float highest = 0.0f;
         XB.Terrain.FindLowestHighest(ref XB.WData.TerrainHeightsMod, XB.WData.WorldVerts.X, 
                                      XB.WData.WorldVerts.Y, ref lowest, ref highest        );
         XB.Terrain.UpdateHeightMap(ref XB.WData.TerrainHeightsMod,
-                                   lowest, highest, ref _imgGenMap    );
-        _lbGenLow.Text     = lowest.ToString(_heightFormat)  + "m";
-        _lbGenHigh.Text    = highest.ToString(_heightFormat) + "m";
+                                   lowest, highest, ref _imgGenMap);
+        _lbGenLow.Text     = "0.0m";
+        _lbGenHigh.Text    = _slGenHeight.Value.ToString(_heightFormat) + "m";
         _lbGenCurSeed.Text = XB.Random.RandomSeed.ToString();
 
         _texGenMap.Update(_imgGenMap);

@@ -252,9 +252,11 @@ public class WData { // world data
         XB.Terrain.Flat(ref TerrainHeights, WorldVerts.X, WorldVerts.Y, 0.0f); // initialize to flat
 
         XB.Terrain.FBM(WorldVerts.X, WorldVerts.Y, WorldDim.X, WorldDim.Y,
-                       GenHeightDef, GenScaleDef, GenOffXDef, GenOffZDef,
+                       GenScaleDef, GenOffXDef, GenOffZDef,
                        GenOctDef, GenPersDef, GenLacDef, GenExpDef        );
         XB.Terrain.HeightReplace(ref TerrainHeights, ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y);
+        XB.Terrain.HeightScale(ref TerrainHeights, WorldVerts.X, WorldVerts.Y,
+                               GenHeightDef, ref LowestPoint, ref HighestPoint);
 
         // Godot.GD.Print("Generate Terrain: LP: " + LowestPoint + ", HP: " + HighestPoint);
 

@@ -11,7 +11,7 @@ public class Terrain {
     // each with increasing frequency (detail) but less amplitude (strength)
     //NOTE[ALEX]: can not use ref with parallel for loop, so the height array is hardcoded
     public static void FBM(int amountX, int amountZ, float sizeX, float sizeZ,
-                           float height, float scale, float offsetX, float offsetZ,
+                           float scale, float offsetX, float offsetZ,
                            int octaves, float persistence, float lacunarity, float exponentation) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainFBM);
@@ -62,7 +62,7 @@ public class Terrain {
                 }
 
                 total /= normalization;
-                total  = System.MathF.Pow(total, exponentation) * height;
+                total  = System.MathF.Pow(total, exponentation);
                 XB.WorldData.TerrainHeightsMod[i, j] = total;
             }
         }
@@ -90,7 +90,7 @@ public class Terrain {
                 }
 
                 total /= normalization;
-                total  = System.MathF.Pow(total, exponentation) * height;
+                total  = System.MathF.Pow(total, exponentation);
                 XB.WData.TerrainHeightsMod[i, j] = total;
             }
         });
@@ -99,6 +99,22 @@ public class Terrain {
 #if XBDEBUG
         debug.End();
 #endif 
+    }
+
+    public static void HeightScale(ref float[,] tHeights, int amountX, int amountZ,
+                                   float height, ref float lowestPoint, ref float highestPoint) {
+        float diff = highestPoint - lowestPoint;
+
+        for (int i = 0; i < amountX; i++) {
+            for (int j = 0; j < amountZ; j++) {
+                tHeights[i, j] -= lowestPoint;
+                tHeights[i, j] /= diff;
+                tHeights[i, j] *= height;
+            }
+        }
+
+        lowestPoint  = 0.0f;
+        highestPoint = height;
     }
 
     // angle should be constrained to be within 1 and 89 degrees (including), to prevent weirdness
