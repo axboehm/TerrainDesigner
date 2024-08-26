@@ -6,6 +6,7 @@ public enum Direction {
     Down,
 }
 
+// Terrain deals with heightmap creation and modification
 public class Terrain {
     // FBM (fractal brownian motion) noise is an addition of multiple layers of perlin noise,
     // each with increasing frequency (detail) but less amplitude (strength)

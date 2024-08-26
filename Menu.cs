@@ -5,6 +5,8 @@ public enum MenuType {
     Pause,
     Save,
 }
+
+// Menu takes over as the main controlling function when the game gets paused (from PController)
 public partial class Menu : Godot.Control {
     [Godot.Export] private XB.PController     _player;
     [Godot.Export] private XB.HUD             _hud;

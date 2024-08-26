@@ -21,6 +21,10 @@ public enum MoveSt {
     Run,
 }
 
+// PController is responsible for controlling the player character and camera,
+// as it is called every frame, various other updates are also called from here
+// pulling all updates together like this makes it obvious, in which order they are processed
+// and allows for all the non engine code to be timed together
 public partial class PController : Godot.CharacterBody3D {
     [Godot.Export] private Godot.NodePath       _cameraNode;
                    private Godot.Camera3D       _cam;                 // camera object
@@ -47,7 +51,7 @@ public partial class PController : Godot.CharacterBody3D {
     [Godot.Export] private Godot.NodePath       _bodyNode;
                    private Godot.BaseMaterial3D _bodyMat;
                    private Godot.BaseMaterial3D _headMat;
-                   private float                _colSm      = 14.0f;
+                   private const float          _colSm      = 14.0f;
                    private Godot.Color          _colCurrent = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
 
     private       bool          _thirdP           = true;
@@ -65,17 +69,17 @@ public partial class PController : Godot.CharacterBody3D {
     private const int                   _audFootStepAmnt = 6;
     private float                       _tFootStep       = 0.0f;
 
-    private Godot.Vector2   _mouse    = new Godot.Vector2(0.0f, 0.0f); // mouse motion this tick
+    private Godot.Vector2 _mouse = new Godot.Vector2(0.0f, 0.0f); // mouse motion this tick
 
     private       XB.AirSt  _plA;               // player's air state
-    private       XB.JumpSt _plJ;                // player's jump state
-    private       bool      _plAiming  = false;  // is the player aiming
+    private       XB.JumpSt _plJ;               // player's jump state
+    private       bool      _plAiming = false;  // is the player aiming
     private       bool      _plMoved  = false;  // player moved this frame
     private       float     _plYV     = 0.0f;   // player's velocity in y direction
     private       XB.MoveSt _move     = XB.MoveSt.Walk;
     private       float     _moveSpd  = 0.0f;   // current move speed
-    private const float     _walkSpd  = -1.8f;  // speed for walking (-2.4)
-    private const float     _runSpd   = -4.2f;  // speed for running (-4.2)
+    private const float     _walkSpd  = -1.8f;  // speed for walking
+    private const float     _runSpd   = -4.2f;  // speed for running
     private const float     _walkAnm  = 3.8f;   // animation speed multiplier (empirical)
     private const float     _jumpStr  = 5.0f;
     private const float     _plGrav   = 9.81f;
@@ -142,14 +146,14 @@ public partial class PController : Godot.CharacterBody3D {
         CollisionMask  = XB.LayerMasks.PlayerMask;
         CollisionLayer = XB.LayerMasks.PlayerLayer;
 
-        _cam       = GetNode<Godot.Camera3D>        (_cameraNode);
-        CCtrH      = GetNode<Godot.Node3D>          (_cameraRotationHNode);
-        _cCtrV     = GetNode<Godot.Node3D>          (_cameraRotationVNode);
-        _gunTip    = GetNode<Godot.Node3D>          (_gunTipNode);
-        PModel     = GetNode<Godot.Node3D>          (_playerRiggedNode);
-        _pATree    = GetNode<Godot.AnimationTree>   (_animationTreeNode);
-        Hud        = (XB.HUD)GetNode<Godot.Control> (_hudNode);
-        Menu       = (XB.Menu)GetNode<Godot.Control>(_menuNode);
+        _cam    = GetNode<Godot.Camera3D>        (_cameraNode);
+        CCtrH   = GetNode<Godot.Node3D>          (_cameraRotationHNode);
+        _cCtrV  = GetNode<Godot.Node3D>          (_cameraRotationVNode);
+        _gunTip = GetNode<Godot.Node3D>          (_gunTipNode);
+        PModel  = GetNode<Godot.Node3D>          (_playerRiggedNode);
+        _pATree = GetNode<Godot.AnimationTree>   (_animationTreeNode);
+        Hud     = (XB.HUD)GetNode<Godot.Control> (_hudNode);
+        Menu    = (XB.Menu)GetNode<Godot.Control>(_menuNode);
         Menu.Hide();
 
         _thirdP  = true;
@@ -215,6 +219,7 @@ public partial class PController : Godot.CharacterBody3D {
 #endif 
     }
 
+    // to avoid having to give an additional reference of hud and menu to Initialize
     public void InitializeHud() {
         Hud.InitializeHud();
     }
@@ -238,18 +243,19 @@ public partial class PController : Godot.CharacterBody3D {
         var debug = new XB.DebugTimedBlock(XB.D.PController_Input);
 #endif
 
-        if (@event is not Godot.InputEventMouseMotion) return;
+        if (@event is not Godot.InputEventMouseMotion) { return; }
 
         var mouseM = (Godot.InputEventMouseMotion)@event;
-        _mouse.X   = -0.015625f * mouseM.Relative.X; // multipliers = -30/1920|1080
-        _mouse.Y   = -0.027777f * mouseM.Relative.Y;
+        _mouse.X   = XB.AData.S.SC.MouseMultX * mouseM.Relative.X;
+        _mouse.Y   = XB.AData.S.SC.MouseMultY * mouseM.Relative.Y;
 
 #if XBDEBUG
         debug.End();
 #endif 
     }
 
-    // Called every frame at fixed time steps
+    // Called every frame at fixed time steps (_PhysicsProcess is a Godot built in that every
+    // object has, however the order of their calling is not fixed among all the objects)
     //NOTE[ALEX]: the update is split into functions to make timing easier
     //            and to make explicit, which variables are touched by each part
     public override void _PhysicsProcess(double delta) {
@@ -311,11 +317,10 @@ public partial class PController : Godot.CharacterBody3D {
         UpdateDebugInputs(ref DebugHud);
 #endif 
 
-        // CLEANUP
         // to fix axes drifting apart due to imprecision:
         _cam.Transform  = _cam.Transform.Orthonormalized();
         CCtrH.Transform = CCtrH.Transform.Orthonormalized();
-        _camTransPrev   = _cam.GlobalTransform;
+        _camTransPrev   = _cam.GlobalTransform; // store for sphere movement
 
 #if XBDEBUG
         debug.End();
@@ -390,7 +395,7 @@ public partial class PController : Godot.CharacterBody3D {
         }
 
         // STEP 2: check for player being outside of terrain area
-        //NOTE[ALEX]: these should rarely if ever be called, so the new allocations are acceptable
+        //NOTE[ALEX]: PlacePlayer should rarely if ever be called, so the new allocations are acceptable
         if        (contr.GlobalPosition.Y < XB.WData.KillPlane || 
                    contr.GlobalPosition.Y < (XB.WData.LowestPoint - XB.WData.LowHighExtra)) {
             // Godot.GD.Print(">> out of bounds high/low");
@@ -724,7 +729,10 @@ public partial class PController : Godot.CharacterBody3D {
                     walkBlend.X = XB.AData.Input.MoveX; // walk left/right
                     walkBlend.Y = XB.AData.Input.MoveY; // walk forwards/backwards
                 } else { // condense 2D movement into single value representing amount
-                    walkBlend.Y = new Godot.Vector2(XB.AData.Input.MoveX, XB.AData.Input.MoveY).Length();
+                    float length  = XB.AData.Input.MoveX*XB.AData.Input.MoveX;
+                          length += XB.AData.Input.MoveY*XB.AData.Input.MoveY;
+                          length  = System.MathF.Sqrt(length);
+                    walkBlend.Y = length;
                 }
                 walkBlend /= walkBlend.Length();
                 walkSpeed  = walkBlend.Length()*walkAnm;
@@ -744,7 +752,7 @@ public partial class PController : Godot.CharacterBody3D {
                 if (!plAiming) { idleMode = 0.0f; } // idle
             }
             blIdle = XB.Utils.LerpF(blIdle, idleMode, moveSm*dt);
-            blWalk = XB.Utils.LerpV2(blWalk, walkBlend, walkSm*dt);
+            XB.Utils.LerpV2(ref blWalk, ref walkBlend, walkSm*dt, ref blWalk);
         } else { // jumping - in air
             blMove = XB.Utils.LerpF(blMove, 1.0f, moveSm*dt); // jump is 1.0f in animation tree
             if        (plJ == XB.JumpSt.OneJumpS) {
@@ -766,6 +774,7 @@ public partial class PController : Godot.CharacterBody3D {
 #endif 
     }
 
+    // used for fade in / fade out when changing camera mode
     private void UpdatePlayerMaterial(float dt, ref bool thirdP, ref Godot.Color colCurrent,
                                       float colSm, ref Godot.BaseMaterial3D hairMat,
                                       ref Godot.BaseMaterial3D lashMat,
@@ -928,14 +937,14 @@ public partial class PController : Godot.CharacterBody3D {
     private void SpawnPlayerDelayed(ref Godot.Vector2 spawnPos, float respawnOff,
                                     ref Godot.PhysicsDirectSpaceState3D spaceSt,
                                     ref Godot.Collections.Dictionary resultRC, ref bool spawn,
-                                    ref int spawnAttempts, int spawnAttemptsMax) {
+                                    ref int spawnAttempts, int spawnAttemptsMax               ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.PControllerSpawnPlayerDelayed);
 #endif
 
-        float high = XB.WData.HighestPoint+XB.WData.LowHighExtra;
-        float low  = XB.WData.LowestPoint -XB.WData.LowHighExtra;
-        var spawnPoint  = new Godot.Vector3(_spawnPos.X,  high, spawnPos.Y );
+        float high = XB.WData.HighestPoint + XB.WData.LowHighExtra;
+        float low  = XB.WData.LowestPoint  - XB.WData.LowHighExtra;
+        var spawnPoint  = new Godot.Vector3(spawnPos.X,   high, spawnPos.Y  );
         var origin      = new Godot.Vector3(spawnPoint.X, high, spawnPoint.Z);
         var destination = new Godot.Vector3(spawnPoint.X, low,  spawnPoint.Z);
         RequestSpaceState(ref spaceSt);
@@ -944,7 +953,7 @@ public partial class PController : Godot.CharacterBody3D {
         // Godot.GD.Print("try spawn at: " + spawnPoint + ", o: " + origin + ", d: " + destination
         //                + ", PlPos: " + GlobalPosition);
         if (resultRC.Count > 0) {
-            spawnPoint      = (Godot.Vector3)_resultRC["position"];
+            spawnPoint      = (Godot.Vector3)resultRC["position"];
             spawnPoint.Y   += respawnOff;
             spawn          = false;
             spawnAttempts  = 0;

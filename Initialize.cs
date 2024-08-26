@@ -1,5 +1,8 @@
 #define XBDEBUG
 namespace XB { // namespace open
+// initialization of the application and all managers and object 
+// that remain over the lifetime of the app
+// after that, initial creation of a world terrain
 public partial class Initialize : Godot.Node3D {
     [Godot.Export] private Godot.WorldEnvironment   _environment;
     [Godot.Export] private Godot.DirectionalLight3D _mainLight;

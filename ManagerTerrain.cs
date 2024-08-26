@@ -2,13 +2,20 @@
 // #define XBVISUALIZECOLLIDERS
 using SysCG = System.Collections.Generic;
 namespace XB { // namespace open
+// QNode is on node in a quadtree that represents the terrain of the world
+// the entire tree gets created at initialization
+// the mesh data is kept separate from the quadtree nodes in MeshContainer
+// MeshContainers are assigned to QNodes as needed in TerrainManager
+// by keeping QNode light, creating the entire tree becomes not a performance issue,
+// but having the entire tree allows for the distance based calculations in TerrainManager
+// to be much simpler and use recursion
 public class QNode {
     public QNode   Parent;
     public QNode[] Children;
     public XB.MeshContainer MeshContainer;
-    public bool  Active;      //  is the tile supposed to be active
+    public bool  Active;      // is the tile supposed to be active
     public bool  MeshVisible; // is the mesh of the tile visible
-    public bool  MeshReady;   // is the mesh assigned and ready
+    public bool  MeshReady;   // is the mesh assigned and ready (processing is staggered)
     public int   ID;
     public float XPos;  // center x coordinate in meter
     public float ZPos;
@@ -236,6 +243,7 @@ public class QNode {
     }
 }
 
+// directions of mesh skirt (used to ensure consistency)
 public enum Sk {
     ZM, // bottom edge
     ZP, // top edge
@@ -244,8 +252,11 @@ public enum Sk {
 }
 
 // each MeshContainer represents the visible mesh data of one terrain tile
-// since the tiles have different resolutions, gaps can appear between the tiles
-// to prevent this, each tile gets a mesh skirt, an extension of the edges downwards to hide the gap
+// they are created as required but never destroyed, rather they are hidden and made available
+// again for when another MeshContainer gets requested
+// since the tiles can have different resolutions to their neighbors,
+// gaps can appear between the tiles, to prevent this,
+// each tile gets a mesh skirt, an extension of the edges downwards to hide the gap
 public class MeshContainer {
     public int  XAmount;
     public int  ZAmount;
@@ -709,6 +720,12 @@ public class MeshContainer {
     }
 }
 
+// collision for the world is also split into tiles
+// they have a uniform resolution (as opposed to the visible mesh tiles)
+// collision tiles are created at startup for the entire terrain
+// then when the heightmap changes they are all updated at once
+// their updates can not be staggered as the player or other objects might potentially fall
+// through the terrain if they are not available there yet
 public class CollisionTile {
     public int   XAmount;
     public int   ZAmount;
@@ -867,6 +884,10 @@ public class CollisionTile {
     }
 }
 
+// ManagerTerrain manages the terrain mesh tiles and collision tiles along with the terrain quadtree
+// updates are handled through here and changes queued to be processed over multiple frames
+// as mesh allocation is the longest step in the whole process, 
+// that step has to be spread over multiple frames to avoid lag spikes
 public class ManagerTerrain {
     private static XB.QNode _qRoot;
     private static int      _nextID      = 0;

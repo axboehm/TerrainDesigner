@@ -3,6 +3,8 @@ using SysCG = System.Collections.Generic;
 public class SettingsContainer {
     public bool   FullScreen     = false;
     public string Resolution     = "1920x1080";
+    public float  MouseMultX     = -30.0f/1920.0f;
+    public float  MouseMultY     = -30.0f/1080.0f;
     public int    Fps            = 60;
     public bool   ShowFps        = false;
     public bool   BlockGrid      = false;
@@ -33,6 +35,8 @@ public class SettingsContainer {
     public void SetAllFromSettingsContainer(ref XB.SettingsContainer scFrom) {
         FullScreen     = scFrom.FullScreen;
         Resolution     = scFrom.Resolution;
+        MouseMultX     = scFrom.MouseMultX;
+        MouseMultY     = scFrom.MouseMultY;
         Fps            = scFrom.Fps;
         ShowFps        = scFrom.ShowFps;
         BlockGrid      = scFrom.BlockGrid;
@@ -83,29 +87,6 @@ public class SettingsStateChange {
     public bool ChangeVolume       = false;
     public bool ChangeVSync        = false;
 
-    //TODO[ALEX]: is this required?
-    public void SetAllTrue() {
-        ChangeCamSens      = true;
-        ChangeDebanding    = true;
-        ChangeFov          = true;
-        ChangeFps          = true;
-        ChangeHUD          = true;
-        ChangeLanguage     = true;
-        ChangeLOD          = true;
-        ChangeMSAA         = true;
-        ChangeScreen       = true;
-        ChangeShadowDist   = true;
-        ChangeShadowFilter = true;
-        ChangeShadowSize   = true;
-        ChangeSSAA         = true;
-        ChangeSSAO         = true;
-        ChangeSSIL         = true;
-        ChangeSSR          = true;
-        ChangeTAA          = true;
-        ChangeVolume       = true;
-        ChangeVSync        = true;
-    }
-
     public void SetAllFalse() {
         ChangeCamSens      = false;
         ChangeDebanding    = false;
@@ -129,6 +110,11 @@ public class SettingsStateChange {
     }
 }
 
+// all active settings live in one SettingsContainer while the app is running
+// changes to settings in the menu, etc. are made to a second container and then
+// this class updates the active settings and makes all changes required to the application
+// the goal was to make every change to settings go through the same function to ensure
+// consistency and only one place of truth
 public class Settings {
     public  XB.SettingsContainer SC     = new XB.SettingsContainer(); // application settings
     private XB.SettingsContainer _scMod = new XB.SettingsContainer(); // for changing settings
@@ -253,6 +239,8 @@ public class Settings {
 
         if (SC.FullScreen != sc.FullScreen)         { _chng.ChangeScreen = true; }
         if (SC.Resolution != sc.Resolution)         { _chng.ChangeScreen = true; }
+        if (SC.MouseMultX != sc.MouseMultX)         { _chng.ChangeScreen = true; }
+        if (SC.MouseMultY != sc.MouseMultY)         { _chng.ChangeScreen = true; }
         if (SC.Fps != sc.Fps)                       { _chng.ChangeFps = true; }
         if (SC.ShowFps != sc.ShowFps)               { _chng.ChangeHUD = true; }
         if (SC.BlockGrid != sc.BlockGrid)           { _chng.ChangeHUD = true; }
@@ -312,6 +300,8 @@ public class Settings {
         window.Size = Resolutions[SC.Resolution];
         float scale = ((float)Resolutions[SC.Resolution].X) / ((float)Resolutions[_baseResolution].X);
 
+        //TODO[ALEX]: should the mouse multiplier be adjusted in fullscreen?
+        //            test if looking around feels the same or it needs adjustment
         if (SC.FullScreen) {
             window.Mode               = Godot.Window.ModeEnum.Fullscreen;
             XB.PController.Hud.Scale  = new Godot.Vector2(scale, scale);

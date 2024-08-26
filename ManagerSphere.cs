@@ -1,6 +1,7 @@
 #define XBDEBUG
 using SysCG = System.Collections.Generic;
 namespace XB { // namespace open
+// DamSegment holds all the mesh data required to display a segment between two linked spheres
 public class DamSegment {
     public int[] LinkedIDs; // ids of linked spheres(2)
     public int   ID;        // id of segment, not of linked spheres
@@ -14,7 +15,8 @@ public class DamSegment {
     public Godot.Vector2[]         UVsDam;
     public Godot.Vector3[]         NormalsDam;
     public int[]                   TrianglesDam;
-    public int                     SegmentDivisions;
+    public int                     SegmentDivisions; // same amount of divisions, independent of length
+                                                     // to reduce calculations and setup every frame
     public const int VAmnt = 7;
 
     // geometry layout of vertices (X is a single vertex, Y are two separate vertices)
@@ -209,10 +211,10 @@ public class DamSegment {
 
         for (int i = 0; i < SegmentDivisions; i++) {
             float t = (float)i / (float)(SegmentDivisions-1);
-            dirL = XB.Utils.LerpV3(dirL1, dirL2, t);
-            nrmL = XB.Utils.LerpV3(nrmL1, nrmL2, t);
-            dirR = XB.Utils.LerpV3(dirR1, dirR2, t);
-            nrmR = XB.Utils.LerpV3(nrmR1, nrmR2, t);
+            XB.Utils.LerpV3(ref dirL1, ref dirL2, t, ref dirL);
+            XB.Utils.LerpV3(ref nrmL1, ref nrmL2, t, ref nrmL);
+            XB.Utils.LerpV3(ref dirR1, ref dirR2, t, ref dirR);
+            XB.Utils.LerpV3(ref nrmR1, ref nrmR2, t, ref nrmR);
 
             VerticesDam[i*VAmnt + 0] = posSp1L + dirLU*((float)i*stepL) + dirL*edgeLength;
             VerticesDam[i*VAmnt + 1] = posSp1L + dirLU*((float)i*stepL);
@@ -264,6 +266,13 @@ public class DamSegment {
     }
 }
 
+// ManagerSphere keeps track of all the spheres that the player can place and modify
+// all spheres are initialized at startup and hidden when not in use, 
+// no new spher allocations are made
+// linking modifying spheres also passes through ManagerSphere and their textures are updated
+// cone meshes for each sphere are managed by each sphere itself, 
+// whereas dam meshes are managed by ManagerSphere, they are allocated as necessary but not deleted,
+// rather re-used if available
 public class ManagerSphere {
     public const  int  MaxSphereAmount = 64; // limit to <= 99 because of sphere texture sizes,
                                              //NOTE[ALEX]: change this manually in miniMapO.gdshader
