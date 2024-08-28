@@ -23,6 +23,7 @@ public partial class DebugHUD : Godot.Control {
 
     private Godot.TextureRect  _trBlueNoise;
     private Godot.ImageTexture _texBlueNoise;
+    private Godot.TextureRect  _trPointyness;
     private Godot.Label[]      _lbDebugStats;
     private Godot.TextureRect  _trDebugStatsBG;
     private Godot.ImageTexture _texDebugStatsBG;
@@ -30,15 +31,32 @@ public partial class DebugHUD : Godot.Control {
     private Godot.Label        _lbPlayerPos;
 
     public void InitializeDebugHUD() {
+        MouseFilter = Godot.Control.MouseFilterEnum.Ignore; // do not catch any clicks
+
         _trBlueNoise          = new Godot.TextureRect();
         Godot.Vector2I sizeBN = XB.Random.BlueNoise.GetSize();
         _trBlueNoise.Size     = sizeBN;
-        _trBlueNoise.Position = new Godot.Vector2I(XB.Settings.BaseResX-_dimSpacer-_edgeOff-sizeBN.X,
-                                                   _dimSpacer);
-        _texBlueNoise         = new Godot.ImageTexture();
+        _trBlueNoise.Position = new Godot.Vector2I(XB.Settings.BaseResX
+                                                   - _dimSpacer - _edgeOff - sizeBN.X,
+                                                   _dimSpacer                         );
+        _trBlueNoise.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
+        _trBlueNoise.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
+        _texBlueNoise        = new Godot.ImageTexture();
         _texBlueNoise.SetImage(XB.Random.BlueNoise);
-        _trBlueNoise.Texture  = _texBlueNoise;
+        _trBlueNoise.Texture = _texBlueNoise;
         AddChild(_trBlueNoise);
+        _trBlueNoise.MouseFilter = Godot.Control.MouseFilterEnum.Ignore;
+
+        _trPointyness          = new Godot.TextureRect();
+        _trPointyness.Size     = sizeBN; // same size as blue noise texture
+        _trPointyness.Position = new Godot.Vector2I(XB.Settings.BaseResX
+                                                    - 2*_dimSpacer - _edgeOff - 2*sizeBN.X,
+                                                    _dimSpacer                             );
+        _trPointyness.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
+        _trPointyness.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
+        _trPointyness.Texture = XB.WData.TexPointyness;
+        AddChild(_trPointyness);
+        _trPointyness.MouseFilter = Godot.Control.MouseFilterEnum.Ignore;
 
         // initialize random colors for function labels
         int colCounter = 1;
@@ -71,6 +89,7 @@ public partial class DebugHUD : Godot.Control {
         _texDebugStatsBG.SetImage(_imgDebugStatsBG);
         _trDebugStatsBG.Texture = _texDebugStatsBG;
         AddChild(_trDebugStatsBG);
+        _trDebugStatsBG.MouseFilter = Godot.Control.MouseFilterEnum.Ignore;
 
         var font = Godot.ResourceLoader.Load<Godot.Font>(XB.ResourcePaths.FontLibMono);
         for (int i = 0; i < _lbDebugStats.Length; i++) {
@@ -86,18 +105,20 @@ public partial class DebugHUD : Godot.Control {
             _lbDebugStats[i].AddThemeConstantOverride("outline_size",       _debugLabelOutlineSize);
             _lbDebugStats[i].AddThemeColorOverride   ("font_outline_color", _debugLabelFontOutline);
             AddChild(_lbDebugStats[i]);
+            _lbDebugStats[i].MouseFilter = Godot.Control.MouseFilterEnum.Ignore;
         }
 
         _lbPlayerPos = new Godot.Label();
         _lbPlayerPos.Position = new Godot.Vector2I(_dimSpacer, _dimSpacer);
-        _lbPlayerPos.Size     = new Godot.Vector2I((int)_trBlueNoise.Position.X - 2*_dimSpacer, 
-                                                   3*_debugLabelSpacing + 3*_debugLabelFontSize);
+        _lbPlayerPos.Size     = new Godot.Vector2I((int)_trPointyness.Position.X - 2*_dimSpacer, 
+                                                   3*_debugLabelSpacing + 3*_debugLabelFontSize );
         _lbPlayerPos.HorizontalAlignment = Godot.HorizontalAlignment.Right;
         _lbPlayerPos.AddThemeFontOverride    ("font",               font                  );
         _lbPlayerPos.AddThemeFontSizeOverride("font_size",          _debugLabelFontSize   );
         _lbPlayerPos.AddThemeConstantOverride("outline_size",       _debugLabelOutlineSize);
         _lbPlayerPos.AddThemeColorOverride   ("font_outline_color", _debugLabelFontOutline);
         AddChild(_lbPlayerPos);
+        _lbPlayerPos.MouseFilter = Godot.Control.MouseFilterEnum.Ignore;
 
         ProcessMode = ProcessModeEnum.Always;
         _visible    = false;

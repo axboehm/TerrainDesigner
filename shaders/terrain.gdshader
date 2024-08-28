@@ -25,9 +25,11 @@ uniform sampler2D tNormalM4 : hint_roughness_normal, filter_linear_mipmap, repea
 uniform sampler2D tHeightM4 : hint_default_black,    filter_linear_mipmap, repeat_enable;
 uniform float     uv4Scale  = 1.0;
 
-uniform sampler2D tBlock  : source_color, filter_linear_mipmap, repeat_enable;
-uniform sampler2D tHeight : source_color, filter_linear_mipmap, repeat_enable;
-uniform sampler2D tNoiseP : source_color, filter_linear,        repeat_enable;
+uniform sampler2D tBlock    : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D tHeight   : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D tNoiseP   : source_color, filter_linear,        repeat_enable;
+uniform sampler2D tPointy   : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D tColShift : source_color, filter_linear_mipmap, repeat_enable;
 
 uniform vec3  albVis    : source_color;
 uniform float albVisStr = 0.0;
@@ -43,6 +45,9 @@ uniform float blendWidth  = 0.1;
 uniform float blend34     = 0.25;
 uniform float blend23     = 0.5;
 uniform float blend12     = 0.75;
+uniform float pointyStr   = 0.08;
+uniform float blendCStr   = 0.5;
+uniform float blendCScale = 4.0;
 
 float v3Sum(vec3 v) {
     return (v.x + v.y + v.z);
@@ -128,6 +133,15 @@ void fragment() {
     vec3  normalM4     = textureBomb(tNormalM4, uv4, noiseP);
     float heightM4     = textureBomb(tHeightM4, uv4, noiseP).r;
 
+    float maskBlockX = fract(UVscaled.x*blockScale);
+          maskBlockX = step(maskBlockX, 0.5);
+    float maskBlockY = fract(UVscaled.y*blockScale);
+          maskBlockY = step(maskBlockY, 0.5);
+    float maskBlock  = maskBlockX + maskBlockY;
+          maskBlock /= 2.0;
+          maskBlockX = step(maskBlock, 0.25);
+          maskBlockY = step(maskBlock, 0.75);
+          maskBlock  = maskBlockY - maskBlockX; // dark tiles are in white area
     float block = texture(tBlock, UVscaled*blockScale).r;
 
     float height  = texture(tHeight, UV).r;
@@ -138,24 +152,32 @@ void fragment() {
     float mask23  = smoothstep(blend23 - blend, blend23 + blend, height);
     float mask12  = smoothstep(blend12 - blend, blend12 + blend, height);
 
-    float maskDark = pow(height, 0.5);
-          maskDark = clamp(maskDark, 0.0, 1.0);
+    vec3  albedo = heightBlendV3(albedoM3, albedoM4, heightM3, heightM4,
+                                 mask34, 1.0-mask34, blendDepth         );
+          albedo = heightBlendV3(albedoM2, albedo, heightM2, heightM3,
+                                 mask23, 1.0-mask23, blendDepth       );
+          albedo = heightBlendV3(albedoM1, albedo, heightM1, heightM2,
+                                 mask12, 1.0-mask12, blendDepth       );
 
-    // gradient inside of each material
-    albedoM1 = mix(albedoM1Dark, albedoM1, maskDark);
-    albedoM2 = mix(albedoM2Dark, albedoM2, maskDark);
-    albedoM3 = mix(albedoM3Dark, albedoM3, maskDark);
-    albedoM4 = mix(albedoM4Dark, albedoM4, maskDark);
+    float pointy  = texture(tPointy, UV).r;
+          pointy  = pow(pointy, 4.0);
+          pointy -= 0.5;
+          pointy *= pointyStr;
 
-    vec3 albedo = heightBlendV3(albedoM3, albedoM4, heightM3, heightM4,
-                                mask34, 1.0-mask34, blendDepth         );
-         albedo = heightBlendV3(albedoM2, albedo, heightM2, heightM3,
-                                mask23, 1.0-mask23, blendDepth       );
-         albedo = heightBlendV3(albedoM1, albedo, heightM1, heightM2,
-                                mask12, 1.0-mask12, blendDepth       );
-         albedo = mix(albedo, albedo*albVis, albVisStr);
-         albedo = mix(albedo, albedo*block, blockStr);;
-         //albedo = vec3(UV.x, UV.y, 0.0);
+          albedo += pointy;
+
+    float blendColor  = height - 0.5;
+          blendColor  = pow(blendColor, 3.0);
+          blendColor *= blendCStr;
+    vec3  albedoColShifted  = texture(tColShift, UV*blendCScale).rgb;
+          albedoColShifted *= blendColor;
+
+          albedo += albedoColShifted;
+
+          albedo = mix(albedo, albVis, albVisStr);
+          albedo = mix(albedo, albedo * block, blockStr * maskBlock        );
+          albedo = mix(albedo, albedo + block, blockStr * (1.0 - maskBlock));
+          //albedo = vec3(UV.x, UV.y, 0.0);
 
     float roughness = heightBlendF(roughnessM3, roughnessM4, heightM3, heightM4,
                                    mask34, 1.0-mask34, blendDepth               );
@@ -163,6 +185,7 @@ void fragment() {
                                    mask23, 1.0-mask23, blendDepth             );
           roughness = heightBlendF(roughnessM1, roughness, heightM1, heightM2,
                                    mask12, 1.0-mask12, blendDepth             );
+          roughness = mix(roughness, 1.0, albVisStr);
 
     vec3 normal = heightBlendV3(normalM3, normalM4, heightM3, heightM4,
                                 mask34, 1.0-mask34, blendDepth         );

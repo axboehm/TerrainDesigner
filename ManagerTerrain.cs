@@ -308,14 +308,23 @@ public class MeshContainer {
         MaterialTile.SetShaderParameter("tRMM4",      XB.Resources.Terrain4RMTex);
         MaterialTile.SetShaderParameter("tNormalM4",  XB.Resources.Terrain4NTex );
         MaterialTile.SetShaderParameter("tHeightM4",  XB.Resources.Terrain4HTex );
+        MaterialTile.SetShaderParameter("tColShift",  XB.Resources.ColorShiftTex);
         // visualization colors initially represent somewhat of a gradient 
         // but will quickly get shuffled around as MeshContainers get reused
         float r = 1.0f - XB.Utils.LerpF(0.0f, 1.0f, -lerpRAmount);
         float g =        XB.Utils.LerpF(0.0f, 1.0f, -lerpGAmount);
         float b = XB.Random.RandomInRangeF(0.0f, 1.0f);
         var col = new Godot.Color(r, g, b, 1.0f);
-        MaterialTile.SetShaderParameter("albVis",    col);
-        MaterialTile.SetShaderParameter("albVisStr", 0.5f);
+        MaterialTile.SetShaderParameter("albVis",      col);
+        MaterialTile.SetShaderParameter("albVisStr",   XB.WData.AlbVisStr);
+        MaterialTile.SetShaderParameter("blendDepth",  XB.WData.BlendDepth);
+        MaterialTile.SetShaderParameter("blendWidth",  XB.WData.BlendWidth);
+        MaterialTile.SetShaderParameter("blend12",     XB.WData.Blend12);
+        MaterialTile.SetShaderParameter("blend23",     XB.WData.Blend23);
+        MaterialTile.SetShaderParameter("blend34",     XB.WData.Blend34);
+        MaterialTile.SetShaderParameter("pointyStr",   XB.WData.PointynessStr);
+        MaterialTile.SetShaderParameter("blendCStr",   XB.WData.BlendColStr);
+        MaterialTile.SetShaderParameter("blendCScale", XB.WData.BlendColScale);
 
         MaterialSkirt = new Godot.ShaderMaterial();
         MaterialSkirt.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.TSkirtShader);
@@ -605,12 +614,8 @@ public class MeshContainer {
         MaterialTile.SetShaderParameter("uv3Scale",    WData.Mat3UVScale);
         MaterialTile.SetShaderParameter("uv4Scale",    WData.Mat4UVScale);
         MaterialTile.SetShaderParameter("noisePScale", WData.NoisePScale);
-        MaterialTile.SetShaderParameter("blendDepth",  WData.BlendDepth);
-        MaterialTile.SetShaderParameter("blendWidth",  WData.BlendWidth);
-        MaterialTile.SetShaderParameter("blend12",     WData.Blend12);
-        MaterialTile.SetShaderParameter("blend23",     WData.Blend23);
-        MaterialTile.SetShaderParameter("blend34",     WData.Blend34);
         MaterialTile.SetShaderParameter("tHeight",     XB.PController.Hud.TexMiniMap);
+        MaterialTile.SetShaderParameter("tPointy",     XB.WData.TexPointyness);
 
 #if XBDEBUG
         debug.End();

@@ -320,7 +320,8 @@ public partial class HUD : Godot.Control {
         var debug = new XB.DebugTimedBlock(XB.D.HUDUpdateMiniMap);
 #endif
 
-        TexMiniMap.SetImage(XB.WData.ImgMiniMap);
+        TexMiniMap.SetImage(XB.WData.ImgMiniMap); // required because the heightmap gets created
+                                                  // after hud gets initialized
         TexMiniMap.Update(XB.WData.ImgMiniMap);
         _lbHeightL.Text = low.ToString (_heightFormat) + "m";
         _lbHeightH.Text = high.ToString(_heightFormat) + "m";

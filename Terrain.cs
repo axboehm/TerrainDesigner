@@ -439,6 +439,7 @@ public class Terrain {
     // vW1 samples the texture at pixels A (x = 0) and B (x = 1) and blends linearly
     // the same vertically
     //
+    //NOTE[ALEX]: no mipmaps
     public static float HeightMapSample(float sampleX, float sampleZ,
                                         float worldXSize, float worldZSize, ref Godot.Image img) {
 #if XBDEBUG
@@ -529,6 +530,56 @@ public class Terrain {
 #if XBDEBUG
         debug.End();
 #endif 
+    }
+
+    //NOTE[ALEX]: no mipmaps
+    public static void BakePointyness(ref float[,] heights, ref float[,] heightsMod,
+                                      int amountX, int amountZ,
+                                      ref Godot.Image imgPointy) {
+        //TODO[ALEX]: this expects same size for textures for now
+        //            make this use heights instead of texture for speedup
+        imgPointy.Fill(XB.Col.Black);
+
+        amountX -= 1; // one less pixel than vertices
+        amountZ -= 1;
+        
+        float pointyness  = 0.0f;
+        float thisPx      = 0.0f;
+        float compPx      = 0.0f; // average of surrounding values
+        float compPxUp    = 0.0f;
+        float compPxDown  = 0.0f;
+        float compPxLeft  = 0.0f;
+        float compPxRight = 0.0f;
+        float highest     = 0.0f;
+        float lowest      = 0.0f;
+
+        for (int i = 0; i < amountX; i++) {
+            for (int j = 0; j < amountZ; j++) {
+                thisPx      = heights[i,                             j                            ];
+                compPxUp    = heights[i,                             XB.Utils.MaxI(j-1, 0        )];
+                compPxDown  = heights[i,                             XB.Utils.MinI(j+1, amountZ-1)];
+                compPxLeft  = heights[XB.Utils.MaxI(i-1, 0        ), j                            ];
+                compPxRight = heights[XB.Utils.MaxI(i+1, amountX-1), j                            ];
+
+                //TODO[ALEX]: this has streaks occasionally but otherwise seems correct
+                compPx     = (compPxUp + compPxDown + compPxLeft + compPxRight) /4.0f;
+                pointyness = thisPx - compPx;
+                highest    = XB.Utils.MaxF(highest, pointyness);
+                lowest     = XB.Utils.MinF(lowest,  pointyness);
+
+                heightsMod[i, j] = pointyness;
+            }
+        }
+
+        float diff = highest - lowest;
+        diff = XB.Utils.MaxF(0.0001f, diff); // avoid division by 0;
+        var pointyCol = new Godot.Color(0.0f, 0.0f, 0.0f, 1.0f);
+        for (int i = 0; i < imgPointy.GetWidth(); i++) {
+            for (int j = 0; j < imgPointy.GetHeight(); j++) {
+                pointyCol.R = (heightsMod[i, j] - lowest) / diff;
+                imgPointy.SetPixel(i, j, pointyCol);
+            }
+        }
     }
 }
 } // namespace close

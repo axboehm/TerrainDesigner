@@ -98,6 +98,7 @@ public struct ResourcePaths {
     public static string Terrain4RMTex    = "res://materials/data/stoneVeinsGravel_RM.png";
     public static string Terrain4NTex     = "res://materials/data/stoneVeinsGravel_N.png";
     public static string Terrain4HTex     = "res://materials/data/stoneVeinsGravel_HEIGHT.png";
+    public static string TerrainCShiftTex = "res://materials/data/terrainCol.png";
     public static string FontLibMono      = "res://assets/ui/fonts/LiberationMono-Regular.ttf";
     public static string SpShellShader    = "res://code/shaders/sphereShell.gdshader";
     public static string SpScreenShader   = "res://code/shaders/sphereScreen.gdshader";
@@ -148,6 +149,7 @@ public struct Resources {
     public static Godot.Texture        Terrain4RMTex;
     public static Godot.Texture        Terrain4NTex;
     public static Godot.Texture        Terrain4HTex;
+    public static Godot.Texture        ColorShiftTex;
 
     public static void InitializeTerrainTextures() {
         var fastNoise = new Godot.FastNoiseLite();
@@ -176,6 +178,7 @@ public struct Resources {
         Terrain4RMTex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain4RMTex);
         Terrain4NTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain4NTex);
         Terrain4HTex  = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain4HTex);
+        ColorShiftTex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.TerrainCShiftTex);
     }
 
     public static void InitializeSphereTextures() {
@@ -193,6 +196,8 @@ public struct Resources {
 
 public class WData { // world data
     public static Godot.Image    ImgMiniMap;
+    public static Godot.Image    ImgPointyness;
+    public static Godot.ImageTexture TexPointyness;
     public static float          LowestPoint  = -1.0f;    // lowest y coordinate in world
     public static float          HighestPoint = +1.0f;    // highest y coordinate in world
     public static float          LowHighExtra = 1.0f;     // buffer amount for high/low updating
@@ -249,6 +254,10 @@ public class WData { // world data
     public static float Blend12       = 0.75f;
     public static float Blend23       = 0.38f;
     public static float Blend34       = 0.08f;
+    public static float AlbVisStr     = 0.5f;
+    public static float PointynessStr = 0.11f;
+    public static float BlendColStr   = 0.2f;
+    public static float BlendColScale = 4.0f;
 
 
     public static void InitializeTerrainMesh(int expX, int expZ) {
@@ -266,8 +275,13 @@ public class WData { // world data
         TerrainHeightsMod = new float[WorldVerts.X, WorldVerts.Y];
 
         ImgMiniMap = Godot.Image.Create((int)(sizeX*WorldRes), (int)(sizeZ*WorldRes),
-                                              false, Godot.Image.Format.L8           );
+                                        false, Godot.Image.Format.L8                 );
         ImgMiniMap.Fill(XB.Col.Black);
+        ImgPointyness = Godot.Image.Create((int)(sizeX*WorldRes), (int)(sizeZ*WorldRes),
+                                           false, Godot.Image.Format.L8           );
+        ImgPointyness.Fill(XB.Col.Black);
+        TexPointyness = new Godot.ImageTexture();
+        TexPointyness.SetImage(ImgPointyness);
 
 #if XBDEBUG
         debug.End();
@@ -302,6 +316,10 @@ public class WData { // world data
 
         XB.Terrain.UpdateHeightMap(ref TerrainHeights, LowestPoint, HighestPoint, ref ImgMiniMap);
         XB.PController.Hud.UpdateMiniMap(LowestPoint, HighestPoint);
+
+        XB.Terrain.BakePointyness(ref TerrainHeights, ref TerrainHeightsMod,
+                                  WorldVerts.X, WorldVerts.Y, ref ImgPointyness);
+        TexPointyness.Update(ImgPointyness);
 
         if (reInitialize) {
             XB.ManagerTerrain.InitializeQuadTree(WorldDim.X, WorldDim.Y, WorldRes,
