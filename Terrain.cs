@@ -533,41 +533,58 @@ public class Terrain {
     }
 
     //NOTE[ALEX]: no mipmaps
-    public static void BakePointyness(ref float[,] heights, ref float[,] heightsMod,
+    public static void BakePointiness(ref float[,] heights, ref float[,] heightsMod,
                                       int amountX, int amountZ,
                                       ref Godot.Image imgPointy) {
         //TODO[ALEX]: this expects same size for textures for now
         //            make this use heights instead of texture for speedup
+        //            this produces a high frequency map... should this be smaller?
         imgPointy.Fill(XB.Col.Black);
 
         amountX -= 1; // one less pixel than vertices
         amountZ -= 1;
         
-        float pointyness  = 0.0f;
-        float thisPx      = 0.0f;
-        float compPx      = 0.0f; // average of surrounding values
-        float compPxUp    = 0.0f;
-        float compPxDown  = 0.0f;
-        float compPxLeft  = 0.0f;
-        float compPxRight = 0.0f;
-        float highest     = 0.0f;
-        float lowest      = 0.0f;
+        float pointiness = 0.0f;
+        float thisPx     = 0.0f;
+        float compPx     = 0.0f; // average of surrounding values
+        float compPxUL   = 0.0f; // up left
+        float compPxU    = 0.0f; // up
+        float compPxUR   = 0.0f; // up right
+        float compPxR    = 0.0f; // right
+        float compPxDR   = 0.0f; // down right
+        float compPxD    = 0.0f; // down
+        float compPxDL   = 0.0f; // down left
+        float compPxL    = 0.0f; // left
+        int   up         = 0;
+        int   right      = 0;
+        int   down       = 0;
+        int   left       = 0;
+        float highest    = float.MinValue;
+        float lowest     = float.MaxValue;
 
         for (int i = 0; i < amountX; i++) {
             for (int j = 0; j < amountZ; j++) {
-                thisPx      = heights[i,                             j                            ];
-                compPxUp    = heights[i,                             XB.Utils.MaxI(j-1, 0        )];
-                compPxDown  = heights[i,                             XB.Utils.MinI(j+1, amountZ-1)];
-                compPxLeft  = heights[XB.Utils.MaxI(i-1, 0        ), j                            ];
-                compPxRight = heights[XB.Utils.MaxI(i+1, amountX-1), j                            ];
+                up    = XB.Utils.MaxI(j-1, 0        );
+                right = XB.Utils.MinI(i+1, amountX-1);
+                down  = XB.Utils.MinI(j+1, amountZ-1);
+                left  = XB.Utils.MaxI(i-1, 0        );
+                thisPx   = heights[i,     j   ];
+                compPxUL = heights[left,  up  ];
+                compPxU  = heights[i,     up  ];
+                compPxUR = heights[right, up  ];
+                compPxR  = heights[right, j   ];
+                compPxDR = heights[right, down];
+                compPxD  = heights[i,     down];
+                compPxDL = heights[left,  down];
+                compPxL  = heights[left,  j   ];
 
-                //TODO[ALEX]: this has streaks occasionally but otherwise seems correct
-                compPx     = (compPxUp + compPxDown + compPxLeft + compPxRight) /4.0f;
-                pointyness = thisPx - compPx;
-                highest    = XB.Utils.MaxF(highest, pointyness);
-                lowest     = XB.Utils.MinF(lowest,  pointyness);
+                compPx     = (  compPxUL + compPxU + compPxUR + compPxR
+                              + compPxDR + compPxD + compPxDL + compPxL) / 8.0f;
+                pointiness = thisPx - compPx;
+                highest    = XB.Utils.MaxF(highest, pointiness);
+                lowest     = XB.Utils.MinF(lowest,  pointiness);
 
-                heightsMod[i, j] = pointyness;
+                heightsMod[i, j] = pointiness;
             }
         }
 

@@ -322,7 +322,7 @@ public class MeshContainer {
         MaterialTile.SetShaderParameter("blend12",     XB.WData.Blend12);
         MaterialTile.SetShaderParameter("blend23",     XB.WData.Blend23);
         MaterialTile.SetShaderParameter("blend34",     XB.WData.Blend34);
-        MaterialTile.SetShaderParameter("pointyStr",   XB.WData.PointynessStr);
+        MaterialTile.SetShaderParameter("pointyStr",   XB.WData.PointinessStr);
         MaterialTile.SetShaderParameter("blendCStr",   XB.WData.BlendColStr);
         MaterialTile.SetShaderParameter("blendCScale", XB.WData.BlendColScale);
 
@@ -615,7 +615,7 @@ public class MeshContainer {
         MaterialTile.SetShaderParameter("uv4Scale",    WData.Mat4UVScale);
         MaterialTile.SetShaderParameter("noisePScale", WData.NoisePScale);
         MaterialTile.SetShaderParameter("tHeight",     XB.PController.Hud.TexMiniMap);
-        MaterialTile.SetShaderParameter("tPointy",     XB.WData.TexPointyness);
+        MaterialTile.SetShaderParameter("tPointy",     XB.WData.TexPointiness);
 
 #if XBDEBUG
         debug.End();

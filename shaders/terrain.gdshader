@@ -178,6 +178,7 @@ void fragment() {
           albedo = mix(albedo, albedo * block, blockStr * maskBlock        );
           albedo = mix(albedo, albedo + block, blockStr * (1.0 - maskBlock));
           //albedo = vec3(UV.x, UV.y, 0.0);
+          //albedo = vec3(texture(tPointy, UV).r);
 
     float roughness = heightBlendF(roughnessM3, roughnessM4, heightM3, heightM4,
                                    mask34, 1.0-mask34, blendDepth               );

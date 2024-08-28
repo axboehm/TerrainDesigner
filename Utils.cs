@@ -23,46 +23,46 @@ public class Utils {
     }
 
     public static float ClampF(float a, float b, float c) {
-        if (a < b) return b;
-        if (a > c) return c;
+        if (a < b) { return b; }
+        if (a > c) { return c; }
         return a;
     }
 
     public static int ClampI(int a, int b, int c) {
-        if (a < b) return b;
-        if (a > c) return c;
+        if (a < b) { return b; }
+        if (a > c) { return c; }
         return a;
     }
 
     public static uint ClampU(uint a, uint b, uint c) {
-        if (a < b) return b;
-        if (a > c) return c;
+        if (a < b) { return b; }
+        if (a > c) { return c; }
         return a;
     }
 
     public static int MinI(int a, int b) {
-        if (a < b) return a;
-        else       return b;
+        if (a < b) { return a; }
+        else       { return b; }
     }
 
     public static float MinF(float a, float b) {
-        if (a < b) return a;
-        else       return b;
+        if (a < b) { return a; }
+        else       { return b; }
     }
 
     public static int MaxI(int a, int b) {
-        if (a > b) return a;
-        else       return b;
+        if (a > b) { return a; }
+        else       { return b; }
     }
 
     public static double MaxD(double a, double b) {
-        if (a > b) return a;
-        else       return b;
+        if (a > b) { return a; }
+        else       { return b; }
     }
 
     public static float MaxF(float a, float b) {
-        if (a > b) return a;
-        else       return b;
+        if (a > b) { return a; }
+        else       { return b; }
     }
 
     public static float MaxInArrayF(float[] a) {
@@ -106,13 +106,13 @@ public class Utils {
     }
 
     public static float AbsF(float a) {
-        if (a < 0.0f) return (-1.0f*a);
-        else          return a;
+        if (a < 0.0f) { return (-1.0f*a); }
+        else          { return a;         }
     }
 
     public static int AbsI(int a) {
-        if (a < 0) return (-1*a);
-        else       return a;
+        if (a < 0) { return (-1*a); }
+        else       { return a;      }
     }
 
     public static void IntersectRayPlaneV3(ref Godot.Vector3 rOrig, ref Godot.Vector3 rDir,
@@ -171,7 +171,7 @@ public class Utils {
     public static ulong BitStringToULong(string bitString, int length) {
         ulong result = 0;
         for (int i = 0; i < length; i++) {
-            if (bitString[length-1-i] == '0') continue;
+            if (bitString[length-1-i] == '0') { continue; }
             ulong temp = 1;
             temp = temp << i;
             result |= temp;

@@ -196,8 +196,8 @@ public struct Resources {
 
 public class WData { // world data
     public static Godot.Image    ImgMiniMap;
-    public static Godot.Image    ImgPointyness;
-    public static Godot.ImageTexture TexPointyness;
+    public static Godot.Image    ImgPointiness;
+    public static Godot.ImageTexture TexPointiness;
     public static float          LowestPoint  = -1.0f;    // lowest y coordinate in world
     public static float          HighestPoint = +1.0f;    // highest y coordinate in world
     public static float          LowHighExtra = 1.0f;     // buffer amount for high/low updating
@@ -255,7 +255,7 @@ public class WData { // world data
     public static float Blend23       = 0.38f;
     public static float Blend34       = 0.08f;
     public static float AlbVisStr     = 0.5f;
-    public static float PointynessStr = 0.11f;
+    public static float PointinessStr = 0.11f;
     public static float BlendColStr   = 0.2f;
     public static float BlendColScale = 4.0f;
 
@@ -277,11 +277,11 @@ public class WData { // world data
         ImgMiniMap = Godot.Image.Create((int)(sizeX*WorldRes), (int)(sizeZ*WorldRes),
                                         false, Godot.Image.Format.L8                 );
         ImgMiniMap.Fill(XB.Col.Black);
-        ImgPointyness = Godot.Image.Create((int)(sizeX*WorldRes), (int)(sizeZ*WorldRes),
+        ImgPointiness = Godot.Image.Create((int)(sizeX*WorldRes), (int)(sizeZ*WorldRes),
                                            false, Godot.Image.Format.L8           );
-        ImgPointyness.Fill(XB.Col.Black);
-        TexPointyness = new Godot.ImageTexture();
-        TexPointyness.SetImage(ImgPointyness);
+        ImgPointiness.Fill(XB.Col.Black);
+        TexPointiness = new Godot.ImageTexture();
+        TexPointiness.SetImage(ImgPointiness);
 
 #if XBDEBUG
         debug.End();
@@ -317,9 +317,9 @@ public class WData { // world data
         XB.Terrain.UpdateHeightMap(ref TerrainHeights, LowestPoint, HighestPoint, ref ImgMiniMap);
         XB.PController.Hud.UpdateMiniMap(LowestPoint, HighestPoint);
 
-        XB.Terrain.BakePointyness(ref TerrainHeights, ref TerrainHeightsMod,
-                                  WorldVerts.X, WorldVerts.Y, ref ImgPointyness);
-        TexPointyness.Update(ImgPointyness);
+        XB.Terrain.BakePointiness(ref TerrainHeights, ref TerrainHeightsMod,
+                                  WorldVerts.X, WorldVerts.Y, ref ImgPointiness);
+        TexPointiness.Update(ImgPointiness);
 
         if (reInitialize) {
             XB.ManagerTerrain.InitializeQuadTree(WorldDim.X, WorldDim.Y, WorldRes,

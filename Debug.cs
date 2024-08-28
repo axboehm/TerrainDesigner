@@ -23,7 +23,7 @@ public partial class DebugHUD : Godot.Control {
 
     private Godot.TextureRect  _trBlueNoise;
     private Godot.ImageTexture _texBlueNoise;
-    private Godot.TextureRect  _trPointyness;
+    private Godot.TextureRect  _trPointiness;
     private Godot.Label[]      _lbDebugStats;
     private Godot.TextureRect  _trDebugStatsBG;
     private Godot.ImageTexture _texDebugStatsBG;
@@ -47,16 +47,16 @@ public partial class DebugHUD : Godot.Control {
         AddChild(_trBlueNoise);
         _trBlueNoise.MouseFilter = Godot.Control.MouseFilterEnum.Ignore;
 
-        _trPointyness          = new Godot.TextureRect();
-        _trPointyness.Size     = sizeBN; // same size as blue noise texture
-        _trPointyness.Position = new Godot.Vector2I(XB.Settings.BaseResX
+        _trPointiness          = new Godot.TextureRect();
+        _trPointiness.Size     = sizeBN; // same size as blue noise texture
+        _trPointiness.Position = new Godot.Vector2I(XB.Settings.BaseResX
                                                     - 2*_dimSpacer - _edgeOff - 2*sizeBN.X,
                                                     _dimSpacer                             );
-        _trPointyness.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
-        _trPointyness.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
-        _trPointyness.Texture = XB.WData.TexPointyness;
-        AddChild(_trPointyness);
-        _trPointyness.MouseFilter = Godot.Control.MouseFilterEnum.Ignore;
+        _trPointiness.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
+        _trPointiness.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
+        _trPointiness.Texture = XB.WData.TexPointiness;
+        AddChild(_trPointiness);
+        _trPointiness.MouseFilter = Godot.Control.MouseFilterEnum.Ignore;
 
         // initialize random colors for function labels
         int colCounter = 1;
@@ -110,7 +110,7 @@ public partial class DebugHUD : Godot.Control {
 
         _lbPlayerPos = new Godot.Label();
         _lbPlayerPos.Position = new Godot.Vector2I(_dimSpacer, _dimSpacer);
-        _lbPlayerPos.Size     = new Godot.Vector2I((int)_trPointyness.Position.X - 2*_dimSpacer, 
+        _lbPlayerPos.Size     = new Godot.Vector2I((int)_trPointiness.Position.X - 2*_dimSpacer, 
                                                    3*_debugLabelSpacing + 3*_debugLabelFontSize );
         _lbPlayerPos.HorizontalAlignment = Godot.HorizontalAlignment.Right;
         _lbPlayerPos.AddThemeFontOverride    ("font",               font                  );
