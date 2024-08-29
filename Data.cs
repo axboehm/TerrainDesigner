@@ -40,6 +40,8 @@ public struct Col {
     public static Godot.Color Black   = new Godot.Color(0.0f, 0.0f, 0.0f, 1.0f);
     public static Godot.Color White   = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
     public static Godot.Color Transp  = new Godot.Color(0.0f, 0.0f, 0.0f, 0.0f);
+    // terrain colors
+    public static Godot.Color Fog     = new Godot.Color(0.686f, 0.871f, 0.878f, 1.0f);
     // UI colors
     public static Godot.Color MPlayer = new Godot.Color(0.22f, 0.44f, 1.0f, 1.0f);
     public static Godot.Color MSphere = new Godot.Color(0.0f, 0.22f, 1.0f, 1.0f);
@@ -118,6 +120,7 @@ public struct ResourcePaths {
     public static string LinkingShader    = "res://code/shaders/linkingOverlay.gdshader";
 }
 
+// holds loaded resources for shaders like textures
 public struct Resources {
     public static Godot.Texture SpShellCA;
     public static Godot.Texture SpShellRM;
@@ -194,7 +197,10 @@ public struct Resources {
     }
 }
 
-public class WData { // world data
+// WData holds variables and values for world data, so everything related to the heightmap
+// and terrain generation and terrain materials
+// terrain/heightmap related functions are also included
+public class WData {
     public static Godot.Image    ImgMiniMap;
     public static Godot.Image    ImgPointiness;
     public static Godot.ImageTexture TexPointiness;
@@ -258,6 +264,7 @@ public class WData { // world data
     public static float PointinessStr = 0.11f;
     public static float BlendColStr   = 0.2f;
     public static float BlendColScale = 4.0f;
+    public static float FogDistance   = 4000.0f; // terrain shader depth albedo blend far distance (in m)
 
 
     public static void InitializeTerrainMesh(int expX, int expZ) {
@@ -317,8 +324,7 @@ public class WData { // world data
         XB.Terrain.UpdateHeightMap(ref TerrainHeights, LowestPoint, HighestPoint, ref ImgMiniMap);
         XB.PController.Hud.UpdateMiniMap(LowestPoint, HighestPoint);
 
-        XB.Terrain.BakePointiness(ref TerrainHeights, ref TerrainHeightsMod,
-                                  WorldVerts.X, WorldVerts.Y, ref ImgPointiness);
+        XB.Terrain.BakePointiness(ref TerrainHeights, WorldVerts.X, WorldVerts.Y, ref ImgPointiness);
         TexPointiness.Update(ImgPointiness);
 
         if (reInitialize) {
@@ -390,7 +396,8 @@ public class WData { // world data
     }
 }
 
-public class AData { // application data
+// holds objects that live for the duration of the applications lifetime
+public class AData {
     public static XB.Input                 Input;
     public static XB.Settings              S;
     public static Godot.DirectionalLight3D MainLight;

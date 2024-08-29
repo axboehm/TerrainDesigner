@@ -80,8 +80,7 @@ public partial class Sphere : Godot.CharacterBody3D {
     private const int               _circleSteps = 36; // subdivisions for the cone circle
 
 
-    public void InitializeSphere(int id, ref Godot.Rect2I[] rects, 
-                                 ref int rSize, ref Godot.Vector2I vect) {
+    public void InitializeSphere(int id, ref Godot.Rect2I[] rects, ref int rSize) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.SphereInitializeSphere);
 #endif
@@ -208,12 +207,12 @@ public partial class Sphere : Godot.CharacterBody3D {
 
             if (ID > 9) { // decimal digit
                 XB.Utils.DigitRectangles(ID/10, xStart+_dimThick, _dimThick, _dimDigitX,
-                                         _dimDigitY, _dimThick, ref rects, ref rSize, ref vect);
+                                         _dimDigitY, _dimThick, ref rects, ref rSize    );
                 XB.Utils.FillRectanglesInImage(ref _imgScrolling, ref rects, rSize, ref XB.Col.White);
                 xStart += _dimDigitX;
             }
             XB.Utils.DigitRectangles(ID%10, xStart+_dimThick, _dimThick, _dimDigitX,
-                                     _dimDigitY, _dimThick, ref rects, ref rSize, ref vect);
+                                     _dimDigitY, _dimThick, ref rects, ref rSize    );
             XB.Utils.FillRectanglesInImage(ref _imgScrolling, ref rects, rSize, ref XB.Col.White);
         }
 
@@ -325,7 +324,7 @@ public partial class Sphere : Godot.CharacterBody3D {
 #endif
 
         foreach (XB.Sphere lS in _linkedSpheres) {
-            if (lS.ID == idLinkFrom) { return; } //TODO[ALEX]: is this correct?
+            if (lS.ID == idLinkFrom) { return; }
         }
         _linkedSpheres.Add(XB.ManagerSphere.Spheres[idLinkFrom]);
         if (!Linked && _animPl.CurrentAnimation != "expand") { _animPl.Play("expand"); }

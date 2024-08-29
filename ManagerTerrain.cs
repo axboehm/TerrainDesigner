@@ -309,6 +309,8 @@ public class MeshContainer {
         MaterialTile.SetShaderParameter("tNormalM4",  XB.Resources.Terrain4NTex );
         MaterialTile.SetShaderParameter("tHeightM4",  XB.Resources.Terrain4HTex );
         MaterialTile.SetShaderParameter("tColShift",  XB.Resources.ColorShiftTex);
+        MaterialTile.SetShaderParameter("colFog",     XB.Col.Fog);
+        MaterialTile.SetShaderParameter("fogDist",    XB.WData.FogDistance);
         // visualization colors initially represent somewhat of a gradient 
         // but will quickly get shuffled around as MeshContainers get reused
         float r = 1.0f - XB.Utils.LerpF(0.0f, 1.0f, -lerpRAmount);
@@ -1402,19 +1404,16 @@ public class ManagerTerrain {
         }
     }
 
-    public static void UpdateQTreeTexture(ref Godot.Image tex, float scaleFactor) {
-        var rects = new Godot.Rect2I[4];
-        var vect  = new Godot.Vector2I(0, 0);
-        for (int i = 0; i < 4; i++) { rects[i] = new Godot.Rect2I(0, 0, 0, 0); }
+    public static void UpdateQTreeTexture(ref Godot.Image tex, float scaleFactor,
+                                          ref Godot.Rect2I[] rects               ) {
         tex.Fill(XB.Col.Transp); // clear texture before drawing quadtree tiles
 
-        DrawQNode(ref _qRoot, ref tex, scaleFactor, _divisions, ref rects, ref vect);
+        DrawQNode(ref _qRoot, ref tex, scaleFactor, _divisions, ref rects);
     }
 
     // scaleFactor adjust meter to pixel ratio
     private static void DrawQNode(ref XB.QNode qNode, ref Godot.Image tex,
-                                  float scaleFactor, int iteration,
-                                  ref Godot.Rect2I[] rects, ref Godot.Vector2I vect    ) {
+                                  float scaleFactor, int iteration, ref Godot.Rect2I[] rects) {
         if (qNode == null) { return; }
 
         if (qNode.Active) { // shows active tiles which are not necessarily processed yet
@@ -1424,18 +1423,18 @@ public class ManagerTerrain {
             int dx   = (int)(qNode.XSize*scaleFactor);
             int dy   = (int)(qNode.ZSize*scaleFactor);
             int t    = 1;
-            XB.Utils.UpdateRect2I(xCtr-dx/2,      yCtr-dy/2,      dx, t,  ref rects[0], ref vect);
-            XB.Utils.UpdateRect2I(xCtr-dx/2,      yCtr-dy/2+dy-t, dx, t,  ref rects[1], ref vect);
-            XB.Utils.UpdateRect2I(xCtr-dx/2,      yCtr-dy/2,      t,  dy, ref rects[2], ref vect);
-            XB.Utils.UpdateRect2I(xCtr-dx/2+dx-t, yCtr-dy/2,      t,  dy, ref rects[3], ref vect);
+            XB.Utils.UpdateRect2I(xCtr-dx/2,      yCtr-dy/2,      dx, t,  ref rects[0]);
+            XB.Utils.UpdateRect2I(xCtr-dx/2,      yCtr-dy/2+dy-t, dx, t,  ref rects[1]);
+            XB.Utils.UpdateRect2I(xCtr-dx/2,      yCtr-dy/2,      t,  dy, ref rects[2]);
+            XB.Utils.UpdateRect2I(xCtr-dx/2+dx-t, yCtr-dy/2,      t,  dy, ref rects[3]);
 
             var col = XB.Col.Red.Lerp(XB.Col.Green, (float)iteration/(float)_divisions);
             for (int i = 0; i < 4; i++) { tex.FillRect(rects[i], col); }
         } else {
-            DrawQNode(ref qNode.Children[0], ref tex, scaleFactor, iteration-1, ref rects, ref vect);
-            DrawQNode(ref qNode.Children[1], ref tex, scaleFactor, iteration-1, ref rects, ref vect);
-            DrawQNode(ref qNode.Children[2], ref tex, scaleFactor, iteration-1, ref rects, ref vect);
-            DrawQNode(ref qNode.Children[3], ref tex, scaleFactor, iteration-1, ref rects, ref vect);
+            DrawQNode(ref qNode.Children[0], ref tex, scaleFactor, iteration-1, ref rects);
+            DrawQNode(ref qNode.Children[1], ref tex, scaleFactor, iteration-1, ref rects);
+            DrawQNode(ref qNode.Children[2], ref tex, scaleFactor, iteration-1, ref rects);
+            DrawQNode(ref qNode.Children[3], ref tex, scaleFactor, iteration-1, ref rects);
         }
     }
 #endif

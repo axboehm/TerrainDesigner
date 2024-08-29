@@ -292,15 +292,14 @@ public class ManagerSphere {
 
         DamSegments = new SysCG.List<XB.DamSegment>();
 
-        var rects = new Godot.Rect2I[XB.Utils.MaxRectSize];
+        var rects = new Godot.Rect2I[XB.Utils.MaxRectSize]; // only required for initialization
         int rSize = 0;
-        var vect  = new Godot.Vector2I(0, 0);
 
         var sphereScn = Godot.ResourceLoader.Load<Godot.PackedScene>(XB.ResourcePaths.Sphere);
         XB.Sphere sphere;
         for (int i = 0; i < MaxSphereAmount; i++) {
             sphere = (XB.Sphere)sphereScn.Instantiate();
-            sphere.InitializeSphere(i, ref rects, ref rSize, ref vect);
+            sphere.InitializeSphere(i, ref rects, ref rSize);
             XB.AData.MainRoot.AddChild(sphere);
             Spheres[i] = sphere;
         }

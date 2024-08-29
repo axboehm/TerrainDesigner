@@ -533,9 +533,8 @@ public class Terrain {
     }
 
     //NOTE[ALEX]: no mipmaps
-    public static void BakePointiness(ref float[,] heights, ref float[,] heightsMod,
-                                      int amountX, int amountZ,
-                                      ref Godot.Image imgPointy) {
+    public static void BakePointiness(ref float[,] heights, int amountX, int amountZ,
+                                      ref Godot.Image imgPointy                      ) {
         //TODO[ALEX]: this expects same size for textures for now
         //            make this use heights instead of texture for speedup
         //            this produces a high frequency map... should this be smaller?
@@ -559,8 +558,7 @@ public class Terrain {
         int   right      = 0;
         int   down       = 0;
         int   left       = 0;
-        float highest    = float.MinValue;
-        float lowest     = float.MaxValue;
+        var   pointyCol  = new Godot.Color(0.0f, 0.0f, 0.0f, 1.0f);
 
         for (int i = 0; i < amountX; i++) {
             for (int j = 0; j < amountZ; j++) {
@@ -580,20 +578,9 @@ public class Terrain {
 
                 compPx     = (  compPxUL + compPxU + compPxUR + compPxR
                               + compPxDR + compPxD + compPxDL + compPxL) / 8.0f;
-                pointiness = thisPx - compPx;
-                highest    = XB.Utils.MaxF(highest, pointiness);
-                lowest     = XB.Utils.MinF(lowest,  pointiness);
+                pointiness = 0.5f + (thisPx - compPx);
 
-                heightsMod[i, j] = pointiness;
-            }
-        }
-
-        float diff = highest - lowest;
-        diff = XB.Utils.MaxF(0.0001f, diff); // avoid division by 0;
-        var pointyCol = new Godot.Color(0.0f, 0.0f, 0.0f, 1.0f);
-        for (int i = 0; i < imgPointy.GetWidth(); i++) {
-            for (int j = 0; j < imgPointy.GetHeight(); j++) {
-                pointyCol.R = (heightsMod[i, j] - lowest) / diff;
+                pointyCol.R = XB.Utils.ClampF(pointiness, 0.0f, 1.0f);
                 imgPointy.SetPixel(i, j, pointyCol);
             }
         }

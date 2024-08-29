@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_schlick_ggx;
+render_mode blend_mix, depth_prepass_alpha, cull_back, diffuse_burley, specular_schlick_ggx;
 
 uniform sampler2D tAlbedoM1 : source_color,          filter_linear_mipmap, repeat_enable;
 uniform sampler2D tRMM1     : hint_default_black,    filter_linear_mipmap, repeat_enable;
@@ -30,6 +30,10 @@ uniform sampler2D tHeight   : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D tNoiseP   : source_color, filter_linear,        repeat_enable;
 uniform sampler2D tPointy   : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D tColShift : source_color, filter_linear_mipmap, repeat_enable;
+
+uniform sampler2D depthT    : hint_depth_texture;
+uniform vec4      colFog    : source_color;
+uniform float     fogDist = 4000.0; // zFar for depth calculation (in m)
 
 uniform vec3  albVis    : source_color;
 uniform float albVisStr = 0.0;
@@ -160,7 +164,6 @@ void fragment() {
                                  mask12, 1.0-mask12, blendDepth       );
 
     float pointy  = texture(tPointy, UV).r;
-          pointy  = pow(pointy, 4.0);
           pointy -= 0.5;
           pointy *= pointyStr;
 
@@ -174,9 +177,18 @@ void fragment() {
 
           albedo += albedoColShifted;
 
+    float depth = texture(depthT, SCREEN_UV).x;
+    float scaledDepth  = PROJECTION_MATRIX[3][2] / (depth + PROJECTION_MATRIX[2][2]);
+          scaledDepth /= fogDist;
+
+          scaledDepth = pow(scaledDepth, 1.3);
+    vec3  albedoLight = mix(albedo, colFog.rgb, 0.8);
+
+          albedo = mix(albedo, albedoLight, scaledDepth); // lighten terrain color in distance
           albedo = mix(albedo, albVis, albVisStr);
           albedo = mix(albedo, albedo * block, blockStr * maskBlock        );
           albedo = mix(albedo, albedo + block, blockStr * (1.0 - maskBlock));
+
           //albedo = vec3(UV.x, UV.y, 0.0);
           //albedo = vec3(texture(tPointy, UV).r);
 
@@ -186,6 +198,7 @@ void fragment() {
                                    mask23, 1.0-mask23, blendDepth             );
           roughness = heightBlendF(roughnessM1, roughness, heightM1, heightM2,
                                    mask12, 1.0-mask12, blendDepth             );
+          roughness = mix(roughness, 1.0, scaledDepth); // make distant terrain less glossy
           roughness = mix(roughness, 1.0, albVisStr);
 
     vec3 normal = heightBlendV3(normalM3, normalM4, heightM3, heightM4,

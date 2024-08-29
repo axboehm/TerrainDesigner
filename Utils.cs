@@ -6,7 +6,8 @@ namespace XB { // namespace open
 // are potentially called multiple times every frame
 public class Utils {
     public  static int MaxRectSize = 5; // maximum amount of Rect2I used in functions in Utils
-    private static Godot.Vector3 _v0 = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private static Godot.Vector3  _v0 = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private static Godot.Vector2I _v1 = new Godot.Vector2I(0, 0);
 
     private static void ClearInternalVariables() {
 #if XBDEBUG
@@ -196,17 +197,17 @@ public class Utils {
 
     // reassign size and position of a Rect2I without any new allocations
     public static void UpdateRect2I(int posX, int posY, int sizeX, int sizeY,
-                                    ref Godot.Rect2I rect, ref Godot.Vector2I vect) {
+                                    ref Godot.Rect2I rect                    ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.UtilsUpdateRect2I);
 #endif
 
-        vect.X = posX;
-        vect.Y = posY;
-        rect.Position = vect;
-        vect.X = sizeX;
-        vect.Y = sizeY;
-        rect.Size = vect;
+        _v1.X = posX;
+        _v1.Y = posY;
+        rect.Position = _v1;
+        _v1.X = sizeX;
+        _v1.Y = sizeY;
+        rect.Size = _v1;
 
 #if XBDEBUG
         debug.End();
@@ -252,8 +253,7 @@ public class Utils {
     //
     //NOTE[ALEX]: some of the coordinates are duplicates, they are kept to make debugging easier
     public static void DigitRectangles(int digit, int aX, int aY, int width, int height, int t,
-                                       ref Godot.Rect2I[] resultRect,
-                                       ref int resultRectSize, ref Godot.Vector2I vect         ) {
+                                       ref Godot.Rect2I[] resultRect, ref int resultRectSize   ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.UtilsDigitRectangles);
 #endif
@@ -276,72 +276,72 @@ public class Utils {
         switch (digit) {
             case 0: 
                 resultRectSize = 4;
-                UpdateRect2I(bX, bY, t,     yFull, ref resultRect[0], ref vect); // left full
-                UpdateRect2I(eX, eY, t,     yFull, ref resultRect[1], ref vect); // right full
-                UpdateRect2I(dX, dY, xFull, t,     ref resultRect[2], ref vect); // bottom
-                UpdateRect2I(bX, bY, xFull, t,     ref resultRect[3], ref vect); // top
+                UpdateRect2I(bX, bY, t,     yFull, ref resultRect[0]); // left full
+                UpdateRect2I(eX, eY, t,     yFull, ref resultRect[1]); // right full
+                UpdateRect2I(dX, dY, xFull, t,     ref resultRect[2]); // bottom
+                UpdateRect2I(bX, bY, xFull, t,     ref resultRect[3]); // top
                 break;
             case 1:
                 resultRectSize = 1;
-                UpdateRect2I(eX, eY, t,     yFull, ref resultRect[0], ref vect); // right full
+                UpdateRect2I(eX, eY, t,     yFull, ref resultRect[0]); // right full
                 break;
             case 2:
                 resultRectSize = 5;
-                UpdateRect2I(cX, cY, xFull, t,     ref resultRect[0], ref vect); // middle
-                UpdateRect2I(cX, cY, t,     yBot,  ref resultRect[1], ref vect); // left bottom
-                UpdateRect2I(eX, eY, t,     yTop,  ref resultRect[2], ref vect); // right top
-                UpdateRect2I(dX, dY, xFull, t,     ref resultRect[3], ref vect); // bottom
-                UpdateRect2I(bX, bY, xFull, t,     ref resultRect[4], ref vect); // top
+                UpdateRect2I(cX, cY, xFull, t,     ref resultRect[0]); // middle
+                UpdateRect2I(cX, cY, t,     yBot,  ref resultRect[1]); // left bottom
+                UpdateRect2I(eX, eY, t,     yTop,  ref resultRect[2]); // right top
+                UpdateRect2I(dX, dY, xFull, t,     ref resultRect[3]); // bottom
+                UpdateRect2I(bX, bY, xFull, t,     ref resultRect[4]); // top
                 break;
             case 3:
                 resultRectSize = 4;
-                UpdateRect2I(eX, eY, t,     yFull, ref resultRect[0], ref vect); // right full
-                UpdateRect2I(cX, cY, xFull, t,     ref resultRect[1], ref vect); // middle
-                UpdateRect2I(dX, dY, xFull, t,     ref resultRect[2], ref vect); // bottom
-                UpdateRect2I(bX, bY, xFull, t,     ref resultRect[3], ref vect); // top
+                UpdateRect2I(eX, eY, t,     yFull, ref resultRect[0]); // right full
+                UpdateRect2I(cX, cY, xFull, t,     ref resultRect[1]); // middle
+                UpdateRect2I(dX, dY, xFull, t,     ref resultRect[2]); // bottom
+                UpdateRect2I(bX, bY, xFull, t,     ref resultRect[3]); // top
                 break;
             case 4:
                 resultRectSize = 3;
-                UpdateRect2I(eX, eY, t,     yFull, ref resultRect[0], ref vect); // right full
-                UpdateRect2I(cX, cY, xFull, t,     ref resultRect[1], ref vect); // middle
-                UpdateRect2I(bX, bY, t,     yTop,  ref resultRect[2], ref vect); // left top
+                UpdateRect2I(eX, eY, t,     yFull, ref resultRect[0]); // right full
+                UpdateRect2I(cX, cY, xFull, t,     ref resultRect[1]); // middle
+                UpdateRect2I(bX, bY, t,     yTop,  ref resultRect[2]); // left top
                 break;
             case 5:
                 resultRectSize = 5;
-                UpdateRect2I(dX, dY, xFull, t,     ref resultRect[0], ref vect); // bottom
-                UpdateRect2I(cX, cY, xFull, t,     ref resultRect[1], ref vect); // middle
-                UpdateRect2I(bX, bY, xFull, t,     ref resultRect[2], ref vect); // top
-                UpdateRect2I(fX, fY, t,     yBot,  ref resultRect[3], ref vect); // right bottom
-                UpdateRect2I(bX, bY, t,     yTop,  ref resultRect[4], ref vect); // left top
+                UpdateRect2I(dX, dY, xFull, t,     ref resultRect[0]); // bottom
+                UpdateRect2I(cX, cY, xFull, t,     ref resultRect[1]); // middle
+                UpdateRect2I(bX, bY, xFull, t,     ref resultRect[2]); // top
+                UpdateRect2I(fX, fY, t,     yBot,  ref resultRect[3]); // right bottom
+                UpdateRect2I(bX, bY, t,     yTop,  ref resultRect[4]); // left top
                 break;
             case 6:
                 resultRectSize = 5;
-                UpdateRect2I(bX, bY, t,     yFull, ref resultRect[0], ref vect); // left full
-                UpdateRect2I(dX, dY, xFull, t,     ref resultRect[1], ref vect); // bottom
-                UpdateRect2I(cX, cY, xFull, t,     ref resultRect[2], ref vect); // middle
-                UpdateRect2I(bX, bY, xFull, t,     ref resultRect[3], ref vect); // top
-                UpdateRect2I(fX, fY, t,     yBot,  ref resultRect[4], ref vect); // right bottom
+                UpdateRect2I(bX, bY, t,     yFull, ref resultRect[0]); // left full
+                UpdateRect2I(dX, dY, xFull, t,     ref resultRect[1]); // bottom
+                UpdateRect2I(cX, cY, xFull, t,     ref resultRect[2]); // middle
+                UpdateRect2I(bX, bY, xFull, t,     ref resultRect[3]); // top
+                UpdateRect2I(fX, fY, t,     yBot,  ref resultRect[4]); // right bottom
                 break;
             case 7:
                 resultRectSize = 2;
-                UpdateRect2I(eX, eY, t,     yFull, ref resultRect[0], ref vect); // right full
-                UpdateRect2I(bX, bY, xFull, t,     ref resultRect[1], ref vect); // top
+                UpdateRect2I(eX, eY, t,     yFull, ref resultRect[0]); // right full
+                UpdateRect2I(bX, bY, xFull, t,     ref resultRect[1]); // top
                 break;
             case 8:
                 resultRectSize = 5;
-                UpdateRect2I(eX, eY, t,     yFull, ref resultRect[0], ref vect); // right full
-                UpdateRect2I(bX, bY, t,     yFull, ref resultRect[1], ref vect); // left full
-                UpdateRect2I(dX, dY, xFull, t,     ref resultRect[2], ref vect); // bottm
-                UpdateRect2I(cX, cY, xFull, t,     ref resultRect[3], ref vect); // middle
-                UpdateRect2I(bX, bY, xFull, t,     ref resultRect[4], ref vect); // top
+                UpdateRect2I(eX, eY, t,     yFull, ref resultRect[0]); // right full
+                UpdateRect2I(bX, bY, t,     yFull, ref resultRect[1]); // left full
+                UpdateRect2I(dX, dY, xFull, t,     ref resultRect[2]); // bottm
+                UpdateRect2I(cX, cY, xFull, t,     ref resultRect[3]); // middle
+                UpdateRect2I(bX, bY, xFull, t,     ref resultRect[4]); // top
                 break;
             case 9:
                 resultRectSize = 5;
-                UpdateRect2I(eX, eY, t,     yFull, ref resultRect[0], ref vect); // right full
-                UpdateRect2I(dX, dY, xFull, t,     ref resultRect[1], ref vect); // bottm
-                UpdateRect2I(cX, cY, xFull, t,     ref resultRect[2], ref vect); // middle
-                UpdateRect2I(bX, bY, xFull, t,     ref resultRect[3], ref vect); // top
-                UpdateRect2I(bX, bY, t,     yTop,  ref resultRect[4], ref vect); // left top
+                UpdateRect2I(eX, eY, t,     yFull, ref resultRect[0]); // right full
+                UpdateRect2I(dX, dY, xFull, t,     ref resultRect[1]); // bottm
+                UpdateRect2I(cX, cY, xFull, t,     ref resultRect[2]); // middle
+                UpdateRect2I(bX, bY, xFull, t,     ref resultRect[3]); // top
+                UpdateRect2I(bX, bY, t,     yTop,  ref resultRect[4]); // left top
                 break;
         }
 
@@ -352,17 +352,16 @@ public class Utils {
 
     //NOTE[ALEX]: hardcoded step factor
     public static void BeveledRectangle(int xStart, int yStart, int d,
-                                        ref Godot.Rect2I[] resultRect,
-                                        ref int resultRectSize, ref Godot.Vector2I vect) {
+                                        ref Godot.Rect2I[] resultRect, ref int resultRectSize) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.UtilsBeveledRectangle);
 #endif
 
         resultRectSize = 3;
         int step = (int)(0.1f*(float)d);
-        UpdateRect2I(xStart+step, yStart,      d-2*step, d,        ref resultRect[0], ref vect);
-        UpdateRect2I(xStart+step, yStart+step, d-2*step, d-2*step, ref resultRect[1], ref vect);
-        UpdateRect2I(xStart,      yStart+step, d       , d-2*step, ref resultRect[2], ref vect);
+        UpdateRect2I(xStart+step, yStart,      d-2*step, d,        ref resultRect[0]);
+        UpdateRect2I(xStart+step, yStart+step, d-2*step, d-2*step, ref resultRect[1]);
+        UpdateRect2I(xStart,      yStart+step, d       , d-2*step, ref resultRect[2]);
 
 #if XBDEBUG
         debug.End();
@@ -370,17 +369,16 @@ public class Utils {
     }
 
     public static void RectangleOutline(int xStart, int yStart, int d, int t,
-                                        ref Godot.Rect2I[] resultRect, 
-                                        ref int resultRectSize, ref Godot.Vector2I vect) {
+                                        ref Godot.Rect2I[] resultRect, ref int resultRectSize) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.UtilsRectangleOutline);
 #endif
 
         resultRectSize = 4;
-        UpdateRect2I(xStart,     yStart,     d, t, ref resultRect[0], ref vect); // top
-        UpdateRect2I(xStart,     yStart+d-t, d, t, ref resultRect[1], ref vect); // bottom
-        UpdateRect2I(xStart,     yStart,     t, d, ref resultRect[2], ref vect); // left
-        UpdateRect2I(xStart+d-t, yStart,     t, d, ref resultRect[3], ref vect); // right
+        UpdateRect2I(xStart,     yStart,     d, t, ref resultRect[0]); // top
+        UpdateRect2I(xStart,     yStart+d-t, d, t, ref resultRect[1]); // bottom
+        UpdateRect2I(xStart,     yStart,     t, d, ref resultRect[2]); // left
+        UpdateRect2I(xStart+d-t, yStart,     t, d, ref resultRect[3]); // right
 
 #if XBDEBUG
         debug.End();
@@ -389,8 +387,7 @@ public class Utils {
 
     // draws three step point with center xPos | yPos
     public static void PointRectangles(int xPos, int yPos, int d, 
-                                       ref Godot.Rect2I[] resultRect,
-                                       ref int resultRectSize, ref Godot.Vector2I vect) {
+                                       ref Godot.Rect2I[] resultRect, ref int resultRectSize) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.UtilsPointRectangles);
 #endif
@@ -400,9 +397,9 @@ public class Utils {
         resultRectSize = 3;
         int ws = (int)(0.4f*(float)d);
         int wl = (int)(0.8f*(float)d);
-        UpdateRect2I(xPos - ws/2, yPos - d/2,  ws, d,  ref resultRect[0], ref vect);
-        UpdateRect2I(xPos - d/2,  yPos - ws/2, d , ws, ref resultRect[1], ref vect);
-        UpdateRect2I(xPos - wl/2, yPos - wl/2, wl, wl, ref resultRect[2], ref vect);
+        UpdateRect2I(xPos - ws/2, yPos - d/2,  ws, d,  ref resultRect[0]);
+        UpdateRect2I(xPos - d/2,  yPos - ws/2, d , ws, ref resultRect[1]);
+        UpdateRect2I(xPos - wl/2, yPos - wl/2, wl, wl, ref resultRect[2]);
 
 #if XBDEBUG
         debug.End();
