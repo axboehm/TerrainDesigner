@@ -9,20 +9,6 @@ public class Utils {
     private static Godot.Vector3  _v0 = new Godot.Vector3(0.0f, 0.0f, 0.0f);
     private static Godot.Vector2I _v1 = new Godot.Vector2I(0, 0);
 
-    private static void ClearInternalVariables() {
-#if XBDEBUG
-        var debug = new XB.DebugTimedBlock(XB.D.UtilsClearInternalVariables);
-#endif
-
-        _v0.X = 0.0f;
-        _v0.Y = 0.0f;
-        _v0.Z = 0.0f;
-
-#if XBDEBUG
-        debug.End();
-#endif 
-    }
-
     public static float ClampF(float a, float b, float c) {
         if (a < b) { return b; }
         if (a > c) { return c; }
@@ -116,6 +102,17 @@ public class Utils {
         else       { return a;      }
     }
 
+    public static void ResetV2(ref Godot.Vector2 a) {
+        a.X = 0.0f;
+        a.Y = 0.0f;
+    }
+
+    public static void ResetV3(ref Godot.Vector3 a) {
+        a.X = 0.0f;
+        a.Y = 0.0f;
+        a.Z = 0.0f;
+    }
+
     public static void IntersectRayPlaneV3(ref Godot.Vector3 rOrig, ref Godot.Vector3 rDir,
                                            ref Godot.Vector3 pOrig, ref Godot.Vector3 pNormal,
                                            ref Godot.Vector3 result                           ) {
@@ -123,7 +120,7 @@ public class Utils {
         var debug = new XB.DebugTimedBlock(XB.D.UtilsIntersectRayPlaneV3);
 #endif
 
-        ClearInternalVariables();
+        ResetV3(ref _v0);
         _v0 = rOrig - pOrig;
         float prod1 = _v0.Dot(pNormal);
         float prod2 = rDir.Dot(pNormal);
@@ -147,7 +144,7 @@ public class Utils {
         var debug = new XB.DebugTimedBlock(XB.D.UtilsRaycast);
 #endif
 
-        result =  spaceState.IntersectRay
+        result = spaceState.IntersectRay
             (Godot.PhysicsRayQueryParameters3D.Create(from, to, layerMask));
 
 #if XBDEBUG
@@ -214,8 +211,8 @@ public class Utils {
 #endif 
     }
 
-    public static void FillRectanglesInImage(ref Godot.Image image, ref Godot.Rect2I[] rects,
-                                             int rSize, ref Godot.Color color                ) {
+    public static void FillRectanglesInImage(Godot.Image image, Godot.Rect2I[] rects,
+                                             int rSize, ref Godot.Color color        ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.UtilsFillRectanglesInImage);
 #endif
@@ -253,7 +250,7 @@ public class Utils {
     //
     //NOTE[ALEX]: some of the coordinates are duplicates, they are kept to make debugging easier
     public static void DigitRectangles(int digit, int aX, int aY, int width, int height, int t,
-                                       ref Godot.Rect2I[] resultRect, ref int resultRectSize   ) {
+                                       Godot.Rect2I[] resultRect, ref int resultRectSize   ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.UtilsDigitRectangles);
 #endif
@@ -352,7 +349,7 @@ public class Utils {
 
     //NOTE[ALEX]: hardcoded step factor
     public static void BeveledRectangle(int xStart, int yStart, int d,
-                                        ref Godot.Rect2I[] resultRect, ref int resultRectSize) {
+                                        Godot.Rect2I[] resultRect, ref int resultRectSize) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.UtilsBeveledRectangle);
 #endif
@@ -369,7 +366,7 @@ public class Utils {
     }
 
     public static void RectangleOutline(int xStart, int yStart, int d, int t,
-                                        ref Godot.Rect2I[] resultRect, ref int resultRectSize) {
+                                        Godot.Rect2I[] resultRect, ref int resultRectSize) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.UtilsRectangleOutline);
 #endif
@@ -387,7 +384,7 @@ public class Utils {
 
     // draws three step point with center xPos | yPos
     public static void PointRectangles(int xPos, int yPos, int d, 
-                                       ref Godot.Rect2I[] resultRect, ref int resultRectSize) {
+                                       Godot.Rect2I[] resultRect, ref int resultRectSize) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.UtilsPointRectangles);
 #endif

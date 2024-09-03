@@ -315,13 +315,14 @@ public class WData {
         var debug = new XB.DebugTimedBlock(XB.D.WorldDataGenerateRandomTerrain);
 #endif
 
-        XB.Terrain.Flat(ref TerrainHeights, WorldVerts.X, WorldVerts.Y, 0.0f); // initialize to flat
+        XB.Terrain.Flat(TerrainHeights, WorldVerts.X, WorldVerts.Y, 0.0f); // initialize to flat
 
         XB.Terrain.FBM(WorldVerts.X, WorldVerts.Y, WorldDim.X, WorldDim.Y,
                        GenScaleDef, GenOffXDef, GenOffZDef,
                        GenOctDef, GenPersDef, GenLacDef, GenExpDef        );
-        XB.Terrain.HeightReplace(ref TerrainHeights, ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y);
-        XB.Terrain.HeightScale(ref TerrainHeights, WorldVerts.X, WorldVerts.Y,
+        XB.Terrain.HeightReplace(TerrainHeights, TerrainHeightsMod, WorldVerts.X, WorldVerts.Y,
+                                 ref LowestPoint, ref HighestPoint                             );
+        XB.Terrain.HeightScale(TerrainHeights, WorldVerts.X, WorldVerts.Y,
                                GenHeightDef, ref LowestPoint, ref HighestPoint);
 
         // Godot.GD.Print("Generate Terrain: LP: " + LowestPoint + ", HP: " + HighestPoint);
@@ -336,22 +337,22 @@ public class WData {
         var debug = new XB.DebugTimedBlock(XB.D.WorldDataUpdateTerrain);
 #endif
 
-        XB.Terrain.UpdateHeightMap(ref TerrainHeights, LowestPoint, HighestPoint, ref ImgMiniMap);
+        XB.Terrain.UpdateHeightMap(TerrainHeights, LowestPoint, HighestPoint, ImgMiniMap);
         XB.PController.Hud.UpdateMiniMap(LowestPoint, HighestPoint);
 
-        XB.Terrain.BakePointiness(ref TerrainHeights, WorldVerts.X, WorldVerts.Y, ref ImgPointiness);
+        XB.Terrain.BakePointiness(TerrainHeights, WorldVerts.X, WorldVerts.Y, ImgPointiness);
         TexPointiness.Update(ImgPointiness);
 
         if (reInitialize) {
             XB.ManagerTerrain.InitializeQuadTree(WorldDim.X, WorldDim.Y, WorldRes,
                                                  CollisionRes, ColliderSizeMult*TerrainTileMinimum,
                                                  TerrainTileMinimum, TerrainDivisionsMax,
-                                                 LowestPoint, HighestPoint, ref ImgMiniMap         );
+                                                 LowestPoint, HighestPoint, ImgMiniMap             );
         } else {
-            XB.ManagerTerrain.ResetQuadTree(LowestPoint, HighestPoint, ref ImgMiniMap);
+            XB.ManagerTerrain.ResetQuadTree(LowestPoint, HighestPoint, ImgMiniMap);
         }
 
-        XB.ManagerTerrain.UpdateCollisionTiles(LowestPoint, HighestPoint, ref ImgMiniMap);
+        XB.ManagerTerrain.UpdateCollisionTiles(LowestPoint, HighestPoint, ImgMiniMap);
 
 #if XBDEBUG
         debug.End();
@@ -366,14 +367,16 @@ public class WData {
 
         // Godot.GD.Print("ApplySphereCone with p: " + pos + ", r: " + radius + ", a: " + angle);
         
-        XB.Terrain.Cone(ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y,
+        XB.Terrain.Cone(TerrainHeightsMod, WorldVerts.X, WorldVerts.Y,
                         WorldDim.X, WorldDim.Y, pos.X, pos.Z,
                         radius, angle*XB.Constants.Deg2Rad, pos.Y, XB.Direction.Up);
-        XB.Terrain.HeightMax(ref TerrainHeights, ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y);
-        XB.Terrain.Cone(ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y,
+        XB.Terrain.HeightMax(TerrainHeights, TerrainHeightsMod, WorldVerts.X, WorldVerts.Y,
+                             ref LowestPoint, ref HighestPoint                             );
+        XB.Terrain.Cone(TerrainHeightsMod, WorldVerts.X, WorldVerts.Y,
                         WorldDim.X, WorldDim.Y, pos.X, pos.Z,
                         radius, angle*XB.Constants.Deg2Rad, pos.Y, XB.Direction.Down);
-        XB.Terrain.HeightMin(ref TerrainHeights, ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y);
+        XB.Terrain.HeightMin(TerrainHeights, TerrainHeightsMod, WorldVerts.X, WorldVerts.Y,
+                             ref LowestPoint, ref HighestPoint                             );
 
 #if XBDEBUG
         debug.End();
@@ -392,18 +395,20 @@ public class WData {
         Godot.GD.Print("ApplyDamSegment with p1: " + pos1 + ", r1: " + radius1 + ", a1: " + angle1
                        + ", p2: " + pos2 + ", r2: " + radius2 + ", a2: " + angle2                 );
         
-        XB.Terrain.UnevenCapsule(ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y,
+        XB.Terrain.UnevenCapsule(TerrainHeightsMod, WorldVerts.X, WorldVerts.Y,
                                  WorldDim.X, WorldDim.Y,
                                  pos1.X, pos1.Z, radius1, angle1*XB.Constants.Deg2Rad, pos1.Y,
                                  pos2.X, pos2.Z, radius2, angle2*XB.Constants.Deg2Rad, pos2.Y,
                                  XB.Direction.Up                                              );
-        XB.Terrain.HeightMax(ref TerrainHeights, ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y);
-        XB.Terrain.UnevenCapsule(ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y,
+        XB.Terrain.HeightMax(TerrainHeights, TerrainHeightsMod, WorldVerts.X, WorldVerts.Y,
+                             ref LowestPoint, ref HighestPoint                             );
+        XB.Terrain.UnevenCapsule(TerrainHeightsMod, WorldVerts.X, WorldVerts.Y,
                                  WorldDim.X, WorldDim.Y,
                                  pos1.X, pos1.Z, radius1, angle1*XB.Constants.Deg2Rad, pos1.Y,
                                  pos2.X, pos2.Z, radius2, angle2*XB.Constants.Deg2Rad, pos2.Y,
                                  XB.Direction.Down                                            );
-        XB.Terrain.HeightMin(ref TerrainHeights, ref TerrainHeightsMod, WorldVerts.X, WorldVerts.Y);
+        XB.Terrain.HeightMin(TerrainHeights, TerrainHeightsMod, WorldVerts.X, WorldVerts.Y,
+                             ref LowestPoint, ref HighestPoint                             );
 
 #if XBDEBUG
         debug.End();

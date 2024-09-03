@@ -32,7 +32,7 @@ public class SettingsContainer {
     public bool   SSILHalf       = false;
     public bool   SSR            = false;
 
-    public void SetAllFromSettingsContainer(ref XB.SettingsContainer scFrom) {
+    public void SetAllFromSettingsContainer(XB.SettingsContainer scFrom) {
         FullScreen     = scFrom.FullScreen;
         Resolution     = scFrom.Resolution;
         MouseMultX     = scFrom.MouseMultX;
@@ -234,7 +234,7 @@ public class Settings {
     private static ulong _sShD  = (ulong)255 <<         0;
 
 
-    public void UpdateSettings(ref XB.SettingsContainer sc) {
+    public void UpdateSettings(XB.SettingsContainer sc) {
         _chng.SetAllFalse();
 
         if (SC.FullScreen != sc.FullScreen)         { _chng.ChangeScreen = true; }
@@ -459,7 +459,7 @@ public class Settings {
     }
 
     public void SetApplicationDefaults() {
-        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SetAllFromSettingsContainer(SC);
         _scMod.FullScreen = false;
         _scMod.Resolution = _baseResolution;
         _scMod.Fps        = FpsOptions[1];
@@ -472,11 +472,11 @@ public class Settings {
         _scMod.Volume     = -30.0f;
         _scMod.VSync      = false;
         _scMod.Language   = Languages[0];
-        UpdateSettings(ref _scMod);
+        UpdateSettings(_scMod);
     }
 
     public void SetPresetSettings(XB.SettingsPreset preset) {
-        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SetAllFromSettingsContainer(SC);
         switch (preset) {
             case XB.SettingsPreset.Minimum: {
                 _scMod.MSAASel        = MSAA[0];
@@ -524,7 +524,7 @@ public class Settings {
                 _scMod.SSR            = true;
             } break;
         }
-        UpdateSettings(ref _scMod);
+        UpdateSettings(_scMod);
     }
 
     public bool ValidateSettingsCode(string code) {
@@ -619,7 +619,7 @@ public class Settings {
     }
 
     public void SettingsFromSettingsCode(string bitString) {
-        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SetAllFromSettingsContainer(SC);
 
         string bitStringR = "";
         for (int i = _setCodeLengthL;
@@ -716,7 +716,7 @@ public class Settings {
         _setCodeL = codeL;
         _setCodeR = codeR;
 
-        UpdateSettings(ref _scMod);
+        UpdateSettings(_scMod);
     }
 
     public void UpdateSettingsTabs(
@@ -796,7 +796,7 @@ public class Settings {
     public void UpdateSliders(Godot.Slider slFrame, Godot.Label lbFrame,
                               Godot.Slider slShdwSize, Godot.Label lbShdwSize,
                               Godot.Slider slLOD, Godot.Label lbLOD           ) {
-        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SetAllFromSettingsContainer(SC);
         switch (slFrame.Value) {
             case 0: _scMod.Fps = 30;  lbFrame.Text = "30";                              break;
             case 1: _scMod.Fps = 60;  lbFrame.Text = "60";                              break;
@@ -814,164 +814,164 @@ public class Settings {
             case 1: _scMod.LODSel = 2.0f; lbLOD.Text = "2 px"; break;
             case 2: _scMod.LODSel = 1.0f; lbLOD.Text = "1 px"; break;
         }
-        UpdateSettings(ref _scMod);
+        UpdateSettings(_scMod);
     }
 
     public string ToggleTAA() {
-        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SetAllFromSettingsContainer(SC);
         _scMod.TAA = !SC.TAA;
-        UpdateSettings(ref _scMod);
+        UpdateSettings(_scMod);
         if (!SC.TAA) return XB.AData.MainRoot.Tr("TURNED_TAA_OFF");
         else         return XB.AData.MainRoot.Tr("TURNED_TAA_ON");
     }
 
     public string ToggleDebanding() {
-        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SetAllFromSettingsContainer(SC);
         _scMod.Debanding = !SC.Debanding;
-        UpdateSettings(ref _scMod);
+        UpdateSettings(_scMod);
         if (!SC.Debanding) return XB.AData.MainRoot.Tr("TURNED_DEBANDING_OFF");
         else               return XB.AData.MainRoot.Tr("TURNED_DEBANDING_ON");
     }
 
     public string ToggleSSAOHalf() {
-        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SetAllFromSettingsContainer(SC);
         _scMod.SSAOHalf = !SC.SSAOHalf;
-        UpdateSettings(ref _scMod);
+        UpdateSettings(_scMod);
         if (!SC.SSAOHalf) return XB.AData.MainRoot.Tr("TURNED_SSAOHALF_OFF");
         else              return XB.AData.MainRoot.Tr("TURNED_SSAOHALF_ON");
     }
 
     public string ToggleSSILHalf() {
-        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SetAllFromSettingsContainer(SC);
         _scMod.SSILHalf = !SC.SSILHalf;
-        UpdateSettings(ref _scMod);
+        UpdateSettings(_scMod);
         if (!SC.SSILHalf) return XB.AData.MainRoot.Tr("TURNED_SSILHALF_OFF");
         else              return XB.AData.MainRoot.Tr("TURNED_SSILHALF_ON");
     }
 
     public string ToggleSSR() {
-        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SetAllFromSettingsContainer(SC);
         _scMod.SSR = !SC.SSR;
-        UpdateSettings(ref _scMod);
+        UpdateSettings(_scMod);
         if (!SC.SSR) return XB.AData.MainRoot.Tr("TURNED_SSR_OFF");
         else         return XB.AData.MainRoot.Tr("TURNED_SSR_ON");
     }
 
     public string ToggleShowFPS() {
-        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SetAllFromSettingsContainer(SC);
         _scMod.ShowFps = !SC.ShowFps;
-        UpdateSettings(ref _scMod);
+        UpdateSettings(_scMod);
         if (SC.ShowFps) return XB.AData.MainRoot.Tr("TURNED_FPS_ON");
         else            return XB.AData.MainRoot.Tr("TURNED_FPS_OFF");
     }
 
     public string ToggleVSync() {
-        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SetAllFromSettingsContainer(SC);
         _scMod.VSync = !SC.VSync;
-        UpdateSettings(ref _scMod);
+        UpdateSettings(_scMod);
         if (SC.VSync) return XB.AData.MainRoot.Tr("TURNED_VSYNC_ON");
         else          return XB.AData.MainRoot.Tr("TURNED_VSYNC_OFF");
     }
 
     public string ToggleBlockGrid() {
-        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SetAllFromSettingsContainer(SC);
         _scMod.BlockGrid = !SC.BlockGrid;
-        UpdateSettings(ref _scMod);
+        UpdateSettings(_scMod);
         if (SC.BlockGrid) return XB.AData.MainRoot.Tr("TURNED_BLOCKGRID_ON");
         else              return XB.AData.MainRoot.Tr("TURNED_BLOCKGRID_OFF");
     }
 
     public string ToggleQuadTreeVis() {
-        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SetAllFromSettingsContainer(SC);
         _scMod.QTreeVis = !SC.QTreeVis;
-        UpdateSettings(ref _scMod);
+        UpdateSettings(_scMod);
         if (SC.QTreeVis) return XB.AData.MainRoot.Tr("TURNED_QTREEVIS_ON");
         else             return XB.AData.MainRoot.Tr("TURNED_QTREEVIS_OFF");
     }
 
     public string ChangeShadowDistance(Godot.Slider slShdwDist) {
-        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SetAllFromSettingsContainer(SC);
         _scMod.ShadowDistance = (int)slShdwDist.Value;
-        UpdateSettings(ref _scMod);
+        UpdateSettings(_scMod);
         return XB.AData.MainRoot.Tr("CHANGED_SHADOWDIST");
     }
 
     public string ChangeFov(Godot.Slider slFov) {
-        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SetAllFromSettingsContainer(SC);
         _scMod.FovDef = (float)slFov.Value;
-        UpdateSettings(ref _scMod);
+        UpdateSettings(_scMod);
         return XB.AData.MainRoot.Tr("CHANGED_FOV");
     }
 
     public string ChangeSensitivityHorizontal(Godot.Slider slCamHor) {
-        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SetAllFromSettingsContainer(SC);
         _scMod.CamXSens = ((float)slCamHor.Value)/_camSliderMult;
-        UpdateSettings(ref _scMod);
+        UpdateSettings(_scMod);
         return XB.AData.MainRoot.Tr("CHANGED_CAM_HOR");
     }
 
     public string ChangeSensitivityVertical(Godot.Slider slCamVer) {
-        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SetAllFromSettingsContainer(SC);
         _scMod.CamYSens = ((float)slCamVer.Value)/_camSliderMult;
-        UpdateSettings(ref _scMod);
+        UpdateSettings(_scMod);
         return XB.AData.MainRoot.Tr("CHANGED_CAM_VER");
     }
 
     public string ChangeVolume(Godot.Slider slVolume) {
-        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SetAllFromSettingsContainer(SC);
         _scMod.Volume = (float)slVolume.Value;
-        UpdateSettings(ref _scMod);
+        UpdateSettings(_scMod);
         return XB.AData.MainRoot.Tr("CHANGED_VOLUME");
     }
 
     public string ChangeLanguage(Godot.OptionButton obLang) {
-        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SetAllFromSettingsContainer(SC);
         _scMod.Language = obLang.GetItemText(obLang.GetSelectedId());
-        UpdateSettings(ref _scMod);
+        UpdateSettings(_scMod);
         return XB.AData.MainRoot.Tr("CHANGED_LANGUAGE");
     }
     
     public void ChangeResolution(Godot.OptionButton obRes) {
-        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SetAllFromSettingsContainer(SC);
         _scMod.Resolution = obRes.GetItemText(obRes.GetSelectedId());
-        UpdateSettings(ref _scMod);
+        UpdateSettings(_scMod);
     }
 
     public void ChangeMode(Godot.OptionButton obMode) {
-        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SetAllFromSettingsContainer(SC);
         if (obMode.GetSelectedId() == 1) _scMod.FullScreen = true;
         else                             _scMod.FullScreen = false;
-        UpdateSettings(ref _scMod);
+        UpdateSettings(_scMod);
     }
 
     public void ChangeMSAA(Godot.OptionButton obMSAA) {
-        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SetAllFromSettingsContainer(SC);
         _scMod.MSAASel = obMSAA.GetItemText(obMSAA.GetSelectedId());
-        UpdateSettings(ref _scMod);
+        UpdateSettings(_scMod);
     }
 
     public void ChangeSSAA(Godot.OptionButton obSSAA) {
-        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SetAllFromSettingsContainer(SC);
         _scMod.SSAASel = obSSAA.GetItemText(obSSAA.GetSelectedId());
-        UpdateSettings(ref _scMod);
+        UpdateSettings(_scMod);
     }
 
     public void ChangeSSIL(Godot.OptionButton obSSIL) {
-        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SetAllFromSettingsContainer(SC);
         _scMod.SSILSel = obSSIL.GetItemText(obSSIL.GetSelectedId());
-        UpdateSettings(ref _scMod);
+        UpdateSettings(_scMod);
     }
 
     public void ChangeShadowFilter(Godot.OptionButton obShdwFilter) {
-        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SetAllFromSettingsContainer(SC);
         _scMod.ShadowFilter = obShdwFilter.GetItemText(obShdwFilter.GetSelectedId());
-        UpdateSettings(ref _scMod);
+        UpdateSettings(_scMod);
     }
 
     public void ChangeSSAO(Godot.OptionButton obSSAO) {
-        _scMod.SetAllFromSettingsContainer(ref SC);
+        _scMod.SetAllFromSettingsContainer(SC);
         _scMod.SSAOSel = obSSAO.GetItemText(obSSAO.GetSelectedId());
-        UpdateSettings(ref _scMod);
+        UpdateSettings(_scMod);
     }
 
     public string PresetSettings(XB.SettingsPreset preset) {

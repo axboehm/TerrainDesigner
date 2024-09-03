@@ -99,14 +99,14 @@ public partial class Sphere : Godot.CharacterBody3D {
 
         _meshInstSphere = GetNode<Godot.MeshInstance3D>(_sphereMeshNode);
 
-        _materialCone = new Godot.ShaderMaterial();
+        _materialCone        = new Godot.ShaderMaterial();
         _materialCone.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.ConeDamShader);
         _materialCone.SetShaderParameter("cTopInner", XB.Col.ConeTI);
         _materialCone.SetShaderParameter("cTopOuter", XB.Col.ConeTO);
         _materialCone.SetShaderParameter("cBotUpper", XB.Col.ConeBU);
         _materialCone.SetShaderParameter("cBotLower", XB.Col.ConeBL);
         _materialCone.RenderPriority = -1; // draw main material behind
-        _materialConeU = new Godot.ShaderMaterial();
+        _materialConeU        = new Godot.ShaderMaterial();
         _materialConeU.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.ConeDamUShader);
         _materialConeU.SetShaderParameter("cTopInner", XB.Col.ConeTI);
         _materialConeU.SetShaderParameter("cTopOuter", XB.Col.ConeTO);
@@ -158,7 +158,7 @@ public partial class Sphere : Godot.CharacterBody3D {
         _meshDataCone[(int)Godot.Mesh.ArrayType.Index] = _trianglesCone;
 
         var v3 = new Godot.Vector3(0.0f, 1.0f, 0.0f);
-        for (int i = 0; i <= _circleSteps+1; i++) { // normals for plateau
+        for (int i = 0; i <= _circleSteps+1; i++) { // normals for top of cone
             _normalsCone[i] = v3;
         }
 
@@ -202,18 +202,18 @@ public partial class Sphere : Godot.CharacterBody3D {
             int xStart = i*(_dimScrollX/_repeats);
             int width  = _dimDigitX + 2*_dimThick;
             if (ID > 9) { width += _dimDigitX; }
-            var numberField = new Godot.Rect2I(xStart, _dimThick, width, _dimDigitY);
-            _imgScrolling.FillRect(numberField, XB.Col.Black);
+            XB.Utils.UpdateRect2I(xStart, _dimThick, width, _dimDigitY, ref rects[0]);
+            XB.Utils.FillRectanglesInImage(_imgScrolling, rects, 1, ref XB.Col.Black);
 
             if (ID > 9) { // decimal digit
                 XB.Utils.DigitRectangles(ID/10, xStart+_dimThick, _dimThick, _dimDigitX,
-                                         _dimDigitY, _dimThick, ref rects, ref rSize    );
-                XB.Utils.FillRectanglesInImage(ref _imgScrolling, ref rects, rSize, ref XB.Col.White);
+                                         _dimDigitY, _dimThick, rects, ref rSize        );
+                XB.Utils.FillRectanglesInImage(_imgScrolling, rects, rSize, ref XB.Col.White);
                 xStart += _dimDigitX;
             }
             XB.Utils.DigitRectangles(ID%10, xStart+_dimThick, _dimThick, _dimDigitX,
-                                     _dimDigitY, _dimThick, ref rects, ref rSize    );
-            XB.Utils.FillRectanglesInImage(ref _imgScrolling, ref rects, rSize, ref XB.Col.White);
+                                     _dimDigitY, _dimThick, rects, ref rSize        );
+            XB.Utils.FillRectanglesInImage(_imgScrolling, rects, rSize, ref XB.Col.White);
         }
 
         _texScrolling = new Godot.ImageTexture();
@@ -229,6 +229,8 @@ public partial class Sphere : Godot.CharacterBody3D {
     }
 
     public void UpdateSphere(float dt) {
+        if (!Active) { return; }
+
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.SphereUpdateSphere);
 #endif
@@ -266,7 +268,7 @@ public partial class Sphere : Godot.CharacterBody3D {
     }
 
     // player places sphere in world
-    public void PlaceSphere(Godot.Vector3 pos) {
+    public void PlaceSphere(ref Godot.Vector3 pos) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.SpherePlaceSphere);
 #endif

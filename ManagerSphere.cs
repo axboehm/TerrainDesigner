@@ -18,6 +18,29 @@ public class DamSegment {
     public int                     SegmentDivisions; // same amount of divisions, independent of length
                                                      // to reduce calculations and setup every frame
     public const int VAmnt = 7;
+    private Godot.Vector3 _dirCU   = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _ort     = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _nrmU    = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _posSp2L = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _posSp1L = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _dirLU   = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _posSp2R = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _posSp1R = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _dirRU   = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _dirLUF  = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _dirRUF  = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _dirL1   = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _nrmL1   = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _dirL2   = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _nrmL2   = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _dirR1   = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _nrmR1   = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _dirR2   = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _nrmR2   = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _dirL    = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _nrmL    = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _dirR    = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+    private Godot.Vector3 _nrmR    = new Godot.Vector3(0.0f, 0.0f, 0.0f);
 
     // geometry layout of vertices (X is a single vertex, Y are two separate vertices)
     //
@@ -164,6 +187,8 @@ public class DamSegment {
 #endif 
     }
 
+    // takes values of two spheres and a length to update the corresponding connecting geometry
+    //NOTE[ALEX]: the sphere positions are not ref because GlobalPosition does not work with ref
     public void UpdateMesh(float edgeLength,
                            Godot.Vector3 posSp1, float rSp1, float angSp1,
                            Godot.Vector3 posSp2, float rSp2, float angSp2 ) {
@@ -174,63 +199,69 @@ public class DamSegment {
         // Godot.GD.Print("UpdateMesh: Sp1: " + posSp1 + ", r: " + rSp1 + ", ang: " + angSp1
         //                         + ",Sp2: " + posSp2 + ", r: " + rSp2 + ", ang: " + angSp2);
         
-        var dirCU = posSp2-posSp1; // direction in center of upper area
-        var ort   = new Godot.Vector3(dirCU.X, 0.0f, dirCU.Z);
-            ort   = ort.Rotated(Godot.Vector3.Up, -90.0f*XB.Constants.Deg2Rad);
-            ort   = ort.Normalized();
-        var nrmU  = dirCU.Rotated(ort, 90.0f*XB.Constants.Deg2Rad); // normal for upper area
-        var posSp2L = (posSp2 - rSp2*ort);
-        var posSp1L = (posSp1 - rSp1*ort);
-        var dirLU   = posSp2L - posSp1L; // direction at left upper edge
-        var posSp2R = (posSp2 + rSp2*ort);
-        var posSp1R = (posSp1 + rSp1*ort);
-        var dirRU   = posSp2R - posSp1R; // direction at right upper edge
-        float stepC = dirCU.Length() / (float)(SegmentDivisions-1);
-        float stepL = dirLU.Length() / (float)(SegmentDivisions-1);
-        float stepR = dirRU.Length() / (float)(SegmentDivisions-1);
-        dirCU = dirCU.Normalized();
-        dirLU = dirLU.Normalized();
-        dirRU = dirRU.Normalized();
-        var dirLUF = new Godot.Vector3(dirLU.X, 0.0f, dirLU.Z);
-            dirLUF = dirLUF.Normalized();
-        var dirRUF = new Godot.Vector3(dirRU.X, 0.0f, dirRU.Z);
-            dirRUF = dirRUF.Normalized();
-        var dirL1 = (-ort).Rotated(dirLUF, -angSp1*XB.Constants.Deg2Rad); // direction of angle of Sp1
-        var nrmL1 = nrmU.Rotated  (dirLUF, -angSp1*XB.Constants.Deg2Rad); // angled normal
-        var dirL2 = (-ort).Rotated(dirLUF, -angSp2*XB.Constants.Deg2Rad);
-        var nrmL2 = nrmU.Rotated  (dirLUF, -angSp2*XB.Constants.Deg2Rad);
-        var dirR1 = ort.Rotated   (dirRUF, +angSp1*XB.Constants.Deg2Rad);
-        var nrmR1 = nrmU.Rotated  (dirRUF, +angSp1*XB.Constants.Deg2Rad);
-        var dirR2 = ort.Rotated   (dirRUF, +angSp2*XB.Constants.Deg2Rad);
-        var nrmR2 = nrmU.Rotated  (dirRUF, +angSp2*XB.Constants.Deg2Rad);
+        _dirCU = posSp2-posSp1; // direction in center of upper area
+        _ort.X = _dirCU.X;
+        _ort.Y = 0.0f;
+        _ort.Z = _dirCU.Z;
+        _ort   = _ort.Rotated(Godot.Vector3.Up, -90.0f*XB.Constants.Deg2Rad);
+        _ort   = _ort.Normalized();
+        _nrmU  = _dirCU.Rotated(_ort, 90.0f*XB.Constants.Deg2Rad); // normal for upper area
+        _posSp2L = (posSp2 - rSp2*_ort);
+        _posSp1L = (posSp1 - rSp1*_ort);
+        _dirLU   = _posSp2L - _posSp1L; // direction at left upper edge
+        _posSp2R = (posSp2 + rSp2*_ort);
+        _posSp1R = (posSp1 + rSp1*_ort);
+        _dirRU   = _posSp2R - _posSp1R; // direction at right upper edge
+        float stepC = _dirCU.Length() / (float)(SegmentDivisions-1);
+        float stepL = _dirLU.Length() / (float)(SegmentDivisions-1);
+        float stepR = _dirRU.Length() / (float)(SegmentDivisions-1);
+        _dirCU = _dirCU.Normalized();
+        _dirLU = _dirLU.Normalized();
+        _dirRU = _dirRU.Normalized();
+        _dirLUF.X = _dirLU.X;
+        _dirLUF.Y = 0.0f;
+        _dirLUF.Z = _dirLU.Z;
+        _dirLUF   = _dirLUF.Normalized();
+        _dirRUF.X = _dirRU.X;
+        _dirRUF.Y = 0.0f;
+        _dirRUF.Z = _dirRU.Z;
+        _dirRUF   = _dirRUF.Normalized();
+        _dirL1 = (-_ort).Rotated(_dirLUF, -angSp1*XB.Constants.Deg2Rad); // direction of angle of Sp1
+        _nrmL1 = _nrmU.Rotated  (_dirLUF, -angSp1*XB.Constants.Deg2Rad); // angled normal
+        _dirL2 = (-_ort).Rotated(_dirLUF, -angSp2*XB.Constants.Deg2Rad);
+        _nrmL2 = _nrmU.Rotated  (_dirLUF, -angSp2*XB.Constants.Deg2Rad);
+        _dirR1 = _ort.Rotated   (_dirRUF, +angSp1*XB.Constants.Deg2Rad);
+        _nrmR1 = _nrmU.Rotated  (_dirRUF, +angSp1*XB.Constants.Deg2Rad);
+        _dirR2 = _ort.Rotated   (_dirRUF, +angSp2*XB.Constants.Deg2Rad);
+        _nrmR2 = _nrmU.Rotated  (_dirRUF, +angSp2*XB.Constants.Deg2Rad);
 
-        var dirL = new Godot.Vector3(0.0f, 0.0f, 0.0f);
-        var nrmL = new Godot.Vector3(0.0f, 0.0f, 0.0f);
-        var dirR = new Godot.Vector3(0.0f, 0.0f, 0.0f);
-        var nrmR = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+        XB.Utils.ResetV3(ref _dirL);
+        XB.Utils.ResetV3(ref _nrmL);
+        XB.Utils.ResetV3(ref _dirR);
+        XB.Utils.ResetV3(ref _nrmR);
 
         for (int i = 0; i < SegmentDivisions; i++) {
             float t = (float)i / (float)(SegmentDivisions-1);
-            XB.Utils.LerpV3(ref dirL1, ref dirL2, t, ref dirL);
-            XB.Utils.LerpV3(ref nrmL1, ref nrmL2, t, ref nrmL);
-            XB.Utils.LerpV3(ref dirR1, ref dirR2, t, ref dirR);
-            XB.Utils.LerpV3(ref nrmR1, ref nrmR2, t, ref nrmR);
+            XB.Utils.LerpV3(ref _dirL1, ref _dirL2, t, ref _dirL);
+            XB.Utils.LerpV3(ref _nrmL1, ref _nrmL2, t, ref _nrmL);
+            XB.Utils.LerpV3(ref _dirR1, ref _dirR2, t, ref _dirR);
+            XB.Utils.LerpV3(ref _nrmR1, ref _nrmR2, t, ref _nrmR);
 
-            VerticesDam[i*VAmnt + 0] = posSp1L + dirLU*((float)i*stepL) + dirL*edgeLength;
-            VerticesDam[i*VAmnt + 1] = posSp1L + dirLU*((float)i*stepL);
-            VerticesDam[i*VAmnt + 2] = posSp1L + dirLU*((float)i*stepL);
-            VerticesDam[i*VAmnt + 3] = posSp1  + dirCU*((float)i*stepC);
-            VerticesDam[i*VAmnt + 4] = posSp1R + dirRU*((float)i*stepR);
-            VerticesDam[i*VAmnt + 5] = posSp1R + dirRU*((float)i*stepR);
-            VerticesDam[i*VAmnt + 6] = posSp1R + dirRU*((float)i*stepR) + dirR*edgeLength;
+            VerticesDam[i*VAmnt + 0] = _posSp1L + _dirLU*((float)i*stepL) + _dirL*edgeLength;
+            VerticesDam[i*VAmnt + 1] = _posSp1L + _dirLU*((float)i*stepL);
+            VerticesDam[i*VAmnt + 2] = _posSp1L + _dirLU*((float)i*stepL);
+            VerticesDam[i*VAmnt + 3] = posSp1   + _dirCU*((float)i*stepC);
+            VerticesDam[i*VAmnt + 4] = _posSp1R + _dirRU*((float)i*stepR);
+            VerticesDam[i*VAmnt + 5] = _posSp1R + _dirRU*((float)i*stepR);
+            VerticesDam[i*VAmnt + 6] = _posSp1R + _dirRU*((float)i*stepR) + _dirR*edgeLength;
 
-            NormalsDam[i*VAmnt + 0] = nrmL;
-            NormalsDam[i*VAmnt + 1] = nrmL;
-            NormalsDam[i*VAmnt + 2] = nrmU;
-            NormalsDam[i*VAmnt + 3] = nrmU;
-            NormalsDam[i*VAmnt + 4] = nrmU;
-            NormalsDam[i*VAmnt + 5] = nrmR;
-            NormalsDam[i*VAmnt + 6] = nrmR;
+            NormalsDam[i*VAmnt + 0] = _nrmL;
+            NormalsDam[i*VAmnt + 1] = _nrmL;
+            NormalsDam[i*VAmnt + 2] = _nrmU;
+            NormalsDam[i*VAmnt + 3] = _nrmU;
+            NormalsDam[i*VAmnt + 4] = _nrmU;
+            NormalsDam[i*VAmnt + 5] = _nrmR;
+            NormalsDam[i*VAmnt + 6] = _nrmR;
         }
 
 #if XBDEBUG
@@ -274,23 +305,23 @@ public class DamSegment {
 // whereas dam meshes are managed by ManagerSphere, they are allocated as necessary but not deleted,
 // rather re-used if available
 public class ManagerSphere {
-    public const  int  MaxSphereAmount = 64; // limit to <= 99 because of sphere texture sizes,
+    public  const  int  MaxSphereAmount = 64; // limit to <= 99 because of sphere texture sizes,
                                              //NOTE[ALEX]: change this manually in miniMapO.gdshader
-    public static int  ActiveSpheres   = 0;
-    public static int  NextSphere      = MaxSphereAmount;
-    public static int  HLSphereID      = MaxSphereAmount;
-    public static int  LinkingID       = MaxSphereAmount; // id of sphere to link with
-    public static bool Linking         = false;
+    private static int  _activeSpheres  = 0;
+    private static int  _nextSphere     = MaxSphereAmount;
+    public  static int  HLSphereID      = MaxSphereAmount;
+    public  static int  LinkingID       = MaxSphereAmount; // id of sphere to link with
+    public  static bool Linking         = false;
 
-    public static XB.Sphere[] Spheres = new XB.Sphere[MaxSphereAmount];
-    public static SysCG.List<XB.DamSegment> DamSegments;
+    public  static XB.Sphere[] Spheres = new XB.Sphere[MaxSphereAmount];
+    private static SysCG.List<XB.DamSegment> _damSegments;
 
     public static void InitializeSpheres() {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereInitializeSpheres);
 #endif
 
-        DamSegments = new SysCG.List<XB.DamSegment>();
+        _damSegments = new SysCG.List<XB.DamSegment>();
 
         var rects = new Godot.Rect2I[XB.Utils.MaxRectSize]; // only required for initialization
         int rSize = 0;
@@ -345,11 +376,11 @@ public class ManagerSphere {
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereUpdateActiveSpheres);
 #endif
 
-        ActiveSpheres = 0;
-        NextSphere = MaxSphereAmount+1;
+        _activeSpheres = 0;
+        _nextSphere = MaxSphereAmount+1;
         for (int i = 0; i < MaxSphereAmount; i++) {
-            if (Spheres[i].Active) { ActiveSpheres += 1;                        }
-            else                   { NextSphere = XB.Utils.MinI(i, NextSphere); }
+            if (Spheres[i].Active) { _activeSpheres += 1;                         }
+            else                   { _nextSphere = XB.Utils.MinI(i, _nextSphere); }
         }
 
 #if XBDEBUG
@@ -392,14 +423,14 @@ public class ManagerSphere {
             Spheres[HLSphereID].LinkSphere(LinkingID);
             Spheres[LinkingID].LinkSphere(HLSphereID);
 
-            int damID = -1;
+            int damID = -1; //NOTE[ALEX]: deliberately set to -1 to catch errors
             RequestDamSegment(ref damID, LinkingID, HLSphereID);
-            DamSegments[damID].UpdateMesh(XB.WData.SphereEdgeLength,
+            _damSegments[damID].UpdateMesh(XB.WData.SphereEdgeLength,
                                           Spheres[LinkingID].GlobalPosition,
                                           Spheres[LinkingID].Radius, Spheres[LinkingID].Angle,
                                           Spheres[HLSphereID].GlobalPosition,
                                           Spheres[HLSphereID].Radius, Spheres[HLSphereID].Angle);
-            DamSegments[damID].ApplyToMesh();
+            _damSegments[damID].ApplyToMesh();
 
             LinkingID = HLSphereID;
             Spheres[LinkingID].SphereTextureAddLinked();
@@ -447,19 +478,19 @@ public class ManagerSphere {
 #endif
 
         // Godot.GD.Print("UpdateDam: " + sphereID);
-        for (int i = 0; i < DamSegments.Count; i++) {
-            if (!DamSegments[i].InUse) { continue; }
+        for (int i = 0; i < _damSegments.Count; i++) {
+            if (!_damSegments[i].InUse) { continue; }
 
-            if (   DamSegments[i].LinkedIDs[0] == sphereID
-                || DamSegments[i].LinkedIDs[1] == sphereID) {
-                DamSegments[i].UpdateMesh(XB.WData.SphereEdgeLength,
-                                          Spheres[DamSegments[i].LinkedIDs[0]].GlobalPosition,
-                                          Spheres[DamSegments[i].LinkedIDs[0]].Radius,
-                                          Spheres[DamSegments[i].LinkedIDs[0]].Angle,
-                                          Spheres[DamSegments[i].LinkedIDs[1]].GlobalPosition,
-                                          Spheres[DamSegments[i].LinkedIDs[1]].Radius,
-                                          Spheres[DamSegments[i].LinkedIDs[1]].Angle          );
-                DamSegments[i].ApplyToMesh();
+            if (   _damSegments[i].LinkedIDs[0] == sphereID
+                || _damSegments[i].LinkedIDs[1] == sphereID) {
+                _damSegments[i].UpdateMesh(XB.WData.SphereEdgeLength,
+                                           Spheres[_damSegments[i].LinkedIDs[0]].GlobalPosition,
+                                           Spheres[_damSegments[i].LinkedIDs[0]].Radius,
+                                           Spheres[_damSegments[i].LinkedIDs[0]].Angle,
+                                           Spheres[_damSegments[i].LinkedIDs[1]].GlobalPosition,
+                                           Spheres[_damSegments[i].LinkedIDs[1]].Radius,
+                                           Spheres[_damSegments[i].LinkedIDs[1]].Angle          );
+                _damSegments[i].ApplyToMesh();
             }
         }
 
@@ -478,16 +509,16 @@ public class ManagerSphere {
 
             XB.WData.ApplySphereCone(Spheres[i].GlobalPosition, Spheres[i].Radius, Spheres[i].Angle);
         }
-        for (int i = 0; i < DamSegments.Count; i++) {
-            if (!DamSegments[i].InUse) { continue; }
+        for (int i = 0; i < _damSegments.Count; i++) {
+            if (!_damSegments[i].InUse) { continue; }
 
-            XB.WData.ApplyDamSegment(Spheres[DamSegments[i].LinkedIDs[0]].GlobalPosition,
-                                     Spheres[DamSegments[i].LinkedIDs[0]].Radius,
-                                     Spheres[DamSegments[i].LinkedIDs[0]].Angle,
-                                     Spheres[DamSegments[i].LinkedIDs[1]].GlobalPosition,
-                                     Spheres[DamSegments[i].LinkedIDs[1]].Radius,
-                                     Spheres[DamSegments[i].LinkedIDs[1]].Angle          );
-            DamSegments[i].ReleaseMesh();
+            XB.WData.ApplyDamSegment(Spheres[_damSegments[i].LinkedIDs[0]].GlobalPosition,
+                                     Spheres[_damSegments[i].LinkedIDs[0]].Radius,
+                                     Spheres[_damSegments[i].LinkedIDs[0]].Angle,
+                                     Spheres[_damSegments[i].LinkedIDs[1]].GlobalPosition,
+                                     Spheres[_damSegments[i].LinkedIDs[1]].Radius,
+                                     Spheres[_damSegments[i].LinkedIDs[1]].Angle          );
+            _damSegments[i].ReleaseMesh();
         }
         for (int i = 0; i < MaxSphereAmount; i++) {
             if (!Spheres[i].Active) { continue; }
@@ -505,10 +536,10 @@ public class ManagerSphere {
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereClearSpheres);
 #endif
 
-        for (int i = 0; i < DamSegments.Count; i++) {
-            if (!DamSegments[i].InUse) { continue; }
+        for (int i = 0; i < _damSegments.Count; i++) {
+            if (!_damSegments[i].InUse) { continue; }
 
-            DamSegments[i].ReleaseMesh();
+            _damSegments[i].ReleaseMesh();
         }
         for (int i = 0; i < MaxSphereAmount; i++) {
             if (!Spheres[i].Active) { continue; }
@@ -521,21 +552,23 @@ public class ManagerSphere {
 #endif 
     }
 
-    public static bool RequestSphere(Godot.Vector3 pos) {
+    // places the next available sphere at the required position
+    // if all spheres are in use, none are placed
+    public static bool RequestSphere(ref Godot.Vector3 pos) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereRequestSphere);
 #endif
 
-        if (NextSphere == MaxSphereAmount+1) { 
+        if (_nextSphere == MaxSphereAmount+1) { 
 #if XBDEBUG
             debug.End();
 #endif 
             return false; 
         }
 
-        XB.PController.Hud.UpdateSphereTextureHighlight(HLSphereID, NextSphere);
-        HLSphereID = NextSphere; // so that linking immediately works
-        Spheres[NextSphere].PlaceSphere(pos);
+        XB.PController.Hud.UpdateSphereTextureHighlight(HLSphereID, _nextSphere);
+        HLSphereID = _nextSphere; // so that linking immediately works
+        Spheres[_nextSphere].PlaceSphere(ref pos);
         if (Linking && LinkingID < MaxSphereAmount) { LinkSpheres(); }
 
 #if XBDEBUG
@@ -545,15 +578,18 @@ public class ManagerSphere {
         return true;
     }
 
+    // finds an unused dam segment or allocates a new one
+    // writes the index of the segment that can be used into damID
     private static void RequestDamSegment(ref int damID, int linkedToID1, int linkedToID2) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereRequestDamSegment);
 #endif
 
+        damID = -1;
         // Godot.GD.Print("RequestDamSegment: " + linkedToID1 + ", " + linkedToID2);
-        for (int i = 0; i < DamSegments.Count; i++) {
-            if (!DamSegments[i].InUse) {
-                DamSegments[i].UseMesh(linkedToID1, linkedToID2);
+        for (int i = 0; i < _damSegments.Count; i++) {
+            if (!_damSegments[i].InUse) {
+                _damSegments[i].UseMesh(linkedToID1, linkedToID2);
                 damID = i;
 
 #if XBDEBUG
@@ -564,10 +600,10 @@ public class ManagerSphere {
             }
         }
 
-        int newID = DamSegments.Count;
+        int newID = _damSegments.Count;
         var dS    = new XB.DamSegment(XB.AData.MainRoot, newID, XB.WData.DamSegmentDivisions);
-        DamSegments.Add(dS);
-        DamSegments[newID].UseMesh(linkedToID1, linkedToID2);
+        _damSegments.Add(dS);
+        _damSegments[newID].UseMesh(linkedToID1, linkedToID2);
         damID = newID;
 
 #if XBDEBUG
@@ -575,18 +611,19 @@ public class ManagerSphere {
 #endif 
     }
 
+    // makes all dam segment that were connected to the sphere with sphereID available again
     public static void RecycleDamSegment(int sphereID) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereRecycleDamSegment);
 #endif
 
         // Godot.GD.Print("RecycleDamSegment: " + sphereID);
-        for (int i = 0; i < DamSegments.Count; i++) {
-            if (!DamSegments[i].InUse) { continue; }
+        for (int i = 0; i < _damSegments.Count; i++) {
+            if (!_damSegments[i].InUse) { continue; }
 
-            if (   DamSegments[i].LinkedIDs[0] == sphereID
-                || DamSegments[i].LinkedIDs[1] == sphereID) {
-                DamSegments[i].ReleaseMesh();;
+            if (   _damSegments[i].LinkedIDs[0] == sphereID
+                || _damSegments[i].LinkedIDs[1] == sphereID) {
+                _damSegments[i].ReleaseMesh();;
             }
         }
 

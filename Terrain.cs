@@ -7,6 +7,13 @@ public enum Direction {
 }
 
 // Terrain deals with heightmap creation and modification
+// the functions use an array of floats (called tHeights in this class),
+// each float represents the height of the vertex offset from the "top left" by i/j * stepsize (1/res)
+// amountX and amountZ are the dimensions of the array
+// the terrain of the world has n vertices on a side, whereas the heightmap has n-1 pixels on a side
+// this is done to keep the heightmap size and worldsize a power of two,
+// as a result, all pixels of the heightmap are a result of linear interpolation of the heights array
+// these functions expect the number of world vertices as the inputs for amountX and amountZ
 public class Terrain {
     // FBM (fractal brownian motion) noise is an addition of multiple layers of perlin noise,
     // each with increasing frequency (detail) but less amplitude (strength)
@@ -101,7 +108,9 @@ public class Terrain {
 #endif 
     }
 
-    public static void HeightScale(ref float[,] tHeights, int amountX, int amountZ,
+    // scales the heights array to extend exactly from 0.0 to the parameter height
+    // the lowest and highest point are updated and require ref
+    public static void HeightScale(float[,] tHeights, int amountX, int amountZ,
                                    float height, ref float lowestPoint, ref float highestPoint) {
         float diff = highestPoint - lowestPoint;
 
@@ -117,8 +126,9 @@ public class Terrain {
         highestPoint = height;
     }
 
+    // fills a height array with values that represent a cone using signed distance field calculation
     // angle should be constrained to be within 1 and 89 degrees (including), to prevent weirdness
-    public static void Cone(ref float[,] tHeights, int amountX, int amountZ,
+    public static void Cone(float[,] tHeights, int amountX, int amountZ,
                             float worldSizeX, float worldSizeZ, float centerX, float centerZ,
                             float radius, float angle, float height, XB.Direction dir        ) {
 #if XBDEBUG
@@ -161,14 +171,17 @@ public class Terrain {
 
     // signed distance field based on: https://iquilezles.org/articles/distfunctions2d/
     //
+    // fills a height array with values that represent an uneven capsule between two points
+    // using signed distance field calculation
+    // used to represent the geometric shape that appears when two spheres are linked
     // flip signs for point differences because world is in negative coordinates
-    public static void UnevenCapsule(ref float[,] tHeights, int amountX, int amountZ,
+    public static void UnevenCapsule(float[,] tHeights, int amountX, int amountZ,
                                      float worldSizeX, float worldSizeZ, 
                                      float center1X, float center1Z, float radius1,
                                      float angle1, float height1,
                                      float center2X, float center2Z, float radius2,
                                      float angle2, float height2,
-                                     XB.Direction dir                                ) {
+                                     XB.Direction dir                              ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainUnevenCapsule);
 #endif
@@ -247,7 +260,8 @@ public class Terrain {
 #endif 
     }
 
-    public static void Flat(ref float[,] tHeights, int amountX, int amountZ, float height) {
+    // flattens the entire heights array to the value of height parameter
+    public static void Flat(float[,] tHeights, int amountX, int amountZ, float height) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainFlat);
 #endif
@@ -265,19 +279,22 @@ public class Terrain {
 #endif 
     }
 
-    public static void GradientX(ref float[,] tHeights, int amountX, int amountZ,
-                                 float low, float high                           ) {
+    //TODO[ALEX]: test gradients!
+    // creates a linear gradient in x direction from value of left to value of right
+    // starting at the left
+    public static void GradientX(float[,] tHeights, int amountX, int amountZ,
+                                 float left, float right                     ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainGradientX);
 #endif
 
-        XB.WData.LowestPoint  = low;
-        XB.WData.HighestPoint = high;
+        XB.WData.LowestPoint  = XB.Utils.MinF(left, right);
+        XB.WData.HighestPoint = XB.Utils.MaxF(left, right);
 
-        float diff = high - low;
+        float step = (left - right) / (float)(amountX-1);
         for (int i = 0; i < amountX; i++) {
             for (int j = 0; j < amountZ; j++) {
-                tHeights[i, j] = low + ( (float)i/(float)(amountX-1) )*diff;
+                tHeights[i, j] = left + (float)i * step;
             }
         }
 
@@ -286,19 +303,21 @@ public class Terrain {
 #endif 
     }
 
+    // creates a linear gradient in Z direction from value of top to value of bottom
+    // starting at the top
     public static void GradientY(ref float[,] tHeights, int amountX, int amountZ, 
-                                float low, float high                            ) {
+                                float top, float bottom                          ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainGradientY);
 #endif
 
-        XB.WData.LowestPoint  = low;
-        XB.WData.HighestPoint = high;
+        XB.WData.LowestPoint  = XB.Utils.MinF(top, bottom);
+        XB.WData.HighestPoint = XB.Utils.MaxF(top, bottom);
 
-        float diff = high - low;
+        float step = (top - bottom) / (float)(amountX-1);
         for (int i = 0; i < amountZ; i++) {
             for (int j = 0; j < amountX; j++) {
-                tHeights[j, i] = low + ( (float)i/(float)(amountZ-1) )*diff;
+                tHeights[i, j] = top + (float)i * step;
             }
         }
 
@@ -307,17 +326,19 @@ public class Terrain {
 #endif 
     }
 
-    public static void HeightMin(ref float[,] tHeights, ref float[,] tHeightsM,
-                                 int amountX, int amountZ                      ) {
+    // compares two height arrays and overwrites values in the first with the lower of the two
+    // updates static lowest and highest values
+    public static void HeightMin(float[,] tHeights, float[,] tHeightsM, int amountX, int amountZ,
+                                 ref float lowest, ref float highest                             ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainHeightMin);
 #endif
 
-        ResetLowestHighest();
+        ResetLowestHighest(ref lowest, ref highest);
         for (int i = 0; i < amountX; i++) {
             for (int j = 0; j < amountZ; j++) {
                 tHeights[i, j] = XB.Utils.MinF(tHeights[i, j], tHeightsM[i, j]);
-                UpdateLowestHighest(tHeights[i, j]);
+                UpdateLowestHighest(ref lowest, ref highest, tHeights[i, j]);
             }
         }
 
@@ -326,17 +347,19 @@ public class Terrain {
 #endif 
     }
 
-    public static void HeightMax(ref float[,] tHeights, ref float[,] tHeightsM,
-                                 int amountX, int amountZ                      ) {
+    // compares two height arrays and overwrites values in the first with the higher of the two
+    // updates static lowest and highest values
+    public static void HeightMax(float[,] tHeights, float[,] tHeightsM, int amountX, int amountZ,
+                                 ref float lowest, ref float highest                             ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainHeightMax);
 #endif
 
-        ResetLowestHighest();
+        ResetLowestHighest(ref lowest, ref highest);
         for (int i = 0; i < amountX; i++) {
             for (int j = 0; j < amountZ; j++) {
                 tHeights[i, j] = XB.Utils.MaxF(tHeights[i, j], tHeightsM[i, j]);
-                UpdateLowestHighest(tHeights[i, j]);
+                UpdateLowestHighest(ref lowest, ref highest, tHeights[i, j]);
             }
         }
 
@@ -345,17 +368,19 @@ public class Terrain {
 #endif 
     }
 
-    public static void HeightReplace(ref float[,] tHeights, ref float[,] tHeightsM,
-                                     int amountX, int amountZ                      ) {
+    // replaces all values in the first height array with those of the first
+    // updates static lowest and highest values
+    public static void HeightReplace(float[,] tHeights, float[,] tHeightsM, int amountX, int amountZ,
+                                     ref float lowest, ref float highest                             ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainHeightReplace);
 #endif
 
-        ResetLowestHighest();
+        ResetLowestHighest(ref lowest, ref highest);
         for (int i = 0; i < amountX; i++) {
             for (int j = 0; j < amountZ; j++) {
                 tHeights[i, j] = tHeightsM[i, j];
-                UpdateLowestHighest(tHeights[i, j]);
+                UpdateLowestHighest(ref lowest, ref highest, tHeights[i, j]);
             }
         }
 
@@ -364,8 +389,9 @@ public class Terrain {
 #endif 
     }
 
-    public static void CalculateNormals(ref Godot.Vector3[] norms,
-                                        ref Godot.Vector3[] verts, ref int[] tris) {
+    // calculates normals for given arrays of vertex position and triangle indices
+    // and writes them into normals array
+    public static void CalculateNormals(Godot.Vector3[] norms, Godot.Vector3[] verts, int[] tris) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainCalculateNormals);
 #endif
@@ -397,9 +423,14 @@ public class Terrain {
 #endif 
     }
 
+    // fills heightmap texture by linearly interpolating between values of height array
+    // resolution of heightmap is assumed to be 1 smaller than size of height array
+    // resulting texture goes from 0.0 for the lowest value to 1.0 for the highest value
+    // (flat heights will result in 0.5 grey texture)
+    //TODO[ALEX]: this is wrong, should interpolate, currently skipping the last value
     // expects img to be of type L8
-    public static void UpdateHeightMap(ref float[,] tHeights, float lowest, float highest,
-                                       ref Godot.Image img                                ) {
+    public static void UpdateHeightMap(float[,] tHeights, float lowest, float highest,
+                                       Godot.Image img                                ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainUpdateHeightMap);
 #endif
@@ -441,7 +472,7 @@ public class Terrain {
     //
     //NOTE[ALEX]: no mipmaps
     public static float HeightMapSample(float sampleX, float sampleZ,
-                                        float worldXSize, float worldZSize, ref Godot.Image img) {
+                                        float worldXSize, float worldZSize, Godot.Image img) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainHeightMapSample);
 #endif
@@ -482,13 +513,15 @@ public class Terrain {
         return result;
     }
 
-    private static void ResetLowestHighest() {
+    // sets lowest and highest static variables to the limits of float to prepare them for 
+    // new comparisons within the height array
+    private static void ResetLowestHighest(ref float lowest, ref float highest) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainResetLowestHighest);
 #endif
 
-        XB.WData.LowestPoint  = float.MaxValue;
-        XB.WData.HighestPoint = float.MinValue;
+        lowest  = float.MaxValue;
+        highest = float.MinValue;
 
         // Godot.GD.Print("ResetLowestHighest, Low to: " + XB.WorldData.LowestPoint
         //                + "m, High to: " + XB.WorldData.HighestPoint + "m"       );
@@ -498,22 +531,25 @@ public class Terrain {
 #endif 
     }
 
-    public static void UpdateLowestHighest(float value) {
+    // compares existing lowest and highest static variables with a value,
+    // updates them is required
+    public static void UpdateLowestHighest(ref float lowest, ref float highest, float value) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainUpdateLowestHighest);
 #endif
 
         //NOTE[ALEX]: does not use min max functions for easier debugging/logging
-        if      (value < XB.WData.LowestPoint)   { XB.WData.LowestPoint  = value; }
-        else if ( value > XB.WData.HighestPoint) { XB.WData.HighestPoint = value; }
+        if      (value < lowest)  { lowest  = value; }
+        else if (value > highest) { highest = value; }
 
 #if XBDEBUG
         debug.End();
 #endif 
     }
 
-    public static void FindLowestHighest(ref float[,] heights, int amountX, int amountZ,
-                                         ref float lowest, ref float highest            ) {
+    // iterates through the height array and updates lowest and highest static variables
+    public static void FindLowestHighest(float[,] heights, int amountX, int amountZ,
+                                         ref float lowest, ref float highest        ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainFindLowestHighest);
 #endif
@@ -532,9 +568,13 @@ public class Terrain {
 #endif 
     }
 
+    // calculates a pointiness texture for the terrain by comparing height to immediate
+    // neighbor heights in 8 directions
+    // pointiness is used in the terrain shader for additional modulation (purely visual)
     //NOTE[ALEX]: no mipmaps
-    public static void BakePointiness(ref float[,] heights, int amountX, int amountZ,
-                                      ref Godot.Image imgPointy                      ) {
+    //TODO[ALEX]: also incorrect (like above)
+    public static void BakePointiness(float[,] heights, int amountX, int amountZ,
+                                      Godot.Image imgPointy                      ) {
         //TODO[ALEX]: this expects same size for textures for now
         //            make this use heights instead of texture for speedup
         //            this produces a high frequency map... should this be smaller?

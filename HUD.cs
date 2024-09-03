@@ -208,7 +208,7 @@ public partial class HUD : Godot.Control {
         _texSpheres.SetImage(_imgSpheres);
         _texSpheresBG.SetImage(_imgSpheresBG);
         CreateSphereTexture(_dimSpY, _dimSp, _columns, _dimBord, _dimThick,
-                            ref _imgSpheres, ref _texSpheres, ref _rects, ref _rSize);
+                            _imgSpheres, _texSpheres, _rects, ref _rSize   );
 
         _imgMiniMapQT = Godot.Image.Create(_dimMMX, _dimMMY, false, Godot.Image.Format.Rgba8);
         _imgMiniMapQT.Fill(XB.Col.Transp);
@@ -250,7 +250,7 @@ public partial class HUD : Godot.Control {
         _texMiniMapO.SetImage (_imgMiniMapO);
         _texMiniMapG.SetImage (_imgMiniMapG);
         _texMiniMapBG.SetImage(_imgMiniMapBG);
-        CreateGradientTexture(ref _imgMiniMapG, ref _texMiniMapG, ref _rects);
+        CreateGradientTexture(_imgMiniMapG, _texMiniMapG, _rects);
         _matMiniMapO        = new Godot.ShaderMaterial();
         _matMiniMapO.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.MiniMapOShader);
         _matMiniMapO.SetShaderParameter("plColor",     XB.Col.MPlayer);
@@ -331,8 +331,8 @@ public partial class HUD : Godot.Control {
     }
 
     private void CreateSphereTexture(int dimSpY, int dimSp, int columns, int dimBord, int dimThick,
-                                     ref Godot.Image image, ref Godot.ImageTexture tex, 
-                                     ref Godot.Rect2I[] rects, ref int rSize) {
+                                     Godot.Image image, Godot.ImageTexture tex, 
+                                     Godot.Rect2I[] rects, ref int rSize                           ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.HUDCreateSphereTexture);
 #endif
@@ -345,12 +345,12 @@ public partial class HUD : Godot.Control {
             counter += 1;
             counter %= columns;
 
-            XB.Utils.BeveledRectangle(xStart, yStart, dimSp-2*dimThick, ref rects, ref rSize);
-            XB.Utils.FillRectanglesInImage(ref image, ref rects, rSize, ref XB.Col.Outline);
+            XB.Utils.BeveledRectangle(xStart, yStart, dimSp-2*dimThick, rects, ref rSize);
+            XB.Utils.FillRectanglesInImage(image, rects, rSize, ref XB.Col.Outline);
 
             XB.Utils.BeveledRectangle(xStart+dimBord, yStart+dimBord,
-                                      dimSp-2*dimBord-2*dimThick, ref rects, ref rSize);
-            XB.Utils.FillRectanglesInImage(ref image, ref rects, rSize, ref XB.Col.InAct);
+                                      dimSp-2*dimBord-2*dimThick, rects, ref rSize);
+            XB.Utils.FillRectanglesInImage(image, rects, rSize, ref XB.Col.InAct);
 
             AddDigitTexture(i, xStart+2*dimBord, yStart+2*dimBord, dimThick, ref XB.Col.White);
             if (counter == 0) {
@@ -364,8 +364,8 @@ public partial class HUD : Godot.Control {
 #endif 
     }
 
-    private void CreateGradientTexture(ref Godot.Image image, ref Godot.ImageTexture tex,
-                                       ref Godot.Rect2I[] rects                          ) {
+    private void CreateGradientTexture(Godot.Image image, Godot.ImageTexture tex,
+                                       Godot.Rect2I[] rects                          ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.HUDCreateGradientTexture);
 #endif
@@ -395,13 +395,13 @@ public partial class HUD : Godot.Control {
         int xSize = ySize/2;
         if (digit > 9) { // decimal digit
             XB.Utils.DigitRectangles(digit/10, xStart, yStart, xSize, ySize, thickness,
-                                     ref _rects, ref _rSize                            );
-            XB.Utils.FillRectanglesInImage(ref _imgSpheres, ref _rects, _rSize, ref digitColor);
+                                     _rects, ref _rSize                                );
+            XB.Utils.FillRectanglesInImage(_imgSpheres, _rects, _rSize, ref digitColor);
         }
         xStart += xSize; //NOTE[ALEX]: moved out of loop so that 0-9 are right aligned as well
         XB.Utils.DigitRectangles(digit%10, xStart, yStart, xSize, ySize, thickness,
-                                 ref _rects, ref _rSize                            );
-        XB.Utils.FillRectanglesInImage(ref _imgSpheres, ref _rects, _rSize, ref digitColor);
+                                 _rects, ref _rSize                                );
+        XB.Utils.FillRectanglesInImage(_imgSpheres, _rects, _rSize, ref digitColor);
 
 #if XBDEBUG
         debug.End();
@@ -428,8 +428,8 @@ public partial class HUD : Godot.Control {
         }
 
         XB.Utils.BeveledRectangle(xStart+_dimBord, yStart+_dimBord,
-                                  _dimSp-2*_dimBord-2*_dimThick, ref _rects, ref _rSize);
-        XB.Utils.FillRectanglesInImage(ref _imgSpheres, ref _rects, _rSize, ref _pColor);
+                                  _dimSp-2*_dimBord-2*_dimThick, _rects, ref _rSize);
+        XB.Utils.FillRectanglesInImage(_imgSpheres, _rects, _rSize, ref _pColor);
 
         AddDigitTexture(id, xStart+2*_dimBord, yStart+2*_dimBord, _dimThick, ref _dColor);
         _texSpheres.Update(_imgSpheres);
@@ -449,16 +449,16 @@ public partial class HUD : Godot.Control {
             int yOff   = (from/_columns)*_dimSp;
             int yStart = _dimSpY-yOff-_dimSp;
 
-            XB.Utils.RectangleOutline(xStart, yStart, _dimSp, _dimThick, ref _rects, ref _rSize);
-            XB.Utils.FillRectanglesInImage(ref _imgSpheres, ref _rects, _rSize, ref XB.Col.Transp);
+            XB.Utils.RectangleOutline(xStart, yStart, _dimSp, _dimThick, _rects, ref _rSize);
+            XB.Utils.FillRectanglesInImage(_imgSpheres, _rects, _rSize, ref XB.Col.Transp);
         }
         if (to < XB.ManagerSphere.MaxSphereAmount) {
             int xStart = (to%_columns)*_dimSp;
             int yOff   = (to/_columns)*_dimSp;
             int yStart = _dimSpY-yOff-_dimSp;
             
-            XB.Utils.RectangleOutline(xStart, yStart, _dimSp, _dimThick, ref _rects, ref _rSize);
-            XB.Utils.FillRectanglesInImage(ref _imgSpheres, ref _rects, _rSize, ref XB.Col.Hl);
+            XB.Utils.RectangleOutline(xStart, yStart, _dimSp, _dimThick, _rects, ref _rSize);
+            XB.Utils.FillRectanglesInImage(_imgSpheres, _rects, _rSize, ref XB.Col.Hl);
         }
         _texSpheres.Update(_imgSpheres);
 
@@ -583,9 +583,9 @@ public partial class HUD : Godot.Control {
         UpdateMiniMapOverlayTexture();
 
         if (XB.AData.S.SC.QTreeVis) {
-            XB.ManagerTerrain.UpdateQTreeTexture(ref _imgMiniMapQT,
+            XB.ManagerTerrain.UpdateQTreeTexture(_imgMiniMapQT,
                                                  _imgMiniMapQT.GetWidth()/XB.WData.WorldDim.X,
-                                                 ref _rects                                   );
+                                                 _rects                                       );
             _texMiniMapQT.Update(_imgMiniMapQT);
         }
 

@@ -22,7 +22,10 @@ public class QNode {
     public float XSize; // dimensions in meter
     public float ZSize;
     public float Res;   // subdivisions per meter
+    private bool[] _worldEdge;
 
+    // creates a new quadtree node and assignes it id,
+    // then increases id for the next node creation
     public QNode(ref int id, float xPos, float zPos, float xSize, float zSize,
                  float res, QNode parent = null                               ) {
 #if XBDEBUG
@@ -46,6 +49,8 @@ public class QNode {
         XSize = xSize;
         ZSize = zSize;
         Res   = res;
+
+        _worldEdge = new bool[4];
 
 #if XBDEBUG
         debug.End();
@@ -216,25 +221,24 @@ public class QNode {
 
     public void UpdateAssignedMesh(float worldXSize, float worldZSize,
                                    float lowestPoint, float highestPoint,
-                                   ref Godot.Image imgHeightMap          ) {
+                                   Godot.Image imgHeightMap              ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.QNodeUpdateAssignedMesh);
 #endif
 
         MeshContainer.SampleTerrainNoise(XPos, ZPos, XSize, ZSize, worldXSize, worldZSize,
-                                         Res, lowestPoint, highestPoint, ref imgHeightMap );
-        var worldEdge = new bool[4];
+                                         Res, lowestPoint, highestPoint, imgHeightMap     );
 
-        if (worldZSize-(-ZPos+ZSize/2.0f) < XB.Constants.Epsilon) { worldEdge[(int)XB.Sk.ZM] = true;  }
-        else                                                      { worldEdge[(int)XB.Sk.ZM] = false; }
-        if (            -ZPos-ZSize/2.0f  < XB.Constants.Epsilon) { worldEdge[(int)XB.Sk.ZP] = true;  }
-        else                                                      { worldEdge[(int)XB.Sk.ZP] = false; }
-        if (worldXSize-(-XPos+XSize/2.0f) < XB.Constants.Epsilon) { worldEdge[(int)XB.Sk.XM] = true;  }
-        else                                                      { worldEdge[(int)XB.Sk.XM] = false; }
-        if (            -XPos-XSize/2.0f  < XB.Constants.Epsilon) { worldEdge[(int)XB.Sk.XP] = true;  }
-        else                                                      { worldEdge[(int)XB.Sk.XP] = false; }
+        if (worldZSize-(-ZPos+ZSize/2.0f) < XB.Constants.Epsilon) { _worldEdge[(int)XB.Sk.ZM] = true;  }
+        else                                                      { _worldEdge[(int)XB.Sk.ZM] = false; }
+        if (            -ZPos-ZSize/2.0f  < XB.Constants.Epsilon) { _worldEdge[(int)XB.Sk.ZP] = true;  }
+        else                                                      { _worldEdge[(int)XB.Sk.ZP] = false; }
+        if (worldXSize-(-XPos+XSize/2.0f) < XB.Constants.Epsilon) { _worldEdge[(int)XB.Sk.XM] = true;  }
+        else                                                      { _worldEdge[(int)XB.Sk.XM] = false; }
+        if (            -XPos-XSize/2.0f  < XB.Constants.Epsilon) { _worldEdge[(int)XB.Sk.XP] = true;  }
+        else                                                      { _worldEdge[(int)XB.Sk.XP] = false; }
 
-        MeshContainer.ApplyToMesh(worldEdge);
+        MeshContainer.ApplyToMesh(_worldEdge);
         MeshReady = true;
 
 #if XBDEBUG
@@ -276,7 +280,9 @@ public class MeshContainer {
     public Godot.Vector3[][] NormalsSkirt;
     public int[]             TrianglesTile;
     public int[][]           TrianglesSkirt;
-    private const float      _skirtLength = 8.0f;
+    private const float _skirtLength = 8.0f;
+    private Godot.Vector2 _v2;
+    private Godot.Vector3 _v3;
 
     public MeshContainer(Godot.Node root, int id, float lerpRAmount, float lerpGAmount) {
 #if XBDEBUG
@@ -286,7 +292,7 @@ public class MeshContainer {
         MeshInst = new Godot.MeshInstance3D();
         root.AddChild(MeshInst);
 
-        MaterialTile = new Godot.ShaderMaterial();
+        MaterialTile        = new Godot.ShaderMaterial();
         MaterialTile.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.TerrainShader);
         MaterialTile.SetShaderParameter("albedoMult", XB.WData.AlbedoMult);
         MaterialTile.SetShaderParameter("tBlock",     XB.Resources.BlockTex);
@@ -352,6 +358,9 @@ public class MeshContainer {
         ID      = id;
         InUse   = true;
 
+        _v2 = new Godot.Vector2(0.0f, 0.0f);
+        _v3 = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+
 #if XBDEBUG
         debug.End();
 #endif 
@@ -388,7 +397,7 @@ public class MeshContainer {
         NormalsTile   = new Godot.Vector3[XAmount*ZAmount];
         TrianglesTile = new int[(XAmount-1)*(ZAmount-1)*6];
 
-        Godot.Vector2 v2 = new Godot.Vector2(0.0f, 0.0f);
+        XB.Utils.ResetV2(ref _v2);
         float uvStartX = -(xPos-xSize/2.0f)/xWorldSize;
         float uvEndX   = -(xPos+xSize/2.0f)/xWorldSize;
         float uvStartY = -(zPos-zSize/2.0f)/zWorldSize;
@@ -396,9 +405,9 @@ public class MeshContainer {
         for (int i = 0; i < UVsTile.Length; i++) {
             int x = i%XAmount;
             int y = i/XAmount;
-            v2.X = XB.Utils.LerpF(uvStartX, uvEndX, (float)x/(float)(XAmount-1));
-            v2.Y = XB.Utils.LerpF(uvStartY, uvEndY, (float)y/(float)(ZAmount-1));
-            UVsTile[i] = v2;
+            _v2.X = XB.Utils.LerpF(uvStartX, uvEndX, (float)x/(float)(XAmount-1));
+            _v2.Y = XB.Utils.LerpF(uvStartY, uvEndY, (float)y/(float)(ZAmount-1));
+            UVsTile[i] = _v2;
         }
 
         int tri  = 0;
@@ -460,10 +469,10 @@ public class MeshContainer {
             UVsSkirt[(int)XB.Sk.XP][2*i+1] = UVsTile[i*XAmount + XAmount-1];
         }
 
-        SkirtTriangleIndices(ref TrianglesSkirt[(int)XB.Sk.ZM], XAmount-1);
-        SkirtTriangleIndices(ref TrianglesSkirt[(int)XB.Sk.ZP], XAmount-1);
-        SkirtTriangleIndices(ref TrianglesSkirt[(int)XB.Sk.XM], ZAmount-1);
-        SkirtTriangleIndices(ref TrianglesSkirt[(int)XB.Sk.XP], ZAmount-1);
+        SkirtTriangleIndices(TrianglesSkirt[(int)XB.Sk.ZM], XAmount-1);
+        SkirtTriangleIndices(TrianglesSkirt[(int)XB.Sk.ZP], XAmount-1);
+        SkirtTriangleIndices(TrianglesSkirt[(int)XB.Sk.XM], ZAmount-1);
+        SkirtTriangleIndices(TrianglesSkirt[(int)XB.Sk.XP], ZAmount-1);
 
         MeshDataSkirt[(int)XB.Sk.ZM][(int)Godot.Mesh.ArrayType.TexUV] = UVsSkirt[(int)XB.Sk.ZM];
         MeshDataSkirt[(int)XB.Sk.ZP][(int)Godot.Mesh.ArrayType.TexUV] = UVsSkirt[(int)XB.Sk.ZP];
@@ -506,7 +515,7 @@ public class MeshContainer {
 #endif 
     }
 
-    private void SkirtTriangleIndices(ref int[] triangles, int amount) {
+    private void SkirtTriangleIndices(int[] triangles, int amount) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.MeshContainerSampleTerrainNoise);
 #endif
@@ -532,7 +541,7 @@ public class MeshContainer {
     public void SampleTerrainNoise(float xPos, float zPos, float xSize,  float zSize,
                                    float worldXSize, float worldZSize, float res,
                                    float lowestPoint, float highestPoint, 
-                                   ref Godot.Image imgHeightMap                      ) {
+                                   Godot.Image imgHeightMap                          ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.MeshContainerSampleTerrainNoise);
 #endif
@@ -543,23 +552,23 @@ public class MeshContainer {
         // Godot.GD.Print("MeshContainerSampleTerrainNoise: lp: " + lowestPoint + ", h: " + height);
 
         // tile (without skirt)
-        var   v3   = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+        XB.Utils.ResetV3(ref _v3);
         float step = 1.0f/res;
         float sampledNoise = 0.0f;
         int   vNumber = 0;
         for (int j = 0; j < ZAmount; j++) {
             for (int i = 0; i < XAmount; i++) {
-                v3.X = (float)i*step - xSize/2.0f;
-                v3.Z = (float)j*step - zSize/2.0f;
-                sampledNoise = XB.Terrain.HeightMapSample(v3.X + pos.X, v3.Z + pos.Z,
-                                                          worldXSize, worldZSize, ref imgHeightMap);
-                v3.Y = sampledNoise*height + lowestPoint;
-                VerticesTile[vNumber] = v3;
+                _v3.X = (float)i*step - xSize/2.0f;
+                _v3.Z = (float)j*step - zSize/2.0f;
+                sampledNoise = XB.Terrain.HeightMapSample(_v3.X + pos.X, _v3.Z + pos.Z,
+                                                          worldXSize, worldZSize, imgHeightMap);
+                _v3.Y = sampledNoise*height + lowestPoint;
+                VerticesTile[vNumber] = _v3;
                 vNumber += 1;
             }
         }
 
-        XB.Terrain.CalculateNormals(ref NormalsTile, ref VerticesTile, ref TrianglesTile);
+        XB.Terrain.CalculateNormals(NormalsTile, VerticesTile, TrianglesTile);
 
         // skirt vertices and normals (copied from edges of tile)
         //NOTE[ALEX]: if the vertices for opposing sides are added in the same order 
@@ -644,19 +653,19 @@ public class MeshContainer {
 #endif
 
         int d = (int)direction;
-        var n = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+        XB.Utils.ResetV3(ref _v3);
 
         switch (direction) {
-            case XB.Sk.ZM: { n.Z = -1.0f; break; }
-            case XB.Sk.ZP: { n.Z = +1.0f; break; }
-            case XB.Sk.XM: { n.X = -1.0f; break; }
-            case XB.Sk.XP: { n.X = +1.0f; break; }
+            case XB.Sk.ZM: { _v3.Z = -1.0f; break; }
+            case XB.Sk.ZP: { _v3.Z = +1.0f; break; }
+            case XB.Sk.XM: { _v3.X = -1.0f; break; }
+            case XB.Sk.XP: { _v3.X = +1.0f; break; }
         }
 
         for (int i = 0; i < VerticesSkirt[d].Length/2; i++) {
             VerticesSkirt[d][2*i+1].Y = XB.WData.KillPlane;
-            NormalsSkirt [d][2*i+0]   = n;
-            NormalsSkirt [d][2*i+1]   = n;
+            NormalsSkirt [d][2*i+0]   = _v3;
+            NormalsSkirt [d][2*i+1]   = _v3;
         }
 
 #if XBDEBUG
@@ -749,6 +758,7 @@ public class CollisionTile {
     public Godot.CollisionShape3D  CollShape;
     public Godot.Vector3[] Vertices;
     public int[]           Triangles;
+    private Godot.Vector3 _v3;
 #if XBVISUALIZECOLLIDERS
     public Godot.MeshInstance3D MeshInstVis;
     public Godot.ShaderMaterial MaterialVis;
@@ -779,6 +789,8 @@ public class CollisionTile {
         MeshData = new Godot.Collections.Array();
         MeshData.Resize((int)Godot.Mesh.ArrayType.Max);
         ArrMesh  = new Godot.ArrayMesh();
+
+        _v3 = new Godot.Vector3(0.0f, 0.0f, 0.0f);
 
         //DebugPrint();
 
@@ -840,27 +852,27 @@ public class CollisionTile {
     }
 
     public void SampleTerrainNoise(float worldXSize, float worldZSize,
-                                   float lowestPoint, float highestPoint,
-                                   ref Godot.Image imgHeightMap          ) {
+                                   float lowestPoint, float highestPoint, 
+                                   Godot.Image imgHeightMap              ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.CollisionTileSampleTerrainNoise);
 #endif
 
         float height = XB.Utils.AbsF(highestPoint-lowestPoint);
         // Godot.GD.Print("xamnt: " + XAmount + ", zamnt: " + ZAmount);
-        var   v3   = new Godot.Vector3(0.0f, 0.0f, 0.0f);
+        XB.Utils.ResetV3(ref _v3);
         float step = 1.0f/Res;
         float sampledNoise = 0.0f;
         int   vNumber = 0;
         for (int j = 0; j < ZAmount; j++) {
             for (int i = 0; i < XAmount; i++) {
-                v3.X = (float)i*step - XSize/2.0f;
-                v3.Z = (float)j*step - ZSize/2.0f;
-                sampledNoise = XB.Terrain.HeightMapSample(v3.X + XPos, v3.Z + ZPos,
-                                                          worldXSize, worldZSize, ref imgHeightMap);
-                v3.Y = sampledNoise*height + lowestPoint;
+                _v3.X = (float)i*step - XSize/2.0f;
+                _v3.Z = (float)j*step - ZSize/2.0f;
+                sampledNoise = XB.Terrain.HeightMapSample(_v3.X + XPos, _v3.Z + ZPos,
+                                                          worldXSize, worldZSize, imgHeightMap);
+                _v3.Y = sampledNoise*height + lowestPoint;
                 // Godot.GD.Print("i: " + i + ",j: " + j + ",vN: " + vNumber + " of " + Vertices.Length);
-                Vertices[vNumber] = v3;
+                Vertices[vNumber] = _v3;
                 vNumber += 1;
             }
         }
@@ -917,7 +929,7 @@ public class ManagerTerrain {
 
     public static void InitializeQuadTree(float xSize, float zSize, float resM, float resC,
                                           float sizeCTile, float sizeMTileMin, int divMax,
-                                          float lowest, float highest, ref Godot.Image imgHeightMap) {
+                                          float lowest, float highest, Godot.Image imgHeightMap) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainInitializeQuadTree);
 #endif
@@ -957,7 +969,7 @@ public class ManagerTerrain {
         _qRoot = new XB.QNode(ref _nextID, -_worldXSize/2.0f, -_worldZSize/2.0f, 
                               _worldXSize, _worldZSize, resM                    );
 
-        DivideQuadNode(ref _qRoot, _divisions);
+        DivideQuadNode(_qRoot, _divisions);
 
         _terrainMeshes = new SysCG.List<XB.MeshContainer>();
 
@@ -984,7 +996,7 @@ public class ManagerTerrain {
 
         _reqQueue = new SysCG.Queue<XB.QNode>();
 
-        ShowLargestTile(ref _qRoot, lowest, highest, ref imgHeightMap);
+        ShowLargestTile(_qRoot, lowest, highest, imgHeightMap);
 
 #if XBDEBUG
         debug.End();
@@ -992,7 +1004,7 @@ public class ManagerTerrain {
     }
 
     // create a sparse quad tree without any mesh data
-    private static void DivideQuadNode(ref XB.QNode parent, int divisions) {
+    private static void DivideQuadNode(XB.QNode parent, int divisions) {
         if (divisions == 0) { return; }
 
 #if XBDEBUG
@@ -1017,10 +1029,10 @@ public class ManagerTerrain {
         parent.Children[2] = q3;
         parent.Children[3] = q4;
 
-        DivideQuadNode(ref parent.Children[0], divisions);
-        DivideQuadNode(ref parent.Children[1], divisions);
-        DivideQuadNode(ref parent.Children[2], divisions);
-        DivideQuadNode(ref parent.Children[3], divisions);
+        DivideQuadNode(parent.Children[0], divisions);
+        DivideQuadNode(parent.Children[1], divisions);
+        DivideQuadNode(parent.Children[2], divisions);
+        DivideQuadNode(parent.Children[3], divisions);
 
 #if XBDEBUG
         debug.End();
@@ -1028,7 +1040,7 @@ public class ManagerTerrain {
     }
 
     public static void UpdateCollisionTiles(float lowestPoint, float highestPoint,
-                                            ref Godot.Image imgHeightMap          ) {
+                                            Godot.Image imgHeightMap              ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainUpdateCollisionTiles);
 #endif
@@ -1039,7 +1051,7 @@ public class ManagerTerrain {
             for (int j = 0; j < colTileAmntZ; j++) {
                 _terrainColTiles[i, j].InitializeCollisionMesh();
                 _terrainColTiles[i, j].SampleTerrainNoise(_worldXSize, _worldZSize, lowestPoint,
-                                                          highestPoint, ref imgHeightMap        );
+                                                          highestPoint, imgHeightMap            );
                 _terrainColTiles[i, j].ApplyToCollisionMesh();
             }
         }
@@ -1050,22 +1062,22 @@ public class ManagerTerrain {
     }
 
     public static void UpdateQTreeMeshes(ref Godot.Vector2 refPos, float lowestPoint,
-                                         float highestPoint, ref Godot.Image imgHeightMap) {
+                                         float highestPoint, Godot.Image imgHeightMap) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainUpdateQTreeMeshes);
 #endif
 
         // Godot.GD.Print("UpdateQTreeMeshes");
-        UpdateQNodeMesh(ref refPos, ref _qRoot);
-        QueueRequestProcess(_queueBudget, lowestPoint, highestPoint, ref imgHeightMap);
-        QNodeShowReadyMeshes(ref _qRoot);
+        UpdateQNodeMesh(ref refPos, _qRoot);
+        QueueRequestProcess(_queueBudget, lowestPoint, highestPoint, imgHeightMap);
+        QNodeShowReadyMeshes(_qRoot);
 
 #if XBDEBUG
         debug.End();
 #endif 
     }
 
-    private static void UpdateQNodeMesh(ref Godot.Vector2 refPos, ref XB.QNode qNode) {
+    private static void UpdateQNodeMesh(ref Godot.Vector2 refPos, XB.QNode qNode) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainUpdateQNodeMesh);
 #endif
@@ -1073,8 +1085,8 @@ public class ManagerTerrain {
             if (!qNode.Active) {
                 // Godot.GD.Print("UpdateQNodeMesh no children act: " + qNode.ID);
                 qNode.Activate();
-                RequestMeshContainer(ref qNode);
-                QueueRequestMeshUpdate(ref qNode);
+                RequestMeshContainer(qNode);
+                QueueRequestMeshUpdate(qNode);
             }
             // Godot.GD.Print("UpdateQNodeMesh tile already active, ends at: " + qNode.ID);
 #if XBDEBUG
@@ -1095,16 +1107,16 @@ public class ManagerTerrain {
                 // recycling happens in QNodeShowReadyMeshes after updating the request queue
             }
             // Godot.GD.Print("UpdateQNodeMesh go one level deeper " + qNode.ID);
-            UpdateQNodeMesh(ref refPos, ref qNode.Children[0]);
-            UpdateQNodeMesh(ref refPos, ref qNode.Children[1]);
-            UpdateQNodeMesh(ref refPos, ref qNode.Children[2]);
-            UpdateQNodeMesh(ref refPos, ref qNode.Children[3]);
+            UpdateQNodeMesh(ref refPos, qNode.Children[0]);
+            UpdateQNodeMesh(ref refPos, qNode.Children[1]);
+            UpdateQNodeMesh(ref refPos, qNode.Children[2]);
+            UpdateQNodeMesh(ref refPos, qNode.Children[3]);
         } else { // reached correct resolution
             if (!qNode.Active) {
                 // Godot.GD.Print("UpdateQNodeMesh correct resolution " + qNode.ID);
                 qNode.Activate();
-                RequestMeshContainer(ref qNode);
-                QueueRequestMeshUpdate(ref qNode);
+                RequestMeshContainer(qNode);
+                QueueRequestMeshUpdate(qNode);
             }
         }
 
@@ -1113,7 +1125,7 @@ public class ManagerTerrain {
 #endif 
     }
 
-    private static void QNodeShowReadyMeshes(ref XB.QNode qNode) {
+    private static void QNodeShowReadyMeshes(XB.QNode qNode) {
         if (qNode == null) { return; }
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainQNodeShowReadyMeshes);
@@ -1128,7 +1140,7 @@ public class ManagerTerrain {
             if (qNode.MeshVisible) {
                 if (qNode.ChildrenActiveAndReady()) {
                     // Godot.GD.Print("QNodeShowReadyMeshes off, now showing children " + qNode.ID);
-                    RecycleMeshContainer(ref qNode);
+                    RecycleMeshContainer(qNode);
                     qNode.Children[0].ShowMeshContainer();
                     qNode.Children[1].ShowMeshContainer();
                     qNode.Children[2].ShowMeshContainer();
@@ -1136,22 +1148,22 @@ public class ManagerTerrain {
                 } else if (qNode.ChildrenActiveRecursive()) {
                     if (qNode.ChildrenReadyRecursive()) {
                     // Godot.GD.Print("QNodeShowReadyMeshes off rec, now showing children " + qNode.ID);
-                    RecycleMeshContainer(ref qNode);
-                    QNodeShowReadyMeshes(ref qNode.Children[0]);
-                    QNodeShowReadyMeshes(ref qNode.Children[1]);
-                    QNodeShowReadyMeshes(ref qNode.Children[2]);
-                    QNodeShowReadyMeshes(ref qNode.Children[3]);
+                    RecycleMeshContainer(qNode);
+                    QNodeShowReadyMeshes(qNode.Children[0]);
+                    QNodeShowReadyMeshes(qNode.Children[1]);
+                    QNodeShowReadyMeshes(qNode.Children[2]);
+                    QNodeShowReadyMeshes(qNode.Children[3]);
                     }
                 } else {
                     // Godot.GD.Print("QNodeShowReadyMeshes waiting for children " + qNode.ID);
                 }
             } else { // go one division level deeper
                 // Godot.GD.Print("QNodeShowReadyMeshes go one level deeper " + qNode.ID);
-                RecycleMeshContainer(ref qNode);
-                QNodeShowReadyMeshes(ref qNode.Children[0]);
-                QNodeShowReadyMeshes(ref qNode.Children[1]);
-                QNodeShowReadyMeshes(ref qNode.Children[2]);
-                QNodeShowReadyMeshes(ref qNode.Children[3]);
+                RecycleMeshContainer(qNode);
+                QNodeShowReadyMeshes(qNode.Children[0]);
+                QNodeShowReadyMeshes(qNode.Children[1]);
+                QNodeShowReadyMeshes(qNode.Children[2]);
+                QNodeShowReadyMeshes(qNode.Children[3]);
             }
         }
 
@@ -1160,25 +1172,25 @@ public class ManagerTerrain {
 #endif 
     }
 
-    private static void RecycleChildMesh(ref XB.QNode qNode) {
+    private static void RecycleChildMesh(XB.QNode qNode) {
         if (qNode == null) { return; }
         if (qNode.Active)  { return; }
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainRecycleChildMesh);
 #endif
 
-        RecycleMeshContainer(ref qNode);
-        RecycleChildMesh(ref qNode.Children[0]);
-        RecycleChildMesh(ref qNode.Children[1]);
-        RecycleChildMesh(ref qNode.Children[2]);
-        RecycleChildMesh(ref qNode.Children[3]);
+        RecycleMeshContainer(qNode);
+        RecycleChildMesh(qNode.Children[0]);
+        RecycleChildMesh(qNode.Children[1]);
+        RecycleChildMesh(qNode.Children[2]);
+        RecycleChildMesh(qNode.Children[3]);
 
 #if XBDEBUG
         debug.End();
 #endif 
     }
 
-    private static void QueueRequestMeshUpdate(ref XB.QNode qNode) {
+    private static void QueueRequestMeshUpdate(XB.QNode qNode) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainQueueRequestMeshUpdate);
 #endif
@@ -1196,7 +1208,7 @@ public class ManagerTerrain {
     // only the assignment of the newly sampled mesh data is limited to processAmount tiles per tick
     // using the queue, other parts are much faster to do and can be done immediately
     private static void QueueRequestProcess(int processAmount, float lowest, float highest,
-                                            ref Godot.Image imgHeightMap                   ) {
+                                            Godot.Image imgHeightMap                       ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainQueueRequestProcess);
 #endif
@@ -1213,12 +1225,12 @@ public class ManagerTerrain {
                                            _reqNode.XSize, _reqNode.ZSize, 
                                            _worldXSize, _worldZSize, _reqNode.Res);
             _reqNode.MeshContainer.SetTerrainShaderAttributes();
-            _reqNode.UpdateAssignedMesh(_worldXSize, _worldZSize, lowest, highest, ref imgHeightMap);
+            _reqNode.UpdateAssignedMesh(_worldXSize, _worldZSize, lowest, highest, imgHeightMap);
             // Godot.GD.Print("Queue Assigned " + _reqNode.ID + " recycling children");
-            RecycleChildMesh(ref _reqNode.Children[0]);
-            RecycleChildMesh(ref _reqNode.Children[1]);
-            RecycleChildMesh(ref _reqNode.Children[2]);
-            RecycleChildMesh(ref _reqNode.Children[3]);
+            RecycleChildMesh(_reqNode.Children[0]);
+            RecycleChildMesh(_reqNode.Children[1]);
+            RecycleChildMesh(_reqNode.Children[2]);
+            RecycleChildMesh(_reqNode.Children[3]);
         }
 
 #if XBDEBUG
@@ -1226,7 +1238,7 @@ public class ManagerTerrain {
 #endif 
     }
 
-    private static void RecycleMeshContainer(ref XB.QNode qNode) {
+    private static void RecycleMeshContainer(XB.QNode qNode) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainRecycleMeshContainer);
 #endif
@@ -1240,7 +1252,7 @@ public class ManagerTerrain {
 #endif 
     }
 
-    private static void RequestMeshContainer(ref XB.QNode qNode) {
+    private static void RequestMeshContainer(XB.QNode qNode) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainRequestMeshContainer);
 #endif
@@ -1268,20 +1280,20 @@ public class ManagerTerrain {
 #endif 
     }
 
-    private static void ShowLargestTile(ref XB.QNode qNode, float lowest, float highest,
-                                        ref Godot.Image imgHeightMap                    ) {
+    private static void ShowLargestTile(XB.QNode qNode, float lowest, float highest,
+                                        Godot.Image imgHeightMap                    ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainShowLargestTile);
 #endif
 
         // Godot.GD.Print("ShowLargestTile " + qNode.ID);
         qNode.Activate();
-        RequestMeshContainer(ref qNode);
+        RequestMeshContainer(qNode);
         qNode.MeshContainer.UseMesh(qNode.XPos, qNode.ZPos,
                                     qNode.XSize, qNode.ZSize, 
                                     _worldXSize, _worldZSize, qNode.Res);
         qNode.MeshContainer.SetTerrainShaderAttributes();
-        qNode.UpdateAssignedMesh(_worldXSize, _worldZSize, lowest, highest, ref imgHeightMap);
+        qNode.UpdateAssignedMesh(_worldXSize, _worldZSize, lowest, highest, imgHeightMap);
         qNode.ShowMeshContainer();
         qNode.DeActivate(); // the largest tile should not stick around
 
@@ -1290,20 +1302,20 @@ public class ManagerTerrain {
 #endif 
     }
 
-    public static void ResetQuadTree(float lowest, float highest, ref Godot.Image imgHeightMap) {
+    public static void ResetQuadTree(float lowest, float highest, Godot.Image imgHeightMap) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainResetQuadTree);
 #endif
 
-        ResetQNode(ref _qRoot);
-        ShowLargestTile(ref _qRoot, lowest, highest, ref imgHeightMap);
+        ResetQNode(_qRoot);
+        ShowLargestTile(_qRoot, lowest, highest, imgHeightMap);
 
 #if XBDEBUG
         debug.End();
 #endif 
     }
 
-    private static void ResetQNode(ref XB.QNode qNode) {
+    private static void ResetQNode(XB.QNode qNode) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainResetQNode);
 #endif
@@ -1317,10 +1329,10 @@ public class ManagerTerrain {
 
         qNode.DeActivate();
         qNode.ReleaseMeshContainer();
-        ResetQNode(ref qNode.Children[0]);
-        ResetQNode(ref qNode.Children[1]);
-        ResetQNode(ref qNode.Children[2]);
-        ResetQNode(ref qNode.Children[3]);
+        ResetQNode(qNode.Children[0]);
+        ResetQNode(qNode.Children[1]);
+        ResetQNode(qNode.Children[2]);
+        ResetQNode(qNode.Children[3]);
 
 #if XBDEBUG
         debug.End();
@@ -1361,61 +1373,61 @@ public class ManagerTerrain {
 
 #if XBDEBUG
     //prints tree depth first
-    private static void PrintQTree(ref XB.QNode qNode) {
+    private static void PrintQTree(XB.QNode qNode) {
         if (qNode == null) { return; }
         qNode.DebugPrint("PrintQTree");
 
-        PrintQTree(ref qNode.Children[0]);
-        PrintQTree(ref qNode.Children[1]);
-        PrintQTree(ref qNode.Children[2]);
-        PrintQTree(ref qNode.Children[3]);
+        PrintQTree(qNode.Children[0]);
+        PrintQTree(qNode.Children[1]);
+        PrintQTree(qNode.Children[2]);
+        PrintQTree(qNode.Children[3]);
     }
 
     public static void PrintQTReeExternal() {
         string temp = "";
-        PrintQNodeActive(ref _qRoot, ref temp);
+        PrintQNodeActive(_qRoot, ref temp);
         Godot.GD.Print("Active QNodes:             " + temp);
         temp = "";
-        PrintQNodeMeshContainer(ref _qRoot, ref temp);
+        PrintQNodeMeshContainer(_qRoot, ref temp);
         Godot.GD.Print("QNodes with MeshContainer: " + temp);
         Godot.GD.Print("MeshContainers available total: " + _terrainMeshes.Count);
         Godot.GD.Print('\n');
     }
 
-    private static void PrintQNodeActive(ref XB.QNode qNode, ref string s) {
+    private static void PrintQNodeActive(XB.QNode qNode, ref string s) {
         if (qNode.Active) {
             s += qNode.ID.ToString() + " ";
         }
         if (qNode.Children[0] != null) {
-            PrintQNodeActive(ref qNode.Children[0], ref s);
-            PrintQNodeActive(ref qNode.Children[1], ref s);
-            PrintQNodeActive(ref qNode.Children[2], ref s);
-            PrintQNodeActive(ref qNode.Children[3], ref s);
+            PrintQNodeActive(qNode.Children[0], ref s);
+            PrintQNodeActive(qNode.Children[1], ref s);
+            PrintQNodeActive(qNode.Children[2], ref s);
+            PrintQNodeActive(qNode.Children[3], ref s);
         }
     }
 
-    private static void PrintQNodeMeshContainer(ref XB.QNode qNode, ref string s) {
+    private static void PrintQNodeMeshContainer(XB.QNode qNode, ref string s) {
         if (qNode.MeshContainer != null) {
             s += qNode.ID.ToString() + " ";
         }
         if (qNode.Children[0] != null) {
-            PrintQNodeMeshContainer(ref qNode.Children[0], ref s);
-            PrintQNodeMeshContainer(ref qNode.Children[1], ref s);
-            PrintQNodeMeshContainer(ref qNode.Children[2], ref s);
-            PrintQNodeMeshContainer(ref qNode.Children[3], ref s);
+            PrintQNodeMeshContainer(qNode.Children[0], ref s);
+            PrintQNodeMeshContainer(qNode.Children[1], ref s);
+            PrintQNodeMeshContainer(qNode.Children[2], ref s);
+            PrintQNodeMeshContainer(qNode.Children[3], ref s);
         }
     }
 
-    public static void UpdateQTreeTexture(ref Godot.Image tex, float scaleFactor,
-                                          ref Godot.Rect2I[] rects               ) {
+    public static void UpdateQTreeTexture(Godot.Image tex, float scaleFactor,
+                                          Godot.Rect2I[] rects               ) {
         tex.Fill(XB.Col.Transp); // clear texture before drawing quadtree tiles
 
-        DrawQNode(ref _qRoot, ref tex, scaleFactor, _divisions, ref rects);
+        DrawQNode(_qRoot, tex, scaleFactor, _divisions, rects);
     }
 
     // scaleFactor adjust meter to pixel ratio
-    private static void DrawQNode(ref XB.QNode qNode, ref Godot.Image tex,
-                                  float scaleFactor, int iteration, ref Godot.Rect2I[] rects) {
+    private static void DrawQNode(XB.QNode qNode, Godot.Image tex,
+                                  float scaleFactor, int iteration, Godot.Rect2I[] rects) {
         if (qNode == null) { return; }
 
         if (qNode.Active) { // shows active tiles which are not necessarily processed yet
@@ -1433,10 +1445,10 @@ public class ManagerTerrain {
             var col = XB.Col.Red.Lerp(XB.Col.Green, (float)iteration/(float)_divisions);
             for (int i = 0; i < 4; i++) { tex.FillRect(rects[i], col); }
         } else {
-            DrawQNode(ref qNode.Children[0], ref tex, scaleFactor, iteration-1, ref rects);
-            DrawQNode(ref qNode.Children[1], ref tex, scaleFactor, iteration-1, ref rects);
-            DrawQNode(ref qNode.Children[2], ref tex, scaleFactor, iteration-1, ref rects);
-            DrawQNode(ref qNode.Children[3], ref tex, scaleFactor, iteration-1, ref rects);
+            DrawQNode(qNode.Children[0], tex, scaleFactor, iteration-1, rects);
+            DrawQNode(qNode.Children[1], tex, scaleFactor, iteration-1, rects);
+            DrawQNode(qNode.Children[2], tex, scaleFactor, iteration-1, rects);
+            DrawQNode(qNode.Children[3], tex, scaleFactor, iteration-1, rects);
         }
     }
 #endif

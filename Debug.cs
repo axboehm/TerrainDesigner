@@ -364,7 +364,6 @@ public enum D {
     UtilsLerpV2,
     UtilsLerpV3,
     UtilsMaxInArrayF,
-    UtilsClearInternalVariables,
     UtilsDigitRectangles,
     UtilsFillRectanglesInImage,
     UtilsIntersectRayPlaneV3,

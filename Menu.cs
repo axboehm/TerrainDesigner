@@ -797,9 +797,10 @@ public partial class Menu : Godot.Control {
     private void ButtonPopupGenApplyOnPressed() {
         ButtonClearSpheresOnPressed();
         if (!_updateGenTex) { GenerateTerrainHeights(); } // only if heightmap has not been generated yet
-        XB.Terrain.HeightReplace(ref XB.WData.TerrainHeights, ref XB.WData.TerrainHeightsMod,
-                                 XB.WData.WorldVerts.X, XB.WData.WorldVerts.Y                );
-        XB.Terrain.HeightScale(ref XB.WData.TerrainHeights, XB.WData.WorldVerts.X,
+        XB.Terrain.HeightReplace(XB.WData.TerrainHeights, XB.WData.TerrainHeightsMod,
+                                 XB.WData.WorldVerts.X, XB.WData.WorldVerts.Y,
+                                 ref XB.WData.LowestPoint, ref XB.WData.HighestPoint );
+        XB.Terrain.HeightScale(XB.WData.TerrainHeights, XB.WData.WorldVerts.X,
                                XB.WData.WorldVerts.Y, (float)_slGenHeight.Value,
                                ref XB.WData.LowestPoint, ref XB.WData.HighestPoint);
         XB.WData.UpdateTerrain(false);
@@ -876,10 +877,10 @@ public partial class Menu : Godot.Control {
                        (float)_slGenLac.Value, (float)_slGenExp.Value   );
         float lowest  = 0.0f;
         float highest = 0.0f;
-        XB.Terrain.FindLowestHighest(ref XB.WData.TerrainHeightsMod, XB.WData.WorldVerts.X, 
-                                     XB.WData.WorldVerts.Y, ref lowest, ref highest        );
-        XB.Terrain.UpdateHeightMap(ref XB.WData.TerrainHeightsMod,
-                                   lowest, highest, ref _imgGenMap);
+        XB.Terrain.FindLowestHighest(XB.WData.TerrainHeightsMod, XB.WData.WorldVerts.X, 
+                                     XB.WData.WorldVerts.Y, ref lowest, ref highest    );
+        XB.Terrain.UpdateHeightMap(XB.WData.TerrainHeightsMod,
+                                   lowest, highest, _imgGenMap);
         _lbGenLow.Text     = "0.0m";
         _lbGenHigh.Text    = _slGenHeight.Value.ToString(_heightFormat) + "m";
         _lbGenCurSeed.Text = XB.Random.RandomSeed.ToString();
