@@ -291,7 +291,8 @@ public class MeshContainer {
         MaterialTile.SetShaderParameter("albedoMult", XB.WData.AlbedoMult);
         MaterialTile.SetShaderParameter("tBlock",     XB.Resources.BlockTex);
         MaterialTile.SetShaderParameter("blockStr",   XB.WData.BlockStrength);
-        MaterialTile.SetShaderParameter("tNoiseP",    XB.Resources.NoiseBombing);
+        MaterialTile.SetShaderParameter("tNoiseP1",   XB.Resources.NoiseBombing);
+        MaterialTile.SetShaderParameter("tNoiseP2",   XB.Resources.NoiseModulation);
         MaterialTile.SetShaderParameter("tAlbedoM1",  XB.Resources.Terrain1CATex);
         MaterialTile.SetShaderParameter("tRMM1",      XB.Resources.Terrain1RMTex);
         MaterialTile.SetShaderParameter("tNormalM1",  XB.Resources.Terrain1NTex );
@@ -309,8 +310,8 @@ public class MeshContainer {
         MaterialTile.SetShaderParameter("tNormalM4",  XB.Resources.Terrain4NTex );
         MaterialTile.SetShaderParameter("tHeightM4",  XB.Resources.Terrain4HTex );
         MaterialTile.SetShaderParameter("tColShift",  XB.Resources.ColorShiftTex);
-        MaterialTile.SetShaderParameter("colFog",     XB.Col.Fog);
-        MaterialTile.SetShaderParameter("fogDist",    XB.WData.FogDistance);
+        //MaterialTile.SetShaderParameter("colFog",     XB.Col.Fog); //NOTE[ALEX]: see terrain.gdshader
+        //MaterialTile.SetShaderParameter("fogDist",    XB.WData.FogDistance);
         // visualization colors initially represent somewhat of a gradient 
         // but will quickly get shuffled around as MeshContainers get reused
         float r = 1.0f - XB.Utils.LerpF(0.0f, 1.0f, -lerpRAmount);
@@ -325,6 +326,7 @@ public class MeshContainer {
         MaterialTile.SetShaderParameter("blend23",     XB.WData.Blend23);
         MaterialTile.SetShaderParameter("blend34",     XB.WData.Blend34);
         MaterialTile.SetShaderParameter("pointyStr",   XB.WData.PointinessStr);
+        MaterialTile.SetShaderParameter("pointyPow",   XB.WData.PointinessPow);
         MaterialTile.SetShaderParameter("blendCStr",   XB.WData.BlendColStr);
         MaterialTile.SetShaderParameter("blendCScale", XB.WData.BlendColScale);
 

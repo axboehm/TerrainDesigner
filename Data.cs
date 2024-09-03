@@ -84,18 +84,18 @@ public struct ResourcePaths {
     public static string TSkirtShader     = "res://code/shaders/terrainSkirt.gdshader";
     public static string BlueNoiseTex     = "res://materials/data/blueNoise64px.png";
     public static string BlockTexture     = "res://materials/data/blockTexture2048.png";
-    public static string Terrain1CATex    = "res://materials/data/stoneVeinsExtraFlat_CA.png";
-    public static string Terrain1RMTex    = "res://materials/data/stoneVeinsExtraFlat_RM.png";
-    public static string Terrain1NTex     = "res://materials/data/stoneVeinsExtraFlat_N.png";
-    public static string Terrain1HTex     = "res://materials/data/stoneVeinsExtraFlat_HEIGHT.png";
+    public static string Terrain1CATex    = "res://materials/data/stoneVeinsMatStone2_CA.png";
+    public static string Terrain1RMTex    = "res://materials/data/stoneVeinsMatStone2_RM.png";
+    public static string Terrain1NTex     = "res://materials/data/stoneVeinsMatStone2_N.png";
+    public static string Terrain1HTex     = "res://materials/data/stoneVeinsMatStone2_HEIGHT.png";
     public static string Terrain2CATex    = "res://materials/data/stoneVeinsFlat_CA.png";
     public static string Terrain2RMTex    = "res://materials/data/stoneVeinsFlat_RM.png";
     public static string Terrain2NTex     = "res://materials/data/stoneVeinsFlat_N.png";
     public static string Terrain2HTex     = "res://materials/data/stoneVeinsFlat_HEIGHT.png";
-    public static string Terrain3CATex    = "res://materials/data/stoneVeinsDirt_CA.png";
-    public static string Terrain3RMTex    = "res://materials/data/stoneVeinsDirt_RM.png";
-    public static string Terrain3NTex     = "res://materials/data/stoneVeinsDirt_N.png";
-    public static string Terrain3HTex     = "res://materials/data/stoneVeinsDirt_HEIGHT.png";
+    public static string Terrain3CATex    = "res://materials/data/grdAsteroid1_C.png";
+    public static string Terrain3RMTex    = "res://materials/data/grdAsteroid1_RM.png";
+    public static string Terrain3NTex     = "res://materials/data/grdAsteroid1_N.png";
+    public static string Terrain3HTex     = "res://materials/data/grdAsteroid1_HEIGHT.png";
     public static string Terrain4CATex    = "res://materials/data/stoneVeinsGravel_CA.png";
     public static string Terrain4RMTex    = "res://materials/data/stoneVeinsGravel_RM.png";
     public static string Terrain4NTex     = "res://materials/data/stoneVeinsGravel_N.png";
@@ -132,9 +132,10 @@ public struct Resources {
     public static Godot.Texture SpScreenE;
     public static Godot.Texture SpEMask;
 
-    public static int                  NoiseRes = 256; // resolution of large scale noise
+    public static int                  NoiseRes = 1024; // resolution of large scale noise
                                                             // texture for texture bombing
     public static Godot.NoiseTexture2D NoiseBombing;
+    public static Godot.NoiseTexture2D NoiseModulation;
     public static Godot.Texture        BlockTex;
     public static Godot.Texture        Terrain1CATex;
     public static Godot.Texture        Terrain1RMTex;
@@ -155,15 +156,28 @@ public struct Resources {
     public static Godot.Texture        ColorShiftTex;
 
     public static void InitializeTerrainTextures() {
-        var fastNoise = new Godot.FastNoiseLite();
-            fastNoise.NoiseType = Godot.FastNoiseLite.NoiseTypeEnum.Perlin;
+        var fastNoiseB = new Godot.FastNoiseLite();
+            fastNoiseB.NoiseType = Godot.FastNoiseLite.NoiseTypeEnum.Perlin;
         NoiseBombing = new Godot.NoiseTexture2D();
-        NoiseBombing.Noise           = fastNoise;
+        NoiseBombing.Noise           = fastNoiseB;
         NoiseBombing.Height          = NoiseRes;
         NoiseBombing.Width           = NoiseRes;
         NoiseBombing.Normalize       = true;
         NoiseBombing.Seamless        = true;
         NoiseBombing.GenerateMipmaps = true;
+        var fastNoiseM = new Godot.FastNoiseLite();
+        fastNoiseM.NoiseType = Godot.FastNoiseLite.NoiseTypeEnum.Cellular;
+        fastNoiseM.CellularDistanceFunction = 
+            Godot.FastNoiseLite.CellularDistanceFunctionEnum.EuclideanSquared;
+        fastNoiseM.Frequency = 0.03f;
+        fastNoiseM.FractalOctaves = 5;
+        NoiseModulation = new Godot.NoiseTexture2D();
+        NoiseModulation.Noise           = fastNoiseM;
+        NoiseModulation.Height          = NoiseRes;
+        NoiseModulation.Width           = NoiseRes;
+        NoiseModulation.Normalize       = true;
+        NoiseModulation.Seamless        = true;
+        NoiseModulation.GenerateMipmaps = true;
         BlockTex      = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.BlockTexture);
         Terrain1CATex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain1CATex);
         Terrain1RMTex = Godot.ResourceLoader.Load<Godot.Texture>(XB.ResourcePaths.Terrain1RMTex);
@@ -227,31 +241,31 @@ public class WData {
     public static float GenScaleMax  = 0.1f;
     public static float GenScaleDef  = 0.0174f;
     public static float GenOffXMin   = 0.0f;
-    public static float GenOffXMax   = 1.0f;
-    public static float GenOffXDef   = 0.0f;
+    public static float GenOffXMax   = 5.0f;
+    public static float GenOffXDef   = 0.46f;
     public static float GenOffZMin   = 0.0f;
-    public static float GenOffZMax   = 1.0f;
-    public static float GenOffZDef   = 0.0f;
+    public static float GenOffZMax   = 5.0f;
+    public static float GenOffZDef   = 0.33f;
     public static int   GenOctMin    = 1;
     public static int   GenOctMax    = 10;
-    public static int   GenOctDef    = 8;
+    public static int   GenOctDef    = 6;
     public static float GenPersMin   = 0.0f;
     public static float GenPersMax   = 5.0f;
-    public static float GenPersDef   = 0.9f;
+    public static float GenPersDef   = 1.2f;
     public static float GenLacMin    = 0.0f;
     public static float GenLacMax    = 8.0f;
-    public static float GenLacDef    = 2.2f;
+    public static float GenLacDef    = 2.15f;
     public static float GenExpMin    = 0.0f;
     public static float GenExpMax    = 16.0f;
-    public static float GenExpDef    = 7.5f;
+    public static float GenExpDef    = 5.21f;
 
     public static float BlockStrength = 0.8f; // for visualizing grid
     public static float QTreeStrength = 0.6f; // for visualizing quad tree tiles
     public static float AlbedoMult    = 0.6f;
-    public static float Mat1UVScale   = 1.0f/2.0f;          // empirical value
-    public static float Mat2UVScale   = 1.0f/2.0f;
-    public static float Mat3UVScale   = 1.0f/2.0f;
-    public static float Mat4UVScale   = 1.0f/2.0f;
+    public static float Mat1UVScale   = 1.0f/8.0f;          // empirical value
+    public static float Mat2UVScale   = 1.0f/8.0f;
+    public static float Mat3UVScale   = 1.0f/8.0f;
+    public static float Mat4UVScale   = 1.0f/8.0f;
     public static float NoisePScale   = 0.1f;               // perlin noise for bombing
     public static float BlockUVScale  = 1.0f/(2.0f*10.0f);  // block texture has 2x2 large squares
                                                             // with 10 subdivisions each per tile
@@ -262,6 +276,7 @@ public class WData {
     public static float Blend34       = 0.08f;
     public static float AlbVisStr     = 0.5f;
     public static float PointinessStr = 0.11f;
+    public static float PointinessPow = 3.0f;
     public static float BlendColStr   = 0.2f;
     public static float BlendColScale = 4.0f;
     public static float FogDistance   = 4000.0f; // terrain shader depth albedo blend far distance (in m)

@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode blend_mix, depth_prepass_alpha, cull_back, diffuse_burley, specular_schlick_ggx;
+render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_schlick_ggx;
 
 uniform sampler2D tAlbedoM1 : source_color,          filter_linear_mipmap, repeat_enable;
 uniform sampler2D tRMM1     : hint_default_black,    filter_linear_mipmap, repeat_enable;
@@ -27,13 +27,15 @@ uniform float     uv4Scale  = 1.0;
 
 uniform sampler2D tBlock    : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D tHeight   : source_color, filter_linear_mipmap, repeat_enable;
-uniform sampler2D tNoiseP   : source_color, filter_linear,        repeat_enable;
+uniform sampler2D tNoiseP1  : source_color, filter_linear,        repeat_enable;
+uniform sampler2D tNoiseP2  : source_color, filter_linear,        repeat_enable;
 uniform sampler2D tPointy   : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D tColShift : source_color, filter_linear_mipmap, repeat_enable;
 
-uniform sampler2D depthT    : hint_depth_texture;
-uniform vec4      colFog    : source_color;
-uniform float     fogDist = 4000.0; // zFar for depth calculation (in m)
+//NOTE[ALEX]: with depth test, nothing can be drawn behind
+//uniform sampler2D depthT    : hint_depth_texture;
+//uniform vec4      colFog    : source_color;
+//uniform float     fogDist = 4000.0; // zFar for depth calculation (in m)
 
 uniform vec3  albVis    : source_color;
 uniform float albVisStr = 0.0;
@@ -50,6 +52,7 @@ uniform float blend34     = 0.25;
 uniform float blend23     = 0.5;
 uniform float blend12     = 0.75;
 uniform float pointyStr   = 0.08;
+uniform float pointyPow   = 3.0;
 uniform float blendCStr   = 0.5;
 uniform float blendCScale = 4.0;
 
@@ -107,35 +110,37 @@ void fragment() {
          UVscaled.x *= scaleX;
          UVscaled.y *= scaleY;
 
-    float noiseP = texture(tNoiseP, UVscaled*noisePScale).r;
+    float noiseP1  = texture(tNoiseP1, UVscaled*noisePScale).r;
+    float noiseP2  = texture(tNoiseP2, UV).r;
+          noiseP2  = pow(noiseP2, 3.0);
 
     vec2  uv1          = UVscaled*uv1Scale;
-    vec3  albedoM1     = textureBomb(tAlbedoM1, uv1, noiseP);
+    vec3  albedoM1     = textureBomb(tAlbedoM1, uv1, noiseP1);
     vec3  albedoM1Dark = albedoM1*albedoMult;
-    float roughnessM1  = textureBomb(tRMM1,     uv1, noiseP).r;
-    vec3  normalM1     = textureBomb(tNormalM1, uv1, noiseP);
-    float heightM1     = textureBomb(tHeightM1, uv1, noiseP).r;
+    float roughnessM1  = textureBomb(tRMM1,     uv1, noiseP1).r;
+    vec3  normalM1     = textureBomb(tNormalM1, uv1, noiseP1);
+    float heightM1     = textureBomb(tHeightM1, uv1, noiseP1).r;
 
     vec2  uv2          = UVscaled*uv2Scale;
-    vec3  albedoM2     = textureBomb(tAlbedoM2, uv2, noiseP);
+    vec3  albedoM2     = textureBomb(tAlbedoM2, uv2, noiseP1);
     vec3  albedoM2Dark = albedoM2*albedoMult;
-    float roughnessM2  = textureBomb(tRMM2,     uv2, noiseP).r;
-    vec3  normalM2     = textureBomb(tNormalM2, uv2, noiseP);
-    float heightM2     = textureBomb(tHeightM2, uv2, noiseP).r;
+    float roughnessM2  = textureBomb(tRMM2,     uv2, noiseP1).r;
+    vec3  normalM2     = textureBomb(tNormalM2, uv2, noiseP1);
+    float heightM2     = textureBomb(tHeightM2, uv2, noiseP1).r;
 
     vec2  uv3          = UVscaled*uv3Scale;
-    vec3  albedoM3     = textureBomb(tAlbedoM3, uv3, noiseP);
+    vec3  albedoM3     = textureBomb(tAlbedoM3, uv3, noiseP1);
     vec3  albedoM3Dark = albedoM3*albedoMult;
-    float roughnessM3  = textureBomb(tRMM3,     uv3, noiseP).r;
-    vec3  normalM3     = textureBomb(tNormalM3, uv3, noiseP);
-    float heightM3     = textureBomb(tHeightM3, uv3, noiseP).r;
+    float roughnessM3  = textureBomb(tRMM3,     uv3, noiseP1).r;
+    vec3  normalM3     = textureBomb(tNormalM3, uv3, noiseP1);
+    float heightM3     = textureBomb(tHeightM3, uv3, noiseP1).r;
 
     vec2  uv4          = UVscaled*uv4Scale;
-    vec3  albedoM4     = textureBomb(tAlbedoM4, uv4, noiseP);
+    vec3  albedoM4     = textureBomb(tAlbedoM4, uv4, noiseP1);
     vec3  albedoM4Dark = albedoM4*albedoMult;
-    float roughnessM4  = textureBomb(tRMM4,     uv4, noiseP).r;
-    vec3  normalM4     = textureBomb(tNormalM4, uv4, noiseP);
-    float heightM4     = textureBomb(tHeightM4, uv4, noiseP).r;
+    float roughnessM4  = textureBomb(tRMM4,     uv4, noiseP1).r;
+    vec3  normalM4     = textureBomb(tNormalM4, uv4, noiseP1);
+    float heightM4     = textureBomb(tHeightM4, uv4, noiseP1).r;
 
     float maskBlockX = fract(UVscaled.x*blockScale);
           maskBlockX = step(maskBlockX, 0.5);
@@ -149,12 +154,12 @@ void fragment() {
     float block = texture(tBlock, UVscaled*blockScale).r;
 
     float height  = texture(tHeight, UV).r;
-          height += 0.1*(noiseP-0.5);
+          height += 0.1*(noiseP1-0.5);
     float blend   = blendWidth;
           blend  += 0.3*(height-0.5);
-    float mask34  = smoothstep(blend34 - blend, blend34 + blend, height);
-    float mask23  = smoothstep(blend23 - blend, blend23 + blend, height);
-    float mask12  = smoothstep(blend12 - blend, blend12 + blend, height);
+    float mask34  = smoothstep(blend34 - blend, blend34 + blend, height - noiseP2);
+    float mask23  = smoothstep(blend23 - blend, blend23 + blend, height - noiseP2);
+    float mask12  = smoothstep(blend12 - blend, blend12 + blend, height - noiseP2);
 
     vec3  albedo = heightBlendV3(albedoM3, albedoM4, heightM3, heightM4,
                                  mask34, 1.0-mask34, blendDepth         );
@@ -164,6 +169,7 @@ void fragment() {
                                  mask12, 1.0-mask12, blendDepth       );
 
     float pointy  = texture(tPointy, UV).r;
+          pointy  = pow(pointy, pointyPow);
           pointy -= 0.5;
           pointy *= pointyStr;
 
@@ -177,20 +183,21 @@ void fragment() {
 
           albedo += albedoColShifted;
 
-    float depth = texture(depthT, SCREEN_UV).x;
-    float scaledDepth  = PROJECTION_MATRIX[3][2] / (depth + PROJECTION_MATRIX[2][2]);
-          scaledDepth /= fogDist;
+    //float depth = texture(depthT, SCREEN_UV).x;
+    //float scaledDepth  = PROJECTION_MATRIX[3][2] / (depth + PROJECTION_MATRIX[2][2]);
+    //      scaledDepth /= fogDist;
 
-          scaledDepth = pow(scaledDepth, 1.3);
-    vec3  albedoLight = mix(albedo, colFog.rgb, 0.8);
+    //      scaledDepth = pow(scaledDepth, 1.3);
+    //vec3  albedoLight = mix(albedo, colFog.rgb, 0.8);
 
-          albedo = mix(albedo, albedoLight, scaledDepth); // lighten terrain color in distance
+    //      albedo = mix(albedo, albedoLight, scaledDepth); // lighten terrain color in distance
           albedo = mix(albedo, albVis, albVisStr);
           albedo = mix(albedo, albedo * block, blockStr * maskBlock        );
           albedo = mix(albedo, albedo + block, blockStr * (1.0 - maskBlock));
 
           //albedo = vec3(UV.x, UV.y, 0.0);
           //albedo = vec3(texture(tPointy, UV).r);
+          //albedo = vec3(noiseP2);
 
     float roughness = heightBlendF(roughnessM3, roughnessM4, heightM3, heightM4,
                                    mask34, 1.0-mask34, blendDepth               );
@@ -198,7 +205,7 @@ void fragment() {
                                    mask23, 1.0-mask23, blendDepth             );
           roughness = heightBlendF(roughnessM1, roughness, heightM1, heightM2,
                                    mask12, 1.0-mask12, blendDepth             );
-          roughness = mix(roughness, 1.0, scaledDepth); // make distant terrain less glossy
+          //roughness = mix(roughness, 1.0, scaledDepth); // make distant terrain less glossy
           roughness = mix(roughness, 1.0, albVisStr);
 
     vec3 normal = heightBlendV3(normalM3, normalM4, heightM3, heightM4,
