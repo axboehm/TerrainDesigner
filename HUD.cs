@@ -550,6 +550,7 @@ public partial class HUD : Godot.Control {
             _linkingAlpha = 0.0f;
             _miniMapAlpha = 0.0f;
             _blockMult    = 0.0f;
+            _qtreeMult    = 0.0f;
         }
 
         _colCross.A            = XB.Utils.LerpF(_colCross.A, _crossAlpha, _hudSm*dt);
