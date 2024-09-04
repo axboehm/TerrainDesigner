@@ -422,22 +422,48 @@ public class Terrain {
     }
 
     // fills heightmap texture by linearly interpolating between values of height array
-    // resolution of heightmap is assumed to be 1 smaller than size of height array
     // resulting texture goes from 0.0 for the lowest value to 1.0 for the highest value
     // (flat heights will result in 0.5 grey texture)
-    //TODO[ALEX]: this is wrong, should interpolate, currently skipping the last value
     // expects img to be of type L8
+    // since there is one vertex more than pixels along each edge, the heightmap values
+    // are interpolations of the neighboring vertices (opposite to HeightMapSample)
+    //
+    // heights of vertices A, B, C and D contribute equally to the value H of heightMap
+    // A-B
+    // |H|
+    // C-D
+    //
+    // example 3x3 vertex terrain mesh with 2x2 pixel heightmap:
+    // *-*-*   X X
+    // | | |
+    // *-*-*   X X
+    // | | |
+    // *-*-*
+    //
+    // width of heightMap is one smaller than count of first dimension of tHeights,
+    // height of heightMap is one smaller than count of second dimension of tHeights
+    //NOTE[ALEX]: there is no check for this condition as errors will show up if there
+    //            is a mismatch of amounts
     public static void UpdateHeightMap(float[,] tHeights, float lowest, float highest,
-                                       Godot.Image img                                ) {
+                                       Godot.Image heightMap                          ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainUpdateHeightMap);
 #endif
 
+        float scale = highest - lowest;
         var height = new Godot.Color(0.0f, 0.0f, 0.0f, 1.0f);
-        for (int i = 0; i < img.GetWidth(); i++) {
-            for (int j = 0; j < img.GetHeight(); j++) {
-                height.R = (tHeights[i, j] - lowest) / (highest - lowest);
-                img.SetPixel(i, j, height);
+
+        for (int i = 0; i < heightMap.GetWidth(); i++) {
+            for (int j = 0; j < heightMap.GetHeight(); j++) {
+                float sampleA = tHeights[i+0, j+0];
+                float sampleB = tHeights[i+1, j+0];
+                float sampleC = tHeights[i+0, j+1];
+                float sampleD = tHeights[i+1, j+1];
+                float upper   = XB.Utils.LerpF(sampleA, sampleB, 0.5f);
+                float lower   = XB.Utils.LerpF(sampleC, sampleD, 0.5f);
+                float value   = XB.Utils.LerpF(upper,   lower,   0.5f);
+                height.R = (value - lowest) / scale;
+                heightMap.SetPixel(i, j, height);
             }
         }
 
@@ -447,7 +473,7 @@ public class Terrain {
     }
 
     // takes world coordinates (negative coordinates) and world size along with heightmap
-    // returns the sampled value from the heightmap (between 0 and 1)
+    // returns the sampled value from the heightmap (between 0.0 and 1.0)
     //
     // height map's pixels do not align with world dimension but are offset by 1/2
     // this is done so that the world dimension and the texture resolution can be the same
@@ -458,8 +484,8 @@ public class Terrain {
     // |A|B|C|D|
     // ---------
     //
-    // bottom edge of world with 1m*1m tiles WXYZ, vertices are in edges of tiles,
-    // so the bottom edge of the world mesh will have 5 vertices
+    // bottom edge of world with 1m*1m tiles WXYZ, vertices are in corners of tiles,
+    // so the bottom edge of the world mesh will have 5 vertices and 4 edges
     // |W|X|Y|Z|
     // ---------
     //
@@ -470,28 +496,28 @@ public class Terrain {
     //
     //NOTE[ALEX]: no mipmaps
     public static float HeightMapSample(float sampleX, float sampleZ,
-                                        float worldXSize, float worldZSize, Godot.Image img) {
+                                        float worldXSize, float worldZSize, Godot.Image heightMap) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainHeightMapSample);
 #endif
 
-        float sX  = (1.0f/worldXSize) * (img.GetWidth() -1);
-        float sZ  = (1.0f/worldZSize) * (img.GetHeight()-1);
+        float sX  = (1.0f/worldXSize) * (heightMap.GetWidth() -1);
+        float sZ  = (1.0f/worldZSize) * (heightMap.GetHeight()-1);
         float x   = -sampleX * sX;
         float z   = -sampleZ * sZ;
         int   xI0 = (int)x;
         int   zI0 = (int)z;
-        int   xI1 = XB.Utils.MinI(xI0+1, img.GetWidth() -1);
-        int   zI1 = XB.Utils.MinI(zI0+1, img.GetHeight()-1);
+        int   xI1 = XB.Utils.MinI(xI0+1, heightMap.GetWidth() -1);
+        int   zI1 = XB.Utils.MinI(zI0+1, heightMap.GetHeight()-1);
 
         // 0    0|0 in top left, in world: 0|0 in "top left", but X and Z axis go to negative
         //  AB  samples surrounding the sampled coordinates
         //  CD  sample coordinates are inside these points (including)
 
-        float sampleA = img.GetPixel(xI0, zI0).B;
-        float sampleB = img.GetPixel(xI1, zI0).B;
-        float sampleC = img.GetPixel(xI0, zI1).B;
-        float sampleD = img.GetPixel(xI1, zI1).B;
+        float sampleA = heightMap.GetPixel(xI0, zI0).B;
+        float sampleB = heightMap.GetPixel(xI1, zI0).B;
+        float sampleC = heightMap.GetPixel(xI0, zI1).B;
+        float sampleD = heightMap.GetPixel(xI1, zI1).B;
         float upper   = XB.Utils.LerpF(sampleA, sampleB, x-xI0);
         float lower   = XB.Utils.LerpF(sampleC, sampleD, x-xI0);
         float result  = XB.Utils.LerpF(upper,   lower,   z-zI0);
@@ -569,17 +595,11 @@ public class Terrain {
     // calculates a pointiness texture for the terrain by comparing height to immediate
     // neighbor heights in 8 directions
     // pointiness is used in the terrain shader for additional modulation (purely visual)
+    // same method and requirements as UpdateHeightMap
     //NOTE[ALEX]: no mipmaps
-    //TODO[ALEX]: also incorrect (like above)
     public static void BakePointiness(float[,] heights, int amountX, int amountZ,
-                                      Godot.Image imgPointy                      ) {
-        //TODO[ALEX]: this expects same size for textures for now
-        //            make this use heights instead of texture for speedup
-        //            this produces a high frequency map... should this be smaller?
-        imgPointy.Fill(XB.Col.Black);
-
-        amountX -= 1; // one less pixel than vertices
-        amountZ -= 1;
+                                      Godot.Image pointinessMap                  ) {
+        pointinessMap.Fill(XB.Col.Black);
         
         float pointiness = 0.0f;
         float thisPx     = 0.0f;
@@ -598,8 +618,11 @@ public class Terrain {
         int   left       = 0;
         var   pointyCol  = new Godot.Color(0.0f, 0.0f, 0.0f, 1.0f);
 
-        for (int i = 0; i < amountX; i++) {
-            for (int j = 0; j < amountZ; j++) {
+        for (int i = 0; i < pointinessMap.GetWidth(); i++) {
+            for (int j = 0; j < pointinessMap.GetHeight(); j++) {
+                //NOTE[ALEX]: at the edges the pointiness is not technically correct
+                //            as some pixels are counted twice
+                //            this shortcoming is acceptable since it keeps this code much simpler
                 up    = XB.Utils.MaxI(j-1, 0        );
                 right = XB.Utils.MinI(i+1, amountX-1);
                 down  = XB.Utils.MinI(j+1, amountZ-1);
@@ -614,12 +637,12 @@ public class Terrain {
                 compPxDL = heights[left,  down];
                 compPxL  = heights[left,  j   ];
 
-                compPx     = (  compPxUL + compPxU + compPxUR + compPxR
-                              + compPxDR + compPxD + compPxDL + compPxL) / 8.0f;
+                compPx = (  compPxUL + compPxU + compPxUR + compPxR
+                          + compPxDR + compPxD + compPxDL + compPxL) / 8.0f;
                 pointiness = 0.5f + (thisPx - compPx);
 
                 pointyCol.R = XB.Utils.ClampF(pointiness, 0.0f, 1.0f);
-                imgPointy.SetPixel(i, j, pointyCol);
+                pointinessMap.SetPixel(i, j, pointyCol);
             }
         }
     }

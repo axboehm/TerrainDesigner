@@ -869,7 +869,7 @@ public partial class Menu : Godot.Control {
     }
 
     private void GenerateTerrainHeights() {
-        XB.Terrain.FBM(XB.WData.TerrainHeights,
+        XB.Terrain.FBM(XB.WData.TerrainHeightsMod,
                        XB.WData.WorldVerts.X, XB.WData.WorldVerts.Y,
                        XB.WData.WorldDim.X, XB.WData.WorldDim.Y,
                        (float)_slGenScale.Value,

@@ -318,6 +318,8 @@ public class WData {
         XB.Terrain.FBM(TerrainHeights, WorldVerts.X, WorldVerts.Y, WorldDim.X, WorldDim.Y,
                        GenScaleDef, GenOffXDef, GenOffZDef,
                        GenOctDef, GenPersDef, GenLacDef, GenExpDef                        );
+        XB.Terrain.FindLowestHighest(TerrainHeights, WorldVerts.X, WorldVerts.Y,
+                                     ref LowestPoint, ref HighestPoint          );
         XB.Terrain.HeightScale(TerrainHeights, WorldVerts.X, WorldVerts.Y,
                                GenHeightDef, ref LowestPoint, ref HighestPoint);
 
