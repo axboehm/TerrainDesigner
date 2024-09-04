@@ -19,7 +19,6 @@ public struct LayerMasks {                //24--20--16--12--8---4---
     public static uint PlayerLayer      = 0b100000000000000000000000;
     public static uint SphereLayer      = 0b000000000000010000000010;
     public static uint SphereMask       = 0b000000000000010000000000;
-                                          //24--20--16--12--8---4---
 }
 
 public struct Constants {
@@ -132,8 +131,7 @@ public struct Resources {
     public static Godot.Texture SpScreenE;
     public static Godot.Texture SpEMask;
 
-    public static int                  NoiseRes = 1024; // resolution of large scale noise
-                                                            // texture for texture bombing
+    public static int                  NoiseRes = 1024;
     public static Godot.NoiseTexture2D NoiseBombing;
     public static Godot.NoiseTexture2D NoiseModulation;
     public static Godot.Texture        BlockTex;
@@ -156,7 +154,7 @@ public struct Resources {
     public static Godot.Texture        ColorShiftTex;
 
     public static void InitializeTerrainTextures() {
-        var fastNoiseB = new Godot.FastNoiseLite();
+        var fastNoiseB           = new Godot.FastNoiseLite();
             fastNoiseB.NoiseType = Godot.FastNoiseLite.NoiseTypeEnum.Perlin;
         NoiseBombing = new Godot.NoiseTexture2D();
         NoiseBombing.Noise           = fastNoiseB;
@@ -165,12 +163,12 @@ public struct Resources {
         NoiseBombing.Normalize       = true;
         NoiseBombing.Seamless        = true;
         NoiseBombing.GenerateMipmaps = true;
-        var fastNoiseM = new Godot.FastNoiseLite();
-        fastNoiseM.NoiseType = Godot.FastNoiseLite.NoiseTypeEnum.Cellular;
-        fastNoiseM.CellularDistanceFunction = 
-            Godot.FastNoiseLite.CellularDistanceFunctionEnum.EuclideanSquared;
-        fastNoiseM.Frequency = 0.03f;
-        fastNoiseM.FractalOctaves = 5;
+        var fastNoiseM           = new Godot.FastNoiseLite();
+            fastNoiseM.NoiseType = Godot.FastNoiseLite.NoiseTypeEnum.Cellular;
+            fastNoiseM.CellularDistanceFunction = 
+                Godot.FastNoiseLite.CellularDistanceFunctionEnum.EuclideanSquared;
+            fastNoiseM.Frequency      = 0.03f;
+            fastNoiseM.FractalOctaves = 5;
         NoiseModulation = new Godot.NoiseTexture2D();
         NoiseModulation.Noise           = fastNoiseM;
         NoiseModulation.Height          = NoiseRes;
@@ -279,7 +277,7 @@ public class WData {
     public static float PointinessPow = 3.0f;
     public static float BlendColStr   = 0.2f;
     public static float BlendColScale = 4.0f;
-    public static float FogDistance   = 4000.0f; // terrain shader depth albedo blend far distance (in m)
+    //public static float FogDistance   = 4000.0f; // terrain shader depth albedo blend far distance (in m)
 
 
     public static void InitializeTerrainMesh(int expX, int expZ) {
@@ -310,18 +308,16 @@ public class WData {
 #endif 
     }
 
+    // generate a random terrain using Fractal Brownian Motion and the default generation parameters
+    // then scales the world to go from 0 to the default generation height
     public static void GenerateRandomTerrain() {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.WorldDataGenerateRandomTerrain);
 #endif
 
-        XB.Terrain.Flat(TerrainHeights, WorldVerts.X, WorldVerts.Y, 0.0f); // initialize to flat
-
-        XB.Terrain.FBM(WorldVerts.X, WorldVerts.Y, WorldDim.X, WorldDim.Y,
+        XB.Terrain.FBM(TerrainHeights, WorldVerts.X, WorldVerts.Y, WorldDim.X, WorldDim.Y,
                        GenScaleDef, GenOffXDef, GenOffZDef,
-                       GenOctDef, GenPersDef, GenLacDef, GenExpDef        );
-        XB.Terrain.HeightReplace(TerrainHeights, TerrainHeightsMod, WorldVerts.X, WorldVerts.Y,
-                                 ref LowestPoint, ref HighestPoint                             );
+                       GenOctDef, GenPersDef, GenLacDef, GenExpDef                        );
         XB.Terrain.HeightScale(TerrainHeights, WorldVerts.X, WorldVerts.Y,
                                GenHeightDef, ref LowestPoint, ref HighestPoint);
 
@@ -332,6 +328,11 @@ public class WData {
 #endif 
     }
 
+    // resamples the heightmap from the generated TerrainHeights array and assigns it to minimap
+    // recalculates pointiness (for appearance only)
+    // if reInitialize is true, the quadtree holding the terrain tiles is also created,
+    // otherwise merely reset to have all tiles recalculated using the assigned heightmap
+    // then the terrain collision is updated
     public static void UpdateTerrain(bool reInitialize) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.WorldDataUpdateTerrain);
@@ -359,6 +360,14 @@ public class WData {
 #endif 
     }
 
+    // calculated two heightmaps representing truncated cones using signed distance field math
+    // the two cones have the center of their truncated plateaus (or their tips if not truncated)
+    // in the same position, then one gets larger in negative y direction, and the other is mirrored
+    // vertically
+    // after each the difference between the cone heightmaps and the terrain heightmap are calculated
+    // the result is that any part of the cone that was above the terrain will create a 
+    // cone shaped platform (add to the terrain) whereas if the inverted cone was underground
+    // (also partially), those parts are cut into the terrain
     // takes angle in degrees
     public static void ApplySphereCone(Godot.Vector3 pos, float radius, float angle) {
 #if XBDEBUG
@@ -383,14 +392,15 @@ public class WData {
 #endif 
     }
 
+    // similar to ApplySphereCone
     // takes angle in degrees
+    //NOTE[ALEX]: when multiple dam segments are applied, their intersection is not solved
+    //            properly with this method, also see ManagerSphere.ApplyTerrain
     public static void ApplyDamSegment(Godot.Vector3 pos1, float radius1, float angle1,
                                        Godot.Vector3 pos2, float radius2, float angle2 ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.WorldDataApplyDamSegment);
 #endif
-        //NOTE[ALEX]: when multiple dam segments are applied, their intersection is not solved
-        //            properly with this method
 
         Godot.GD.Print("ApplyDamSegment with p1: " + pos1 + ", r1: " + radius1 + ", a1: " + angle1
                        + ", p2: " + pos2 + ", r2: " + radius2 + ", a2: " + angle2                 );
@@ -424,5 +434,6 @@ public class AData {
     public static Godot.Environment        Environment;
     public static Godot.Node               MainRoot;
     public static uint                     InitialSeed = 0; // random seed on application startup
+                                                            // set to get the same starting terrain
 }
 } // namespace close

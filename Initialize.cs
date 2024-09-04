@@ -1,5 +1,6 @@
 #define XBDEBUG
 namespace XB { // namespace open
+// Initialize is the first non-engine code that runs
 // initialization of the application and all managers and object 
 // that remain over the lifetime of the app
 // after that, initial creation of a world terrain
@@ -8,7 +9,9 @@ public partial class Initialize : Godot.Node3D {
     [Godot.Export] private Godot.DirectionalLight3D _mainLight;
     [Godot.Export] private XB.PController           _player;
 
-    public override void _EnterTree() { // the very first thing that happens in the game
+    // the very first thing that happens, sets up variables that live for runtime
+    // and loads default settings, etc.
+    public override void _EnterTree() {
 #if XBDEBUG
         XB.DebugProfiling.StartProfiling();
 #endif
@@ -32,7 +35,9 @@ public partial class Initialize : Godot.Node3D {
         GetTree().Paused = false;
     }
 
-    public override void _Ready() { // after all children are ready
+    // after all children are ready, so all objects that are placed, so the player, lights, etc.
+    // but not the terrain or spheres, those will be created here
+    public override void _Ready() {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.Initialize_Ready);
 #endif

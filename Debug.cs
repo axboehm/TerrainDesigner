@@ -272,7 +272,7 @@ public enum D {
     ManagerSphereToggleLinking,
     ManagerSphereUnlinkSpheres,
     ManagerSphereUnsetLinkingID,
-    ManagerSphereUpdateActiveSpheres,
+    ManagerSphereFindeNextAvailableSphere,
     ManagerSphereUpdateDam,
     ManagerSphereUpdateSpheres,
     ManagerTerrainDivideQuadNode,

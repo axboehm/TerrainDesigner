@@ -80,6 +80,7 @@ public partial class Sphere : Godot.CharacterBody3D {
     private const int               _circleSteps = 36; // subdivisions for the cone circle
 
 
+    // create screen texture with id, set up cone geometry arrays, initialize sphere variables
     public void InitializeSphere(int id, ref Godot.Rect2I[] rects, ref int rSize) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.SphereInitializeSphere);
@@ -228,6 +229,7 @@ public partial class Sphere : Godot.CharacterBody3D {
 #endif 
     }
 
+    // updates sphere materials to represent highlighted and linked state
     public void UpdateSphere(float dt) {
         if (!Active) { return; }
 
@@ -276,7 +278,7 @@ public partial class Sphere : Godot.CharacterBody3D {
         Show();
         GlobalPosition = pos;
         Active         = true;
-        XB.ManagerSphere.UpdateActiveSpheres();
+        XB.ManagerSphere.FindNextAvailableSphere();
         TexSt = XB.SphereTexSt.Active;
         XB.PController.Hud.UpdateSphereTexture(ID, TexSt);
         UpdateConeMesh();
@@ -286,6 +288,7 @@ public partial class Sphere : Godot.CharacterBody3D {
 #endif 
     }
 
+    // update materials when sphere gets linked
     public void SphereTextureAddLinked() {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.SphereSphereTextureAddLinked);
@@ -303,6 +306,7 @@ public partial class Sphere : Godot.CharacterBody3D {
 #endif 
     }
 
+    // update materials when sphere gets unlinked
     public void SphereTextureRemoveLinked() {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.SphereSphereTextureRemoveLinked);
@@ -387,7 +391,7 @@ public partial class Sphere : Godot.CharacterBody3D {
         _animPl.Stop(); // stop animation at beginning of expand animation (contracted state)
         Hide();
         Active = false;
-        XB.ManagerSphere.UpdateActiveSpheres();
+        XB.ManagerSphere.FindNextAvailableSphere();
         TexSt = XB.SphereTexSt.Inactive;
         XB.PController.Hud.UpdateSphereTexture(ID, TexSt);
         if (ID == XB.ManagerSphere.LinkingID) { 
@@ -401,7 +405,6 @@ public partial class Sphere : Godot.CharacterBody3D {
 #endif 
     }
 
-    // when sphere gets moved
     // move sphere by taking the current frames relation of the camera to the sphere and comparing
     // to the previous frame's, then calculating an offset vector and moving the sphere accordingly
     // all parameters are only read from
@@ -503,8 +506,10 @@ public partial class Sphere : Godot.CharacterBody3D {
 
     // the cone mesh for each point consists of a disc platform at the top and the "cylinder" side
     // the vertices are laid out from the center outwards in rings, see the following segment diagram
+    // 0 is the center of the top of the cone,
     // n is equal to the number of divisions along the circle of the cone
     // the mesh then has 3 triangles from the center going outwards for each division segment
+    // so A, C, D are in one division segment and B, E, F are in another, etc.
     //
     //    / |     ..    |
     //      n|n+n+1 -- 2n+n+2   // double up vertices on seam
@@ -515,7 +520,7 @@ public partial class Sphere : Godot.CharacterBody3D {
     //   \- 3|n+3+1 -- 2n+3+2
     //    \ |     ..    |
     //
-    // at 0/360 deg the vertex gets doubled up to guarantee continuous UVs
+    // at 0/360 deg the vertex gets doubled up to allow for continuous UVs
     //
     private void UpdateConeMesh() {
 #if XBDEBUG

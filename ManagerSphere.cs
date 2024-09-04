@@ -42,7 +42,7 @@ public class DamSegment {
     private Godot.Vector3 _dirR    = new Godot.Vector3(0.0f, 0.0f, 0.0f);
     private Godot.Vector3 _nrmR    = new Godot.Vector3(0.0f, 0.0f, 0.0f);
 
-    // geometry layout of vertices (X is a single vertex, Y are two separate vertices)
+    // geometry layout of vertices and triangles (X is a single vertex, Y are two separate vertices)
     //
     // from above:
     //  |/|/|/|/|   8 triangles
@@ -54,8 +54,8 @@ public class DamSegment {
     //   /     \
     //  X       X
     //
-    //    2 3 4
-    //  0 1   5 6
+    //  1/2 3 4/5
+    //  0       6
     //
     public DamSegment(Godot.Node root, int id, int segmentDivisions) {
 #if XBDEBUG
@@ -157,6 +157,7 @@ public class DamSegment {
 #endif 
     }
 
+    // make available again to manager (reuse instead of deleting)
     public void ReleaseMesh() {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.DamSegmentReleaseMesh);
@@ -269,6 +270,9 @@ public class DamSegment {
 #endif 
     }
 
+    // applying geometry is very performance intensive, so it is split into a separate function
+    // if performance is not good enough it can be split over multiple frames
+    // like is done with the terrain tiles
     public void ApplyToMesh() {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.DamSegmentApplyToMesh);
@@ -288,6 +292,7 @@ public class DamSegment {
 #endif 
     }
 
+#if XBDEBUG
     public void DebugPrint(string note) {
         string print = "Print DamSegment: " + ID.ToString() + ", In Use: " + InUse
                        + " " + note + '\n';
@@ -295,19 +300,19 @@ public class DamSegment {
         print += '\n';
         Godot.GD.Print(print);
     }
+#endif 
 }
 
 // ManagerSphere keeps track of all the spheres that the player can place and modify
 // all spheres are initialized at startup and hidden when not in use, 
-// no new spher allocations are made
-// linking modifying spheres also passes through ManagerSphere and their textures are updated
+// no new sphere allocations are made during runtime
+// linking or modifying spheres also passes through ManagerSphere
 // cone meshes for each sphere are managed by each sphere itself, 
 // whereas dam meshes are managed by ManagerSphere, they are allocated as necessary but not deleted,
-// rather re-used if available
+// instead re-used if available
 public class ManagerSphere {
     public  const  int  MaxSphereAmount = 64; // limit to <= 99 because of sphere texture sizes,
                                              //NOTE[ALEX]: change this manually in miniMapO.gdshader
-    private static int  _activeSpheres  = 0;
     private static int  _nextSphere     = MaxSphereAmount;
     public  static int  HLSphereID      = MaxSphereAmount;
     public  static int  LinkingID       = MaxSphereAmount; // id of sphere to link with
@@ -316,6 +321,8 @@ public class ManagerSphere {
     public  static XB.Sphere[] Spheres = new XB.Sphere[MaxSphereAmount];
     private static SysCG.List<XB.DamSegment> _damSegments;
 
+    // at startup, all spheres are created,
+    // dam segments are not created here but when they are required
     public static void InitializeSpheres() {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereInitializeSpheres);
@@ -334,7 +341,7 @@ public class ManagerSphere {
             XB.AData.MainRoot.AddChild(sphere);
             Spheres[i] = sphere;
         }
-        UpdateActiveSpheres();
+        FindNextAvailableSphere();
 
 #if XBDEBUG
         debug.End();
@@ -371,16 +378,14 @@ public class ManagerSphere {
 #endif 
     }
 
-    public static void UpdateActiveSpheres() {
+    public static void FindNextAvailableSphere() {
 #if XBDEBUG
-        var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereUpdateActiveSpheres);
+        var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereFindeNextAvailableSphere);
 #endif
 
-        _activeSpheres = 0;
         _nextSphere = MaxSphereAmount+1;
         for (int i = 0; i < MaxSphereAmount; i++) {
-            if (Spheres[i].Active) { _activeSpheres += 1;                         }
-            else                   { _nextSphere = XB.Utils.MinI(i, _nextSphere); }
+            if (!Spheres[i].Active) { _nextSphere = XB.Utils.MinI(i, _nextSphere); }
         }
 
 #if XBDEBUG
@@ -472,6 +477,7 @@ public class ManagerSphere {
 #endif 
     }
 
+    // update all dam segments that are connected to sphere with sphereID
     public static void UpdateDam(int sphereID) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereUpdateDam);
@@ -499,6 +505,17 @@ public class ManagerSphere {
 #endif 
     }
 
+    // change terrain heightmap by applying all spheres, then all dam segments
+    // afterwards spheres and dam segments are removed from the world and made available for reuse
+    //NOTE[ALEX]: this method of applying the modifications has some limitations:
+    //            1 - spheres are always applied in the order of their index, which will produce
+    //                different results depending on how they are placed to each other
+    //            2 - dam segments are processed in the order they were initially created
+    //                after several spheres have been linked and/or unlinked, this will not
+    //                be easily apparent to the user anymore
+    //                also the order of operation matters for intersections of dam segments
+    //            accepting these limitations allows the dam segments and also this function
+    //            to be much more simple and easier to understand, so for now this approach is used
     public static void ApplyTerrain() {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereApplyTerrain);
@@ -531,6 +548,7 @@ public class ManagerSphere {
 #endif 
     }
 
+    // remove all spheres and dam segments without applying them
     public static void ClearSpheres() {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereClearSpheres);
@@ -552,7 +570,7 @@ public class ManagerSphere {
 #endif 
     }
 
-    // places the next available sphere at the required position
+    // places the next available sphere at the requested position
     // if all spheres are in use, none are placed
     public static bool RequestSphere(ref Godot.Vector3 pos) {
 #if XBDEBUG
@@ -578,7 +596,7 @@ public class ManagerSphere {
         return true;
     }
 
-    // finds an unused dam segment or allocates a new one
+    // finds an unused dam segment or allocates a new one if none are available
     // writes the index of the segment that can be used into damID
     private static void RequestDamSegment(ref int damID, int linkedToID1, int linkedToID2) {
 #if XBDEBUG
@@ -612,6 +630,8 @@ public class ManagerSphere {
     }
 
     // makes all dam segment that were connected to the sphere with sphereID available again
+    // dam segments can not individually be disabled, but rather a sphere gets unlinked,
+    // then all dam segments connected to that sphere are released
     public static void RecycleDamSegment(int sphereID) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereRecycleDamSegment);

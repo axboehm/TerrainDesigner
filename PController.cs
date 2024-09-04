@@ -23,7 +23,7 @@ public enum MoveSt {
 
 // PController is responsible for controlling the player character and camera,
 // as it is called every frame, various other updates are also called from here
-// pulling all updates together like this makes it obvious, in which order they are processed
+// pulling all updates together like this makes it obvious in which order they are processed
 // and allows for all the non engine code to be timed together
 public partial class PController : Godot.CharacterBody3D {
     [Godot.Export] private Godot.NodePath       _cameraNode;
@@ -317,7 +317,7 @@ public partial class PController : Godot.CharacterBody3D {
         UpdateDebugInputs(DebugHud);
 #endif 
 
-        // to fix axes drifting apart due to imprecision:
+        // to fix axes drifting apart due to imprecision (recommended in Godot wiki)
         _cam.Transform  = _cam.Transform.Orthonormalized();
         CCtrH.Transform = CCtrH.Transform.Orthonormalized();
         _camTransPrev   = _cam.GlobalTransform; // store for sphere movement

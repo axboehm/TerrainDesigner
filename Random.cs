@@ -23,7 +23,7 @@ public class Random {
         _y            = (uint)1 << (int)(_x+1);
         _z            = (uint)1 << (int)(_y+1);
         _w            = (uint)1 << (int)(_z+1);
-        _randomValues = Xorshift();
+        Xorshift();
         _rVPosition   = 0;
 
 #if BLUENOISETEXTURE
@@ -47,7 +47,7 @@ public class Random {
     }
 
     // returns 4 random bytes (uint 0-255)
-    private static uint[] Xorshift() {
+    private static void Xorshift() {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.RandomXorshift);
 #endif
@@ -57,10 +57,15 @@ public class Random {
              _y = _z;
              _z = _w;
              _w = _w ^ (_w >> 19) ^ (t ^ (t >> 8));
+
+        _randomValues[0] = (_w >>  0) & 0xFF;
+        _randomValues[1] = (_w >>  8) & 0xFF;
+        _randomValues[2] = (_w >> 16) & 0xFF;
+        _randomValues[3] = (_w >> 24) & 0xFF;
+
 #if XBDEBUG
         debug.End();
 #endif 
-        return new uint[4] {_w & 0xFF, (_w >> 8) & 0xFF, (_w >> 16) & 0xFF, (_w >> 24) & 0xFF};
     }
 
     //NOTE[ALEX]: not thread-safe
@@ -71,7 +76,7 @@ public class Random {
 
         if (_rVPosition > 3) {
             _rVPosition = 0;
-            _randomValues = Xorshift();
+            Xorshift();
             //Godot.GD.Print(_randomValues[0] + " " + _randomValues[1] + " "
             //             + _randomValues[2] + " " + _randomValues[3]);
         }

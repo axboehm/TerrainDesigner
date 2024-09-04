@@ -17,10 +17,9 @@ public enum Direction {
 public class Terrain {
     // FBM (fractal brownian motion) noise is an addition of multiple layers of perlin noise,
     // each with increasing frequency (detail) but less amplitude (strength)
-    //NOTE[ALEX]: can not use ref with parallel for loop, so the height array is hardcoded
-    public static void FBM(int amountX, int amountZ, float sizeX, float sizeZ,
+    public static void FBM(float[,] tHeights, int amountX, int amountZ, float sizeX, float sizeZ,
                            float scale, float offsetX, float offsetZ,
-                           int octaves, float persistence, float lacunarity, float exponentation) {
+                           int octaves, float persistence, float lacunarity, float exponentation ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainFBM);
 #endif
@@ -70,7 +69,7 @@ public class Terrain {
 
                 total /= normalization;
                 total  = System.MathF.Pow(total, exponentation);
-                XB.WorldData.TerrainHeightsMod[i, j] = total;
+                tHeights[i, j] = total;
             }
         }
 #else
@@ -98,7 +97,7 @@ public class Terrain {
 
                 total /= normalization;
                 total  = System.MathF.Pow(total, exponentation);
-                XB.WData.TerrainHeightsMod[i, j] = total;
+                tHeights[i, j] = total;
             }
         });
 #endif
@@ -279,7 +278,6 @@ public class Terrain {
 #endif 
     }
 
-    //TODO[ALEX]: test gradients!
     // creates a linear gradient in x direction from value of left to value of right
     // starting at the left
     public static void GradientX(float[,] tHeights, int amountX, int amountZ,
@@ -291,7 +289,7 @@ public class Terrain {
         XB.WData.LowestPoint  = XB.Utils.MinF(left, right);
         XB.WData.HighestPoint = XB.Utils.MaxF(left, right);
 
-        float step = (left - right) / (float)(amountX-1);
+        float step = (right - left) / (float)(amountX-1);
         for (int i = 0; i < amountX; i++) {
             for (int j = 0; j < amountZ; j++) {
                 tHeights[i, j] = left + (float)i * step;
@@ -305,7 +303,7 @@ public class Terrain {
 
     // creates a linear gradient in Z direction from value of top to value of bottom
     // starting at the top
-    public static void GradientY(ref float[,] tHeights, int amountX, int amountZ, 
+    public static void GradientY(float[,] tHeights, int amountX, int amountZ, 
                                 float top, float bottom                          ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainGradientY);
@@ -314,10 +312,10 @@ public class Terrain {
         XB.WData.LowestPoint  = XB.Utils.MinF(top, bottom);
         XB.WData.HighestPoint = XB.Utils.MaxF(top, bottom);
 
-        float step = (top - bottom) / (float)(amountX-1);
+        float step = (bottom - top) / (float)(amountZ-1);
         for (int i = 0; i < amountZ; i++) {
             for (int j = 0; j < amountX; j++) {
-                tHeights[i, j] = top + (float)i * step;
+                tHeights[j, i] = top + (float)i * step;
             }
         }
 
