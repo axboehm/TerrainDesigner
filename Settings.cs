@@ -6,6 +6,7 @@ public class SettingsContainer {
     public float  MouseMultX     = -30.0f/1920.0f;
     public float  MouseMultY     = -30.0f/1080.0f;
     public int    Fps            = 60;
+    public bool   ShowGuides     = false;
     public bool   ShowFps        = false;
     public bool   BlockGrid      = false;
     public bool   QTreeVis       = false;
@@ -15,7 +16,7 @@ public class SettingsContainer {
     public float  CamYSens       = 2.0f;
     public float  CamMaxDist     = 0.0f;
     public float  CamAimDist     = 0.0f;
-    public float  Volume         = -30.0f; // audio master volume
+    public float  Volume         = -45.0f; // audio master volume
     public bool   VSync          = false;
     public string Language       = "en";
     public string MSAASel        = "DISABLED";
@@ -38,6 +39,7 @@ public class SettingsContainer {
         MouseMultX     = scFrom.MouseMultX;
         MouseMultY     = scFrom.MouseMultY;
         Fps            = scFrom.Fps;
+        ShowGuides     = scFrom.ShowGuides;
         ShowFps        = scFrom.ShowFps;
         BlockGrid      = scFrom.BlockGrid;
         QTreeVis       = scFrom.QTreeVis;
@@ -175,7 +177,7 @@ public class Settings {
     // settings code variables
     private static SysCG.Dictionary<string, ulong> _sPos =
         new SysCG.Dictionary<string, ulong>() {
-                {"Unused", (ulong)1 << 0 }, //NOTE[ALEX]: currently unused
+                {"SGuide", (ulong)1 << 0 },
                 {"SFps",   (ulong)1 << 1 },
                 {"Full",   (ulong)1 << 2 },
                 {"VSync",  (ulong)1 << 3 },
@@ -242,6 +244,7 @@ public class Settings {
         if (SC.MouseMultX != sc.MouseMultX)         { _chng.ChangeScreen = true; }
         if (SC.MouseMultY != sc.MouseMultY)         { _chng.ChangeScreen = true; }
         if (SC.Fps != sc.Fps)                       { _chng.ChangeFps = true; }
+        if (SC.ShowGuides != sc.ShowGuides)         { _chng.ChangeHUD = true; }
         if (SC.ShowFps != sc.ShowFps)               { _chng.ChangeHUD = true; }
         if (SC.BlockGrid != sc.BlockGrid)           { _chng.ChangeHUD = true; }
         if (SC.QTreeVis != sc.QTreeVis)             { _chng.ChangeHUD = true; }
@@ -269,7 +272,8 @@ public class Settings {
         if (_chng.ChangeDebanding)    { UpdateDebanding(sc.Debanding); }
         if (_chng.ChangeFov)          { UpdateFov(sc.FovDef); }
         if (_chng.ChangeFps)          { UpdateFps(sc.Fps); }
-        if (_chng.ChangeHUD)          { UpdateHUD(sc.ShowFps, sc.BlockGrid, sc.QTreeVis); }
+        if (_chng.ChangeHUD)          { UpdateHUD(sc.ShowFps, sc.ShowGuides,
+                                                  sc.BlockGrid, sc.QTreeVis); }
         if (_chng.ChangeLanguage)     { UpdateLanguage(sc.Language); }
         if (_chng.ChangeLOD)          { UpdateLOD(sc.LODSel); }
         if (_chng.ChangeMSAA)         { UpdateMSAA(sc.MSAASel); }
@@ -322,11 +326,13 @@ public class Settings {
         Godot.Engine.MaxFps = SC.Fps;
     }
 
-    private void UpdateHUD(bool showFps, bool blockGrid, bool qTreeVis) {
-        SC.ShowFps   = showFps;
-        SC.BlockGrid = blockGrid;
-        SC.QTreeVis  = qTreeVis;
-        XB.PController.Hud.UpdateHUDElementVisibility(SC.ShowFps, SC.BlockGrid, SC.QTreeVis);
+    private void UpdateHUD(bool showFps, bool showGuides, bool blockGrid, bool qTreeVis) {
+        SC.ShowFps    = showFps;
+        SC.ShowGuides = showGuides;
+        SC.BlockGrid  = blockGrid;
+        SC.QTreeVis   = qTreeVis;
+        XB.PController.Hud.UpdateHUDElementVisibility(SC.ShowFps, SC.ShowGuides,
+                                                      SC.BlockGrid, SC.QTreeVis);
     }
 
     private void UpdateFov(float fovDef) {
@@ -361,10 +367,10 @@ public class Settings {
         SC.MSAASel = msaaSel;
         var viewport = XB.AData.MainRoot.GetViewport();
         switch (SC.MSAASel) {
-            case "DISABLED": viewport.Msaa3D = Godot.Viewport.Msaa.Disabled; break;
-            case "MSAA2":    viewport.Msaa3D = Godot.Viewport.Msaa.Msaa2X;   break;
-            case "MSAA4":    viewport.Msaa3D = Godot.Viewport.Msaa.Msaa4X;   break;
-            case "MSAA8":    viewport.Msaa3D = Godot.Viewport.Msaa.Msaa8X;   break;
+            case "DISABLED": { viewport.Msaa3D = Godot.Viewport.Msaa.Disabled; break; }
+            case "MSAA2":    { viewport.Msaa3D = Godot.Viewport.Msaa.Msaa2X;   break; }
+            case "MSAA4":    { viewport.Msaa3D = Godot.Viewport.Msaa.Msaa4X;   break; }
+            case "MSAA8":    { viewport.Msaa3D = Godot.Viewport.Msaa.Msaa8X;   break; }
         }
     }
 
@@ -372,8 +378,8 @@ public class Settings {
         SC.SSAASel = ssaaSel;
         var viewport = XB.AData.MainRoot.GetViewport();
         switch (SC.SSAASel) {
-            case "DISABLED": viewport.ScreenSpaceAA = (Godot.Viewport.ScreenSpaceAAEnum)0; break;
-            case "FXAA":     viewport.ScreenSpaceAA = (Godot.Viewport.ScreenSpaceAAEnum)1; break;
+            case "DISABLED": { viewport.ScreenSpaceAA = (Godot.Viewport.ScreenSpaceAAEnum)0; break; }
+            case "FXAA":     { viewport.ScreenSpaceAA = (Godot.Viewport.ScreenSpaceAAEnum)1; break; }
         }
     }
 
@@ -399,12 +405,12 @@ public class Settings {
 
         var sFQuality = Godot.RenderingServer.ShadowQuality.Hard;
         switch (SC.ShadowFilter) {
-            case "SHADOWF0": sFQuality = Godot.RenderingServer.ShadowQuality.Hard;        break;
-            case "SHADOWF1": sFQuality = Godot.RenderingServer.ShadowQuality.SoftVeryLow; break;
-            case "SHADOWF2": sFQuality = Godot.RenderingServer.ShadowQuality.SoftLow;     break;
-            case "SHADOWF3": sFQuality = Godot.RenderingServer.ShadowQuality.SoftMedium;  break;
-            case "SHADOWF4": sFQuality = Godot.RenderingServer.ShadowQuality.SoftHigh;    break;
-            case "SHADOWF5": sFQuality = Godot.RenderingServer.ShadowQuality.SoftUltra;   break;
+            case "SHADOWF0": { sFQuality = Godot.RenderingServer.ShadowQuality.Hard;        break; }
+            case "SHADOWF1": { sFQuality = Godot.RenderingServer.ShadowQuality.SoftVeryLow; break; }
+            case "SHADOWF2": { sFQuality = Godot.RenderingServer.ShadowQuality.SoftLow;     break; }
+            case "SHADOWF3": { sFQuality = Godot.RenderingServer.ShadowQuality.SoftMedium;  break; }
+            case "SHADOWF4": { sFQuality = Godot.RenderingServer.ShadowQuality.SoftHigh;    break; }
+            case "SHADOWF5": { sFQuality = Godot.RenderingServer.ShadowQuality.SoftUltra;   break; }
         }
         Godot.RenderingServer.DirectionalSoftShadowFilterSetQuality(sFQuality);
     }
@@ -427,10 +433,10 @@ public class Settings {
 
         var ssaoQuality = Godot.RenderingServer.EnvironmentSsaoQuality.VeryLow;
         switch (SC.SSAOSel) {
-            case "SSAO0": ssaoQuality = Godot.RenderingServer.EnvironmentSsaoQuality.VeryLow; break;
-            case "SSAO1": ssaoQuality = Godot.RenderingServer.EnvironmentSsaoQuality.Low;     break;
-            case "SSAO2": ssaoQuality = Godot.RenderingServer.EnvironmentSsaoQuality.Medium;  break;
-            case "SSAO3": ssaoQuality = Godot.RenderingServer.EnvironmentSsaoQuality.High;    break;
+            case "SSAO0": { ssaoQuality = Godot.RenderingServer.EnvironmentSsaoQuality.VeryLow; break; }
+            case "SSAO1": { ssaoQuality = Godot.RenderingServer.EnvironmentSsaoQuality.Low;     break; }
+            case "SSAO2": { ssaoQuality = Godot.RenderingServer.EnvironmentSsaoQuality.Medium;  break; }
+            case "SSAO3": { ssaoQuality = Godot.RenderingServer.EnvironmentSsaoQuality.High;    break; }
         }
         Godot.RenderingServer.EnvironmentSetSsaoQuality(ssaoQuality, SC.SSAOHalf,
                                                         _ssaoAdaptiveTarget, _ssaoBlurPasses,
@@ -443,10 +449,10 @@ public class Settings {
 
         var ssilQuality = Godot.RenderingServer.EnvironmentSsilQuality.VeryLow;
         switch (SC.SSILSel) {
-            case "SSIL0": ssilQuality = Godot.RenderingServer.EnvironmentSsilQuality.VeryLow; break; 
-            case "SSIL1": ssilQuality = Godot.RenderingServer.EnvironmentSsilQuality.Low;     break; 
-            case "SSIL2": ssilQuality = Godot.RenderingServer.EnvironmentSsilQuality.Medium;  break; 
-            case "SSIL3": ssilQuality = Godot.RenderingServer.EnvironmentSsilQuality.High;    break; 
+            case "SSIL0": { ssilQuality = Godot.RenderingServer.EnvironmentSsilQuality.VeryLow; break; }
+            case "SSIL1": { ssilQuality = Godot.RenderingServer.EnvironmentSsilQuality.Low;     break; }
+            case "SSIL2": { ssilQuality = Godot.RenderingServer.EnvironmentSsilQuality.Medium;  break; }
+            case "SSIL3": { ssilQuality = Godot.RenderingServer.EnvironmentSsilQuality.High;    break; }
         }
         Godot.RenderingServer.EnvironmentSetSsilQuality(ssilQuality, SC.SSILHalf, 
                                                         _ssilAdaptiveTarget, _ssilBlurPasses,
@@ -464,12 +470,13 @@ public class Settings {
         _scMod.Resolution = _baseResolution;
         _scMod.Fps        = FpsOptions[1];
         _scMod.ShowFps    = false;
+        _scMod.ShowGuides = true;
         _scMod.BlockGrid  = false;
         _scMod.QTreeVis   = false;
         _scMod.FovDef     = 28.0f;
         _scMod.CamXSens   = 2.0f;
         _scMod.CamYSens   = 2.0f;
-        _scMod.Volume     = -30.0f;
+        _scMod.Volume     = -45.0f;
         _scMod.VSync      = false;
         _scMod.Language   = Languages[0];
         UpdateSettings(_scMod);
@@ -551,7 +558,7 @@ public class Settings {
 
         // right side (booleans and arrays)
         // booleans (11 bits)
-        //if () { codeR |= _sPos["Unused"]; } // currently unused
+        if (SC.ShowGuides) { codeR |= _sPos["SGuide"]; }
         if (SC.ShowFps)    { codeR |= _sPos["SFps"];   }
         if (SC.BlockGrid)  { codeR |= _sPos["SBlock"]; }
         if (SC.QTreeVis)   { codeR |= _sPos["SQTree"]; }
@@ -635,8 +642,8 @@ public class Settings {
 
         // right side (booleans and arrays)
         // booleans (11 bits)
-        // if ((codeR & sPos["Unused"]) > 0) { ; } // currently unused
-        // else                              { ; }
+        if ((codeR & _sPos["SGuide"]) > 0) { _scMod.ShowGuides = true;  }
+        else                               { _scMod.ShowGuides = false; }
         if ((codeR & _sPos["SFps"]) > 0) { _scMod.ShowFps = true;  }
         else                             { _scMod.ShowFps = false; }
         if ((codeR & _sPos["SBlock"]) > 0) { _scMod.BlockGrid = true;  }
@@ -723,7 +730,8 @@ public class Settings {
             Godot.Slider slCamHor, Godot.Label lbCamHor, Godot.Slider slCamVer, Godot.Label lbCamVer,
             Godot.Slider slFov, Godot.Label lbCamFov, Godot.Slider slFrame, Godot.Label lbFrame,
             Godot.OptionButton obRes, Godot.OptionButton obMode,
-            Godot.Button cbFps, Godot.Button cbVSync, Godot.Button cbBlock, Godot.Button cbQTVis,
+            Godot.Button cbFps, Godot.Button cbGuides, Godot.Button cbVSync, 
+            Godot.Button cbBlock, Godot.Button cbQTVis,
             Godot.OptionButton obMSAA, Godot.OptionButton obSSAA,
             Godot.Button cbTAA, Godot.Button cbDebanding,
             Godot.Label lbShdwSize, Godot.Slider slShdwSize, Godot.OptionButton obShdwFilter,
@@ -743,23 +751,24 @@ public class Settings {
         slShdwDist.Value = SC.ShadowDistance;
         lbShdwDist.Text  = slShdwDist.Value.ToString() + " m";
         switch (SC.Fps) {
-            case 30:  slFrame.Value = 0; lbFrame.Text = "30";                              break;
-            case 60:  slFrame.Value = 1; lbFrame.Text = "60";                              break;
-            case 120: slFrame.Value = 2; lbFrame.Text = "120";                             break;
-            case 0:   slFrame.Value = 3; lbFrame.Text = XB.AData.MainRoot.Tr("UNLIMITED"); break;
+            case 30:  { slFrame.Value = 0; lbFrame.Text = "30";                              break; }
+            case 60:  { slFrame.Value = 1; lbFrame.Text = "60";                              break; }
+            case 120: { slFrame.Value = 2; lbFrame.Text = "120";                             break; }
+            case 0:   { slFrame.Value = 3; lbFrame.Text = XB.AData.MainRoot.Tr("UNLIMITED"); break; }
         }
         switch (SC.ShadowSize) {
-            case 512:  slShdwSize.Value = 0; lbShdwSize.Text = "512 px";  break;
-            case 1024: slShdwSize.Value = 1; lbShdwSize.Text = "1024 px"; break;
-            case 2048: slShdwSize.Value = 2; lbShdwSize.Text = "2048 px"; break;
-            case 4096: slShdwSize.Value = 3; lbShdwSize.Text = "4096 px"; break;
+            case 512:  { slShdwSize.Value = 0; lbShdwSize.Text = "512 px";  break; }
+            case 1024: { slShdwSize.Value = 1; lbShdwSize.Text = "1024 px"; break; }
+            case 2048: { slShdwSize.Value = 2; lbShdwSize.Text = "2048 px"; break; }
+            case 4096: { slShdwSize.Value = 3; lbShdwSize.Text = "4096 px"; break; }
         }
         switch (SC.LODSel) {
-            case 4.0f: slLOD.Value = 0; lbLOD.Text = "4 px"; break;
-            case 2.0f: slLOD.Value = 1; lbLOD.Text = "2 px"; break;
-            case 1.0f: slLOD.Value = 2; lbLOD.Text = "1 px"; break;
+            case 4.0f: { slLOD.Value = 0; lbLOD.Text = "4 px"; break; }
+            case 2.0f: { slLOD.Value = 1; lbLOD.Text = "2 px"; break; }
+            case 1.0f: { slLOD.Value = 2; lbLOD.Text = "1 px"; break; }
         }
         cbVSync.ButtonPressed     = SC.VSync;
+        cbGuides.ButtonPressed    = SC.ShowGuides;
         cbFps.ButtonPressed       = SC.ShowFps;
         cbBlock.ButtonPressed     = SC.BlockGrid;
         cbQTVis.ButtonPressed     = SC.QTreeVis;
@@ -821,72 +830,80 @@ public class Settings {
         _scMod.SetAllFromSettingsContainer(SC);
         _scMod.TAA = !SC.TAA;
         UpdateSettings(_scMod);
-        if (!SC.TAA) return XB.AData.MainRoot.Tr("TURNED_TAA_OFF");
-        else         return XB.AData.MainRoot.Tr("TURNED_TAA_ON");
+        if (!SC.TAA) { return XB.AData.MainRoot.Tr("TURNED_TAA_OFF"); }
+        else         { return XB.AData.MainRoot.Tr("TURNED_TAA_ON");  }
     }
 
     public string ToggleDebanding() {
         _scMod.SetAllFromSettingsContainer(SC);
         _scMod.Debanding = !SC.Debanding;
         UpdateSettings(_scMod);
-        if (!SC.Debanding) return XB.AData.MainRoot.Tr("TURNED_DEBANDING_OFF");
-        else               return XB.AData.MainRoot.Tr("TURNED_DEBANDING_ON");
+        if (!SC.Debanding) { return XB.AData.MainRoot.Tr("TURNED_DEBANDING_OFF"); }
+        else               { return XB.AData.MainRoot.Tr("TURNED_DEBANDING_ON");  }
     }
 
     public string ToggleSSAOHalf() {
         _scMod.SetAllFromSettingsContainer(SC);
         _scMod.SSAOHalf = !SC.SSAOHalf;
         UpdateSettings(_scMod);
-        if (!SC.SSAOHalf) return XB.AData.MainRoot.Tr("TURNED_SSAOHALF_OFF");
-        else              return XB.AData.MainRoot.Tr("TURNED_SSAOHALF_ON");
+        if (!SC.SSAOHalf) { return XB.AData.MainRoot.Tr("TURNED_SSAOHALF_OFF"); }
+        else              { return XB.AData.MainRoot.Tr("TURNED_SSAOHALF_ON");  }
     }
 
     public string ToggleSSILHalf() {
         _scMod.SetAllFromSettingsContainer(SC);
         _scMod.SSILHalf = !SC.SSILHalf;
         UpdateSettings(_scMod);
-        if (!SC.SSILHalf) return XB.AData.MainRoot.Tr("TURNED_SSILHALF_OFF");
-        else              return XB.AData.MainRoot.Tr("TURNED_SSILHALF_ON");
+        if (!SC.SSILHalf) { return XB.AData.MainRoot.Tr("TURNED_SSILHALF_OFF"); }
+        else              { return XB.AData.MainRoot.Tr("TURNED_SSILHALF_ON");  }
     }
 
     public string ToggleSSR() {
         _scMod.SetAllFromSettingsContainer(SC);
         _scMod.SSR = !SC.SSR;
         UpdateSettings(_scMod);
-        if (!SC.SSR) return XB.AData.MainRoot.Tr("TURNED_SSR_OFF");
-        else         return XB.AData.MainRoot.Tr("TURNED_SSR_ON");
+        if (!SC.SSR) { return XB.AData.MainRoot.Tr("TURNED_SSR_OFF"); }
+        else         { return XB.AData.MainRoot.Tr("TURNED_SSR_ON");  }
     }
 
     public string ToggleShowFPS() {
         _scMod.SetAllFromSettingsContainer(SC);
         _scMod.ShowFps = !SC.ShowFps;
         UpdateSettings(_scMod);
-        if (SC.ShowFps) return XB.AData.MainRoot.Tr("TURNED_FPS_ON");
-        else            return XB.AData.MainRoot.Tr("TURNED_FPS_OFF");
+        if (SC.ShowFps) { return XB.AData.MainRoot.Tr("TURNED_FPS_ON");  }
+        else            { return XB.AData.MainRoot.Tr("TURNED_FPS_OFF"); }
+    }
+
+    public string ToggleShowGuides() {
+        _scMod.SetAllFromSettingsContainer(SC);
+        _scMod.ShowGuides = !SC.ShowGuides;
+        UpdateSettings(_scMod);
+        if (SC.ShowGuides) { return XB.AData.MainRoot.Tr("TURNED_GUIDES_ON");  }
+        else               { return XB.AData.MainRoot.Tr("TURNED_GUIDES_OFF"); }
     }
 
     public string ToggleVSync() {
         _scMod.SetAllFromSettingsContainer(SC);
         _scMod.VSync = !SC.VSync;
         UpdateSettings(_scMod);
-        if (SC.VSync) return XB.AData.MainRoot.Tr("TURNED_VSYNC_ON");
-        else          return XB.AData.MainRoot.Tr("TURNED_VSYNC_OFF");
+        if (SC.VSync) { return XB.AData.MainRoot.Tr("TURNED_VSYNC_ON"); }
+        else          { return XB.AData.MainRoot.Tr("TURNED_VSYNC_OFF"); }
     }
 
     public string ToggleBlockGrid() {
         _scMod.SetAllFromSettingsContainer(SC);
         _scMod.BlockGrid = !SC.BlockGrid;
         UpdateSettings(_scMod);
-        if (SC.BlockGrid) return XB.AData.MainRoot.Tr("TURNED_BLOCKGRID_ON");
-        else              return XB.AData.MainRoot.Tr("TURNED_BLOCKGRID_OFF");
+        if (SC.BlockGrid) { return XB.AData.MainRoot.Tr("TURNED_BLOCKGRID_ON"); }
+        else              { return XB.AData.MainRoot.Tr("TURNED_BLOCKGRID_OFF"); }
     }
 
     public string ToggleQuadTreeVis() {
         _scMod.SetAllFromSettingsContainer(SC);
         _scMod.QTreeVis = !SC.QTreeVis;
         UpdateSettings(_scMod);
-        if (SC.QTreeVis) return XB.AData.MainRoot.Tr("TURNED_QTREEVIS_ON");
-        else             return XB.AData.MainRoot.Tr("TURNED_QTREEVIS_OFF");
+        if (SC.QTreeVis) { return XB.AData.MainRoot.Tr("TURNED_QTREEVIS_ON"); }
+        else             { return XB.AData.MainRoot.Tr("TURNED_QTREEVIS_OFF"); }
     }
 
     public string ChangeShadowDistance(Godot.Slider slShdwDist) {
@@ -939,8 +956,8 @@ public class Settings {
 
     public void ChangeMode(Godot.OptionButton obMode) {
         _scMod.SetAllFromSettingsContainer(SC);
-        if (obMode.GetSelectedId() == 1) _scMod.FullScreen = true;
-        else                             _scMod.FullScreen = false;
+        if (obMode.GetSelectedId() == 1) { _scMod.FullScreen = true;  }
+        else                             { _scMod.FullScreen = false; }
         UpdateSettings(_scMod);
     }
 

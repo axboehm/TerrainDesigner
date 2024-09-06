@@ -31,6 +31,7 @@ public partial class HUD : Godot.Control {
     public  bool        BlockGridVisible = false;
     public  bool        QTreeVisible     = false;
     public  bool        SpheresVisible   = true;
+    public  bool        GuideVisible     = true;
     private float       _hudSm           = 16.0f;
     private float       _crossAlpha      = 0.0f;
     private Godot.Color _colCross        = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
@@ -49,6 +50,8 @@ public partial class HUD : Godot.Control {
     private float       _qtreeMultCur    = 1.0f;
     private float       _qtreeMult       = 0.0f;
     private Godot.Color _colMiniMapQT    = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
+    private float       _guideAlpha      = 0.0f;
+    private Godot.Color _colGuide        = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
 
     private Godot.Rect2I[] _rects = new Godot.Rect2I[XB.Utils.MaxRectSize];
     private int            _rSize = 0; // how many entries in _rects were used by function
@@ -135,6 +138,8 @@ public partial class HUD : Godot.Control {
         _texMiniMapG  = new Godot.ImageTexture();
         _trMiniMapBG  = new Godot.TextureRect();
         _texMiniMapBG = new Godot.ImageTexture();
+        _trGuideBG    = new Godot.TextureRect();
+        _texGuideBG   = new Godot.ImageTexture();
         _lbHeightL    = new Godot.Label();
         _lbHeightH    = new Godot.Label();
         _lbFps        = new Godot.Label();
@@ -151,6 +156,7 @@ public partial class HUD : Godot.Control {
         AddChild(_lbHeightL);
         AddChild(_lbHeightH);
         AddChild(_lbFps);
+        AddChild(_trGuideBG);
 
         for (int i = 0; i < _rects.Length; i++) { _rects[i] = new Godot.Rect2I(0, 0, 0, 0); }
 
@@ -296,6 +302,18 @@ public partial class HUD : Godot.Control {
         _colFps.A = 0.0f;
         _lbFps.AddThemeColorOverride("font_color", _colFps);
 
+        int guideSizeX = 200; //TODO: test
+        int guideSizeY = 100;
+        _imgGuideBG = Godot.Image.Create(guideSizeX, guideSizeY, false, Godot.Image.Format.Rgba8);
+        _imgGuideBG.Fill(XB.Col.BG);
+        _texGuideBG.SetImage(_imgGuideBG);
+        _trGuideBG.Size        = new Godot.Vector2I(guideSizeX, guideSizeY);
+        _trGuideBG.Position    = new Godot.Vector2I((XB.Settings.BaseResX/2) - (guideSizeX/2),
+                                                    XB.Settings.BaseResY - guideSizeY);
+        _trGuideBG.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
+        _trGuideBG.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
+        _trGuideBG.Texture     = _texGuideBG;
+
         _colCross.A            = _crossAlpha;
         _trCrosshairs.Modulate = _colCross;
         _colSpheres.A          = _spheresAlpha;
@@ -308,6 +326,8 @@ public partial class HUD : Godot.Control {
         _trMiniMapBG.Modulate  = _colMiniMap;
         _blockMultCur          = _blockMult;
         _qtreeMultCur          = _qtreeMult;
+        _colGuide.A            = _guideAlpha;
+        _trGuideBG.Modulate    = _colGuide;
 
 #if XBDEBUG
         debug.End();
@@ -519,8 +539,10 @@ public partial class HUD : Godot.Control {
         _hudVisible = !_hudVisible;
     }
 
-    public void UpdateHUDElementVisibility(bool showFps, bool showBlockGrid, bool showQTreeVis) {
+    public void UpdateHUDElementVisibility(bool showFps, bool showGuides,
+                                           bool showBlockGrid, bool showQTreeVis) {
         FpsVisible       = showFps;
+        GuideVisible     = showGuides;
         BlockGridVisible = showBlockGrid;
         QTreeVisible     = showQTreeVis;
     }
@@ -539,8 +561,10 @@ public partial class HUD : Godot.Control {
             else                          { _linkingAlpha = 0.0f; }
             if (BlockGridVisible) { _blockMult = 1.0f; }
             else                  { _blockMult = 0.0f; }
-            if (QTreeVisible)     { _qtreeMult = 1.0f; }
-            else                  { _qtreeMult = 0.0f; }
+            if (QTreeVisible) { _qtreeMult = 1.0f; }
+            else              { _qtreeMult = 0.0f; }
+            if (GuideVisible) { _guideAlpha = 1.0f; }
+            else              { _guideAlpha = 0.0f; }
             _spheresAlpha = 1.0f;
             _miniMapAlpha = 1.0f;
         } else {
@@ -551,6 +575,7 @@ public partial class HUD : Godot.Control {
             _miniMapAlpha = 0.0f;
             _blockMult    = 0.0f;
             _qtreeMult    = 0.0f;
+            _guideAlpha   = 0.0f;
         }
 
         _colCross.A            = XB.Utils.LerpF(_colCross.A, _crossAlpha, _hudSm*dt);
@@ -579,6 +604,8 @@ public partial class HUD : Godot.Control {
         XB.ManagerTerrain.UpdateQTreeStrength(_qtreeMultCur);
         _colMiniMapQT.A        = XB.Utils.LerpF(_colMiniMapQT.A, _qtreeMult, _hudSm*dt);
         _trMiniMapQT.Modulate  = _colMiniMapQT;
+        _colGuide.A            = XB.Utils.LerpF(_colGuide.A, _guideAlpha, _hudSm*dt);
+        _trGuideBG.Modulate    = _colGuide;
 
         UpdateMiniMapOverlayTexture();
 

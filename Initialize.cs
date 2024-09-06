@@ -43,12 +43,13 @@ public partial class Initialize : Godot.Node3D {
 #endif
 
         XB.AData.MainRoot.AddChild(XB.AData.Input);
-        XB.AData.S.SetPresetSettings(XB.SettingsPreset.Default);
-        XB.AData.S.SetApplicationDefaults();
         XB.ManagerSphere.InitializeSpheres();
 
         _player.InitializePController();
         _player.InitializeHud();
+
+        XB.AData.S.SetPresetSettings(XB.SettingsPreset.Default);
+        XB.AData.S.SetApplicationDefaults();
 
         // world dimensions given in exponent for power of 2:
         // 1 - 2m, 2 - 4m, 3 - 8m, 4 - 16m, 5 - 32m, 6 - 64m, 7 - 128m, 8 - 256m, 9 - 512m

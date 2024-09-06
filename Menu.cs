@@ -58,6 +58,7 @@ public partial class Menu : Godot.Control {
     [Godot.Export] private Godot.Label        _lbFrame;
     [Godot.Export] private Godot.Slider       _slFrame;
     [Godot.Export] private Godot.Button       _cbFps;
+    [Godot.Export] private Godot.Button       _cbGuides;
     [Godot.Export] private Godot.Button       _cbVSync;
     [Godot.Export] private Godot.Button       _cbBlock;
     [Godot.Export] private Godot.Button       _cbQTVis;
@@ -178,6 +179,7 @@ public partial class Menu : Godot.Control {
         XB.AData.S.AddSeparators(_obMode);
         _obMode.ItemSelected += OptionButtonModeOnItemSelected;
         _cbFps.Pressed       += ButtonShowFPSOnPressed;
+        _cbGuides.Pressed    += ButtonShowGuidesOnPressed;
         _cbVSync.Pressed     += ButtonVSyncOnPressed;
         _cbBlock.Pressed     += ButtonBlockGridOnPressed;
         _cbQTVis.Pressed     += ButtonQuadTreeVisOnPressed;
@@ -503,7 +505,7 @@ public partial class Menu : Godot.Control {
         XB.AData.S.UpdateSettingsTabs(_slCamHor, _lbCamHor, _slCamVer, _lbCamVer,
                                       _slFov, _lbFov, _slFrame, _lbFrame,
                                       _obRes, _obMode,
-                                      _cbFps, _cbVSync, _cbBlock, _cbQTVis,
+                                      _cbFps, _cbGuides, _cbVSync, _cbBlock, _cbQTVis,
                                       _obMSAA, _obSSAA,
                                       _cbTAA, _cbDebanding,
                                       _lbShdwSize, _slShdwSize, _obShdwFilter,
@@ -624,6 +626,11 @@ public partial class Menu : Godot.Control {
 
     private void ButtonShowFPSOnPressed() {
         ShowMessage(XB.AData.S.ToggleShowFPS());
+        ApplySettings();
+    }
+
+    private void ButtonShowGuidesOnPressed() {
+        ShowMessage(XB.AData.S.ToggleShowGuides());
         ApplySettings();
     }
 
