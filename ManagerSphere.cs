@@ -311,12 +311,13 @@ public class DamSegment {
 // whereas dam meshes are managed by ManagerSphere, they are allocated as necessary but not deleted,
 // instead re-used if available
 public class ManagerSphere {
-    public  const  int  MaxSphereAmount = 64; // limit to <= 99 because of sphere texture sizes,
+    public const  int  MaxSphereAmount = 64; // limit to <= 99 because of sphere texture sizes,
                                              //NOTE[ALEX]: change this manually in miniMapO.gdshader
-    private static int  _nextSphere     = MaxSphereAmount;
-    public  static int  HLSphereID      = MaxSphereAmount;
-    public  static int  LinkingID       = MaxSphereAmount; // id of sphere to link with
-    public  static bool Linking         = false;
+    public static int  NextSphere      = MaxSphereAmount;
+    public static int  HLSphereID      = MaxSphereAmount;
+    public static int  LinkingID       = MaxSphereAmount; // id of sphere to link with
+    public static bool Linking         = false;
+    public static bool Highlight       = false; // only used for guide in hud
 
     public  static XB.Sphere[] Spheres = new XB.Sphere[MaxSphereAmount];
     private static SysCG.List<XB.DamSegment> _damSegments;
@@ -355,8 +356,15 @@ public class ManagerSphere {
 
         for (int i = 0; i < MaxSphereAmount; i++) { Spheres[i].UpdateSphere(dt); }
 
-        if (HLSphereID < MaxSphereAmount) { Spheres[HLSphereID].Highlighted = 1.0f; }
-        if (LinkingID < MaxSphereAmount)  { Spheres[LinkingID].Highlighted  = 1.0f; }
+        if (HLSphereID < MaxSphereAmount) { // for sphere under crosshairs
+            Spheres[HLSphereID].Highlighted = 1.0f;
+            Highlight = true;
+        } else {
+            Highlight = false;
+        }
+        if (LinkingID < MaxSphereAmount) {  // for spheres that are linked to
+            Spheres[LinkingID].Highlighted  = 1.0f;
+        }
 
 #if XBDEBUG
         debug.End();
@@ -383,9 +391,9 @@ public class ManagerSphere {
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereFindeNextAvailableSphere);
 #endif
 
-        _nextSphere = MaxSphereAmount+1;
+        NextSphere = MaxSphereAmount+1;
         for (int i = 0; i < MaxSphereAmount; i++) {
-            if (!Spheres[i].Active) { _nextSphere = XB.Utils.MinI(i, _nextSphere); }
+            if (!Spheres[i].Active) { NextSphere = XB.Utils.MinI(i, NextSphere); }
         }
 
 #if XBDEBUG
@@ -521,10 +529,12 @@ public class ManagerSphere {
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereApplyTerrain);
 #endif
 
+            Godot.GD.Print("testkkPre");
         for (int i = 0; i < MaxSphereAmount; i++) {
             if (!Spheres[i].Active) { continue; }
 
             XB.WData.ApplySphereCone(Spheres[i].GlobalPosition, Spheres[i].Radius, Spheres[i].Angle);
+            XB.PController.Menu.ShowMessage("testpost"); //TODO[ALEX]: this does not show up when I want it to
         }
         for (int i = 0; i < _damSegments.Count; i++) {
             if (!_damSegments[i].InUse) { continue; }
@@ -577,16 +587,16 @@ public class ManagerSphere {
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereRequestSphere);
 #endif
 
-        if (_nextSphere == MaxSphereAmount+1) { 
+        if (NextSphere == MaxSphereAmount+1) { 
 #if XBDEBUG
             debug.End();
 #endif 
             return false; 
         }
 
-        XB.PController.Hud.UpdateSphereTextureHighlight(HLSphereID, _nextSphere);
-        HLSphereID = _nextSphere; // so that linking immediately works
-        Spheres[_nextSphere].PlaceSphere(ref pos);
+        XB.PController.Hud.UpdateSphereTextureHighlight(HLSphereID, NextSphere);
+        HLSphereID = NextSphere; // so that linking immediately works
+        Spheres[NextSphere].PlaceSphere(ref pos);
         if (Linking && LinkingID < MaxSphereAmount) { LinkSpheres(); }
 
 #if XBDEBUG

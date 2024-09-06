@@ -525,7 +525,7 @@ public partial class Menu : Godot.Control {
         XB.AData.S.SettingsCodeFromSettings(_leSetCode);
     }
 
-    private void ShowMessage(string msg) {
+    public void ShowMessage(string msg) {
         _crMsg.Show();
         _lbMsg.Text  = msg;
         _t           = 0.0f;

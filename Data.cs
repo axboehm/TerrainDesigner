@@ -404,8 +404,8 @@ public class WData {
         var debug = new XB.DebugTimedBlock(XB.D.WorldDataApplyDamSegment);
 #endif
 
-        Godot.GD.Print("ApplyDamSegment with p1: " + pos1 + ", r1: " + radius1 + ", a1: " + angle1
-                       + ", p2: " + pos2 + ", r2: " + radius2 + ", a2: " + angle2                 );
+        // Godot.GD.Print("ApplyDamSegment with p1: " + pos1 + ", r1: " + radius1 + ", a1: " + angle1
+        //                + ", p2: " + pos2 + ", r2: " + radius2 + ", a2: " + angle2                 );
         
         XB.Terrain.UnevenCapsule(TerrainHeightsMod, WorldVerts.X, WorldVerts.Y,
                                  WorldDim.X, WorldDim.Y,

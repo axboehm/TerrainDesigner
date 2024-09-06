@@ -1,6 +1,7 @@
 #define XBDEBUG
 namespace XB { // namespace open
 public enum SphereTexSt {
+    Uninit,
     Inactive,
     Active,
     ActiveLinking,
@@ -21,6 +22,7 @@ public partial class HUD : Godot.Control {
     private Godot.TextureRect _trMiniMapO;  // shows player and spheres on map
     private Godot.TextureRect _trMiniMapG;  // black to white gradient below minimap
     private Godot.TextureRect _trMiniMapBG; // background for minimap information
+    private Godot.TextureRect _trGuideName;
     private Godot.TextureRect _trGuideBG;
     private Godot.Label       _lbHeightL;
     private Godot.Label       _lbHeightH;
@@ -51,13 +53,13 @@ public partial class HUD : Godot.Control {
     private float       _qtreeMult       = 0.0f;
     private Godot.Color _colMiniMapQT    = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
     private float       _guideAlpha      = 0.0f;
-    private Godot.Color _colGuide        = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
+    private Godot.Color _colGuideBG      = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
 
     private Godot.Rect2I[] _rects = new Godot.Rect2I[XB.Utils.MaxRectSize];
     private int            _rSize = 0; // how many entries in _rects were used by function
 
     private const int          _offsetT = 52; // offset from top screen edge (at base res 1920x1080)
-    private const int          _offsetH = 4;  // horizontal offset from side screen edges
+    private const int          _offsetE = 4;  // offset from bottom and side screen edges
 
     private const int          _dimCrosshairs = 8;
 
@@ -107,9 +109,21 @@ public partial class HUD : Godot.Control {
     private Godot.Vector2[]      _spherePositions;
     private Godot.Color[]        _sphereColors;
 
-    //TODO[ALEX]: on screen guide
+    private Godot.Image        _imgGuideName;
+    private Godot.ImageTexture _texGuideName;
+    private Godot.Label        _lbGuideName;
+    private const string       _guideName = "GUIDE";
     private Godot.Image        _imgGuideBG;
     private Godot.ImageTexture _texGuideBG;
+    private Godot.Label[]      _lbGuide;
+    private const int          _dimGSegDiv = 3; // amount of segments
+    private const int          _dimGY      = 128; // works well with five lines of text
+    private const int          _guideLbFontSpacing  = 0;
+    private const int          _guideNameLbFontSize = 32;
+    private const int          _guideNameLbOutlSize = 6;
+    private const int          _guideLbFontSize     = 20;
+    private const int          _guideLbOutlSize     = 1;
+    private const int          _offsetEGuide        = 8; // distance between sphere BG and guide BG
 
 
     public void InitializeHud() {
@@ -138,11 +152,16 @@ public partial class HUD : Godot.Control {
         _texMiniMapG  = new Godot.ImageTexture();
         _trMiniMapBG  = new Godot.TextureRect();
         _texMiniMapBG = new Godot.ImageTexture();
+        _trGuideName  = new Godot.TextureRect();
+        _texGuideName = new Godot.ImageTexture();
         _trGuideBG    = new Godot.TextureRect();
         _texGuideBG   = new Godot.ImageTexture();
         _lbHeightL    = new Godot.Label();
         _lbHeightH    = new Godot.Label();
         _lbFps        = new Godot.Label();
+        _lbGuide      = new Godot.Label[_dimGSegDiv];
+        _lbGuideName  = new Godot.Label();
+        for (int i = 0; i < _dimGSegDiv; i++) { _lbGuide[i] = new Godot.Label(); }
         // order matters (back to front)
         AddChild(_trLinking);
         AddChild(_trSpheresBG);
@@ -156,7 +175,10 @@ public partial class HUD : Godot.Control {
         AddChild(_lbHeightL);
         AddChild(_lbHeightH);
         AddChild(_lbFps);
+        AddChild(_trGuideName);
+        _trGuideName.AddChild(_lbGuideName);
         AddChild(_trGuideBG);
+        for (int i = 0; i < _dimGSegDiv; i++) { _trGuideBG.AddChild(_lbGuide[i]); }
 
         for (int i = 0; i < _rects.Length; i++) { _rects[i] = new Godot.Rect2I(0, 0, 0, 0); }
 
@@ -199,16 +221,16 @@ public partial class HUD : Godot.Control {
         _imgSpheres.Fill(XB.Col.Transp);
         _imgSpheresBG = Godot.Image.Create(_dimSpX, _dimSpY, false, Godot.Image.Format.Rgba8);
         _imgSpheresBG.Fill(XB.Col.BG);
-        var spPosition = new Godot.Vector2I(XB.Settings.BaseResX - 2*_offsetH - _dimSpX,
-                                            _offsetT - _offsetH                         );
+        var spPosition = new Godot.Vector2I(XB.Settings.BaseResX - 2*_offsetE - _dimSpX,
+                                            _offsetT - _offsetE                         );
         _trSpheres.Position      = spPosition;
-        _trSpheresBG.Position    = spPosition - new Godot.Vector2I(_offsetH, _offsetH);
+        _trSpheresBG.Position    = spPosition - new Godot.Vector2I(_offsetE, _offsetE);
         _trSpheres.ExpandMode    = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
         _trSpheresBG.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
         _trSpheres.StretchMode   = Godot.TextureRect.StretchModeEnum.Scale;
         _trSpheresBG.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
         _trSpheres.Size          = new Godot.Vector2I(_dimSpX, _dimSpY);
-        _trSpheresBG.Size        = _trSpheres.Size + new Godot.Vector2I(2*_offsetH, 2*_offsetH);
+        _trSpheresBG.Size        = _trSpheres.Size + new Godot.Vector2I(2*_offsetE, 2*_offsetE);
         _trSpheres.Texture       = _texSpheres;
         _trSpheresBG.Texture     = _texSpheresBG;
         _texSpheres.SetImage(_imgSpheres);
@@ -222,16 +244,16 @@ public partial class HUD : Godot.Control {
         _imgMiniMapO.Fill(XB.Col.Transp);
         _imgMiniMapG  = Godot.Image.Create(_dimMMX, _dimMMGY, false, Godot.Image.Format.L8);
         _imgMiniMapG.Fill(XB.Col.Black);
-        int dimMMBGX  = _dimMMX + 2*_offsetH;
-        int dimMMBGY  = _dimMMY + 2*_offsetH + 3*_dimMMSp + _dimMMGY + _gradLbFontSize;
+        int dimMMBGX  = _dimMMX + 2*_offsetE;
+        int dimMMBGY  = _dimMMY + 2*_offsetE + 3*_dimMMSp + _dimMMGY + _gradLbFontSize;
         _imgMiniMapBG = Godot.Image.Create(dimMMBGX, dimMMBGY, false, Godot.Image.Format.Rgba8);
         _imgMiniMapBG.Fill(XB.Col.BG);
-        var miniMapPosition = new Godot.Vector2I(2*_offsetH, XB.Settings.BaseResY/2 - dimMMBGY/2);
+        var miniMapPosition = new Godot.Vector2I(2*_offsetE, XB.Settings.BaseResY/2 - dimMMBGY/2);
         _trMiniMap.Position      = miniMapPosition;
         _trMiniMapQT.Position    = miniMapPosition;
         _trMiniMapO.Position     = miniMapPosition;
         _trMiniMapG.Position     = miniMapPosition + new Godot.Vector2I(0, _dimMMY + _dimMMSp);
-        _trMiniMapBG.Position    = miniMapPosition - new Godot.Vector2I(_offsetH, _offsetH);
+        _trMiniMapBG.Position    = miniMapPosition - new Godot.Vector2I(_offsetE, _offsetE);
         _trMiniMap.ExpandMode    = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
         _trMiniMapQT.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
         _trMiniMapO.ExpandMode   = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
@@ -294,25 +316,65 @@ public partial class HUD : Godot.Control {
         _lbHeightL.AddThemeColorOverride   ("font_outline_color", _colMMLegendOut);
         _lbHeightH.AddThemeColorOverride   ("font_outline_color", _colMMLegendOut);
 
-        _lbFps.Position = new Godot.Vector2I(_offsetH, _offsetT);
+        _lbFps.Position = new Godot.Vector2I(_offsetE, _offsetT);
         _lbFps.Size     = new Godot.Vector2I(_dimMMX, _gradLbFontSize);
         _lbFps.HorizontalAlignment = Godot.HorizontalAlignment.Left;
         _lbFps.VerticalAlignment   = Godot.VerticalAlignment.Top;
         _colFps   = XB.Col.White;
-        _colFps.A = 0.0f;
+        _lbFps.AddThemeFontOverride ("font",       font   );
         _lbFps.AddThemeColorOverride("font_color", _colFps);
 
-        int guideSizeX = 200; //TODO: test
-        int guideSizeY = 100;
-        _imgGuideBG = Godot.Image.Create(guideSizeX, guideSizeY, false, Godot.Image.Format.Rgba8);
+        // centered, symmetrical with fixed distance on right side to sphere BG texture
+        int dimGX = XB.Settings.BaseResX 
+                        - 2*(XB.Settings.BaseResX - spPosition.X + _offsetE + _offsetEGuide);
+        int dimGSegX = (dimGX - (2 + _dimGSegDiv)*_offsetE) / _dimGSegDiv;
+        _imgGuideBG = Godot.Image.Create(dimGX, _dimGY, false, Godot.Image.Format.Rgba8);
         _imgGuideBG.Fill(XB.Col.BG);
         _texGuideBG.SetImage(_imgGuideBG);
-        _trGuideBG.Size        = new Godot.Vector2I(guideSizeX, guideSizeY);
-        _trGuideBG.Position    = new Godot.Vector2I((XB.Settings.BaseResX/2) - (guideSizeX/2),
-                                                    XB.Settings.BaseResY - guideSizeY);
+        _trGuideBG.Size        = new Godot.Vector2I(dimGX, _dimGY);
+        _trGuideBG.Position    = new Godot.Vector2I((XB.Settings.BaseResX/2) - (dimGX/2),
+                                                    XB.Settings.BaseResY - _dimGY - _offsetE);
         _trGuideBG.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
         _trGuideBG.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
         _trGuideBG.Texture     = _texGuideBG;
+
+        _imgGuideName = Godot.Image.Create(_dimGY, _dimSpX, false, Godot.Image.Format.Rgba8);
+        _imgGuideName.Fill(XB.Col.BG);
+        _texGuideName.SetImage(_imgGuideName);
+        _trGuideName.Size        = new Godot.Vector2I(_dimGY, _dimSpX + 2*_offsetE);
+        _trGuideName.Position    = new Godot.Vector2I(3*_offsetE +  _dimSpX,
+                                                      XB.Settings.BaseResY - _dimGY - _offsetE);
+        _trGuideName.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
+        _trGuideName.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
+        _trGuideName.Texture     = _texGuideName;
+        _trGuideName.Rotation    = XB.Constants.PiHalf;
+        _lbGuideName.Position    = new Godot.Vector2I(_dimBord, _dimBord);
+        _lbGuideName.Size        = new Godot.Vector2I(_dimGY, _dimSpX + 2*_offsetE);
+        _lbGuideName.HorizontalAlignment = Godot.HorizontalAlignment.Center;
+        _lbGuideName.VerticalAlignment   = Godot.VerticalAlignment.Center;
+        _lbGuideName.AddThemeFontOverride    ("font",               font                );
+        _lbGuideName.AddThemeFontSizeOverride("font_size",          _guideNameLbFontSize);
+        _lbGuideName.AddThemeConstantOverride("outline_size",       _guideNameLbOutlSize);
+        _lbGuideName.AddThemeColorOverride   ("font_color",         XB.Col.White        );
+        _lbGuideName.AddThemeColorOverride   ("font_outline_color", XB.Col.Black        );
+        _lbGuideName.Text = _guideName;
+
+        // _lbGuide* are children of _trGuide, so position is relative to top left corner of _trGuide
+        for (int i = 0; i < _dimGSegDiv; i++) {
+            _lbGuide[i].Position = new Godot.Vector2I((2+i)*_offsetE + i*dimGSegX, 2*_offsetE);
+            _lbGuide[i].Size     = new Godot.Vector2I(dimGSegX, _dimGY - 2*_dimBord);
+            _lbGuide[i].HorizontalAlignment = Godot.HorizontalAlignment.Left;
+            _lbGuide[i].VerticalAlignment   = Godot.VerticalAlignment.Top;
+            _lbGuide[i].AddThemeFontOverride    ("font",               font               );
+            _lbGuide[i].AddThemeConstantOverride("line_spacing",       _guideLbFontSpacing);
+            _lbGuide[i].AddThemeFontSizeOverride("font_size",          _guideLbFontSize   );
+            _lbGuide[i].AddThemeConstantOverride("outline_size",       _guideLbOutlSize   );
+            _lbGuide[i].AddThemeColorOverride   ("font_color",         XB.Col.White       );
+            _lbGuide[i].AddThemeColorOverride   ("font_outline_color", XB.Col.Black       );
+        }
+        _lbGuide[0].Text = "open menu\naim\nrun\nchange view\ntoggle overlay";
+        _lbGuide[1].Text = "place sphere\nremove sphere\nmove sphere\ntoggle linking";
+        _lbGuide[2].Text = "change radius\nchange angle";
 
         _colCross.A            = _crossAlpha;
         _trCrosshairs.Modulate = _colCross;
@@ -326,8 +388,9 @@ public partial class HUD : Godot.Control {
         _trMiniMapBG.Modulate  = _colMiniMap;
         _blockMultCur          = _blockMult;
         _qtreeMultCur          = _qtreeMult;
-        _colGuide.A            = _guideAlpha;
-        _trGuideBG.Modulate    = _colGuide;
+        _colGuideBG.A          = _guideAlpha;
+        _trGuideBG.Modulate    = _colGuideBG;
+        _trGuideName.Modulate  = _colGuideBG;
 
 #if XBDEBUG
         debug.End();
@@ -594,18 +657,19 @@ public partial class HUD : Godot.Control {
         _trMiniMapBG.Modulate  = _colMiniMap;
         _colMMLegend.A         = XB.Utils.LerpF(_colMMLegend.A,    _miniMapAlpha, _hudSm*dt);
         _colMMLegendOut.A      = XB.Utils.LerpF(_colMMLegendOut.A, _miniMapAlpha, _hudSm*dt);
-        _lbHeightL.AddThemeColorOverride   ("font_color",         _colMMLegend   );
-        _lbHeightH.AddThemeColorOverride   ("font_color",         _colMMLegend   );
-        _lbHeightL.AddThemeColorOverride   ("font_outline_color", _colMMLegendOut);
-        _lbHeightH.AddThemeColorOverride   ("font_outline_color", _colMMLegendOut);
+        _lbHeightL.AddThemeColorOverride("font_color",         _colMMLegend   );
+        _lbHeightH.AddThemeColorOverride("font_color",         _colMMLegend   );
+        _lbHeightL.AddThemeColorOverride("font_outline_color", _colMMLegendOut);
+        _lbHeightH.AddThemeColorOverride("font_outline_color", _colMMLegendOut);
         _blockMultCur          = XB.Utils.LerpF(_blockMultCur, _blockMult, _hudSm*dt); 
         _qtreeMultCur          = XB.Utils.LerpF(_qtreeMultCur, _qtreeMult, _hudSm*dt); 
         XB.ManagerTerrain.UpdateBlockStrength(_blockMultCur);
         XB.ManagerTerrain.UpdateQTreeStrength(_qtreeMultCur);
         _colMiniMapQT.A        = XB.Utils.LerpF(_colMiniMapQT.A, _qtreeMult, _hudSm*dt);
         _trMiniMapQT.Modulate  = _colMiniMapQT;
-        _colGuide.A            = XB.Utils.LerpF(_colGuide.A, _guideAlpha, _hudSm*dt);
-        _trGuideBG.Modulate    = _colGuide;
+        _colGuideBG.A          = XB.Utils.LerpF(_colGuideBG.A, _guideAlpha, _hudSm*dt);
+        _trGuideBG.Modulate    = _colGuideBG;
+        _trGuideName.Modulate    = _colGuideBG;
 
         UpdateMiniMapOverlayTexture();
 
@@ -614,6 +678,31 @@ public partial class HUD : Godot.Control {
                                                  _imgMiniMapQT.GetWidth()/XB.WData.WorldDim.X,
                                                  _rects                                       );
             _texMiniMapQT.Update(_imgMiniMapQT);
+        }
+
+        if (XB.AData.S.SC.ShowGuides) {
+            string guideText = "";
+            if (XB.ManagerSphere.Linking) {
+                guideText += "Linking ";
+                if (XB.ManagerSphere.LinkingID == XB.ManagerSphere.MaxSphereAmount) {
+                } else {
+                    guideText += "LID:";
+                    guideText += XB.ManagerSphere.LinkingID.ToString();
+                    guideText += " ";
+                }
+            } else {
+            }
+            if (XB.ManagerSphere.Highlight) {
+                guideText += "Highlight ";
+            } else {
+            }
+            if (XB.ManagerSphere.NextSphere == 0) {
+                guideText += "No Spheres ";
+            } else if (XB.ManagerSphere.NextSphere == XB.ManagerSphere.MaxSphereAmount+1) { 
+                guideText += "All Spheres Used ";
+            } else {
+                guideText += "Some Spheres Used ";
+            }
         }
 
         _lbFps.Text = Godot.Engine.GetFramesPerSecond().ToString();
