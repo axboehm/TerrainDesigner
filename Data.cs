@@ -53,6 +53,7 @@ public struct Col {
     public static Godot.Color Msg     = new Godot.Color(0.2f, 0.2f, 0.2f, 1.0f);
     public static Godot.Color MsgFade = new Godot.Color(0.1f, 0.1f, 0.1f, 0.0f);
     public static Godot.Color BG      = new Godot.Color(0.0f, 0.0f, 0.0f, 0.34f);
+    public static Godot.Color BGDark  = new Godot.Color(0.0f, 0.0f, 0.0f, 0.64f);
     // sphere colors
     public static Godot.Color SpHl     = new Godot.Color(0.6f, 1.0f, 0.6f, 1.0f);
     public static Godot.Color SpHlLink = new Godot.Color(1.0f, 0.68f, 0.0f, 1.0f);
@@ -431,6 +432,7 @@ public class WData {
 // holds objects that live for the duration of the applications lifetime
 public class AData {
     public static XB.Input                 Input;
+    public static XB.PController           PCtrl;
     public static XB.Settings              S;
     public static Godot.DirectionalLight3D MainLight;
     public static Godot.Environment        Environment;

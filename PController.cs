@@ -33,7 +33,7 @@ public partial class PController : Godot.CharacterBody3D {
     [Godot.Export] private Godot.NodePath       _cameraRotationVNode; // camera's rot ctr vertically
                    private Godot.Node3D         _cCtrV;
     [Godot.Export] private Godot.NodePath       _playerRiggedNode;
-             public static Godot.Node3D         PModel;
+             public static Godot.Node3D         PModel; //TODO[ALEX]: remove static 
     [Godot.Export] private Godot.NodePath       _animationTreeNode;
                    private Godot.AnimationTree  _pATree;
     [Godot.Export] private Godot.NodePath       _gunTipNode;
@@ -54,7 +54,7 @@ public partial class PController : Godot.CharacterBody3D {
                    private const float          _colSm      = 14.0f;
                    private Godot.Color          _colCurrent = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
 
-    private       bool          _thirdP           = true;
+    public        bool          ThirdP            = true;
     private       bool          _canShoot         = false;
     private       bool          _stickyDrag       = false; // for when drag modifying spheres
     private       int           _stickyID         = -1;
@@ -73,10 +73,10 @@ public partial class PController : Godot.CharacterBody3D {
 
     private       XB.AirSt  _plA;               // player's air state
     private       XB.JumpSt _plJ;               // player's jump state
-    private       bool      _plAiming = false;  // is the player aiming
+    public        bool      PlAiming  = false;  // is the player aiming
     private       bool      _plMoved  = false;  // player moved this frame
     private       float     _plYV     = 0.0f;   // player's velocity in y direction
-    private       XB.MoveSt _move     = XB.MoveSt.Walk;
+    public        XB.MoveSt Move      = XB.MoveSt.Walk;
     private       float     _moveSpd  = 0.0f;   // current move speed
     private const float     _walkSpd  = -1.8f;  // speed for walking
     private const float     _runSpd   = -4.2f;  // speed for running
@@ -157,7 +157,7 @@ public partial class PController : Godot.CharacterBody3D {
         Menu    = (XB.Menu)GetNode<Godot.Control>(_menuNode);
         Menu.Hide();
 
-        _thirdP  = true;
+        ThirdP   = true;
         _cDist   = XB.AData.S.SC.CamMaxDist;
         _camZoom = 0.0f;
         _spawn   = false;
@@ -282,34 +282,34 @@ public partial class PController : Godot.CharacterBody3D {
         }
 
         UpdateMovement(dt, ref _plJ, ref _plA, ref _plYV, _plGrav, _maxVertVelo, this,
-                       _respawnOff, ref _move, _jumpStr, ref _moveSpd, _walkSpd, _runSpd, _moveSm,
+                       _respawnOff, ref Move, _jumpStr, ref _moveSpd, _walkSpd, _runSpd, _moveSm,
                        ref _v, ref _vRot, ref _spV, CCtrH, ref _plMoved,
                        ref _tFootStep, _walkAnm, _audFootStep, _audFootStepAmnt                   );
 
-        UpdateCamera(dt, ref _thirdP, Hud, ref _plAiming, ref _aimOff, _cSmooth, _move,
+        UpdateCamera(dt, ref ThirdP, Hud, ref PlAiming, ref _aimOff, _cSmooth, Move,
                      _aimHOff, _aimVOff, ref _mouse, ref CCtrH, ref _rotCtr, ref _toCam,
                      ref _toCamG, _maxVAng, ref _cCtrV, ref _cam, ref _cDist, ref _cOrig, ref _cDir,
                      ref _pOrig, ref _pNrm, ref _rDest, ref _spaceSt, ref _resultRC, ref _camAimHit,
                      ref _rOrig, ref _toCollision, _camCollDist, ref _camZoom, ref _camNewPos,
                      ref _plNewRot, ref _plMoved, ref _plA, ref _vRot, ref PModel                   );
 
-        UpdateAiming(dt, ref _thirdP, ref _canShoot, ref _plAiming, ref _fov, ref _cam, ref _camHit,
+        UpdateAiming(dt, ref ThirdP, ref _canShoot, ref PlAiming, ref _fov, ref _cam, ref _camHit,
                      ref _cOrig, ref _cDir, ref _pOrig, ref _pNrm, ref _gunTip, ref _rOrig,
                      ref _spaceSt, ref _resultRC, ref _gunDir, ref _rDest, ref _stickyDrag,
                      ref _stickyID, ref _cAP, _cSmooth, _aimEmpty                               );
 
-        UpdateSphereInteractions(dt, ref _thirdP, ref _plAiming, ref _rOrig, ref _cam, ref _cOrig,
+        UpdateSphereInteractions(dt, ref ThirdP, ref PlAiming, ref _rOrig, ref _cam, ref _cOrig,
                                  ref _cDir, ref _pOrig, ref _pNrm, ref CCtrH, ref _rDest,
                                  ref _spaceSt, ref _resultRC, _sphere                         );
 
         UpdateAnimations(dt, ref _walkBlend, ref _blMove, ref _plA, _moveSm, ref _plMoved, _walkAnm,
-                         ref _plAiming, ref _blIdle, ref _blWalk, _walkSm, ref _plJ, ref _pATree,
-                         ref _move                                                                  );
+                         ref PlAiming, ref _blIdle, ref _blWalk, _walkSm, ref _plJ, ref _pATree,
+                         ref Move                                                                  );
 
-        UpdatePlayerMaterial(dt, ref _thirdP, ref _colCurrent, _colSm,
+        UpdatePlayerMaterial(dt, ref ThirdP, ref _colCurrent, _colSm,
                              ref _hairMat, ref _lashMat, ref _eyesMat, ref _bodyMat, ref _headMat);
 
-        UpdateInputs(dt, Menu, Hud, ref _camZoom, _camZoomSens, _camZoomMax, ref _thirdP,
+        UpdateInputs(dt, Menu, Hud, ref _camZoom, _camZoomSens, _camZoomMax, ref ThirdP,
                      ref _canShoot, _sphereSpawnDist, ref _stickyDrag, ref _stickyID,
                      ref _camTransThis, ref _camTransPrev, ref _spV, ref _spaceSt, ref _cam, ref CCtrH);
 

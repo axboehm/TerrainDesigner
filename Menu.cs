@@ -353,7 +353,7 @@ public partial class Menu : Godot.Control {
 
             var iAction       = XB.AData.Input.InputActions[_setKeyID];
                 iAction.Event = @event;
-                iAction.Key   = key;
+                iAction.UpdateKey(key);
             Godot.InputMap.ActionEraseEvents(iAction.Name);
             Godot.InputMap.ActionAddEvent(iAction.Name, @event);
 
@@ -498,6 +498,20 @@ public partial class Menu : Godot.Control {
         for (int i = 0; i < XB.Input.Amount; i++) {
             _bCK[i].Text = Tr(XB.AData.Input.InputActions[i].Description) + " - "
                            + XB.AData.Input.InputActions[i].Key;
+            int buttonFontSize = 22; 
+            //NOTE[ALEX]: empirical font size decrease
+            switch (_bCK[i].Text.Length) {
+                case > 50: { buttonFontSize = 14; break; }
+                case > 47: { buttonFontSize = 15; break; }
+                case > 44: { buttonFontSize = 16; break; }
+                case > 41: { buttonFontSize = 17; break; }
+                case > 39: { buttonFontSize = 18; break; }
+                case > 37: { buttonFontSize = 19; break; }
+                case > 34: { buttonFontSize = 20; break; }
+                // jump from 22 to 21 does not add horizontal space
+            }
+            _bCK[i].AddThemeFontSizeOverride("font_size", buttonFontSize);
+            Godot.GD.Print(_bCK[i].Text + " " + _bCK[i].Text.Length + " " + buttonFontSize);
         }
     }
 

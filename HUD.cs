@@ -112,10 +112,13 @@ public partial class HUD : Godot.Control {
     private Godot.Image        _imgGuideName;
     private Godot.ImageTexture _texGuideName;
     private Godot.Label        _lbGuideName;
-    private const string       _guideName = "GUIDE";
+    private const string       _guideName   = "GUIDE";
+    private const string       _guideUnused = "-";
+    private const string       _guideSp     = " - ";
     private Godot.Image        _imgGuideBG;
     private Godot.ImageTexture _texGuideBG;
     private Godot.Label[]      _lbGuide;
+    private string[,]          _guide;
     private const int          _dimGSegDiv = 3; // amount of segments
     private const int          _dimGY      = 128; // works well with five lines of text
     private const int          _guideLbFontSpacing  = 0;
@@ -329,7 +332,7 @@ public partial class HUD : Godot.Control {
                         - 2*(XB.Settings.BaseResX - spPosition.X + _offsetE + _offsetEGuide);
         int dimGSegX = (dimGX - (2 + _dimGSegDiv)*_offsetE) / _dimGSegDiv;
         _imgGuideBG = Godot.Image.Create(dimGX, _dimGY, false, Godot.Image.Format.Rgba8);
-        _imgGuideBG.Fill(XB.Col.BG);
+        _imgGuideBG.Fill(XB.Col.BGDark);
         _texGuideBG.SetImage(_imgGuideBG);
         _trGuideBG.Size        = new Godot.Vector2I(dimGX, _dimGY);
         _trGuideBG.Position    = new Godot.Vector2I((XB.Settings.BaseResX/2) - (dimGX/2),
@@ -372,9 +375,7 @@ public partial class HUD : Godot.Control {
             _lbGuide[i].AddThemeColorOverride   ("font_color",         XB.Col.White       );
             _lbGuide[i].AddThemeColorOverride   ("font_outline_color", XB.Col.Black       );
         }
-        _lbGuide[0].Text = "open menu\naim\nrun\nchange view\ntoggle overlay";
-        _lbGuide[1].Text = "place sphere\nremove sphere\nmove sphere\ntoggle linking";
-        _lbGuide[2].Text = "change radius\nchange angle";
+        _guide = new string[3, 5];
 
         _colCross.A            = _crossAlpha;
         _trCrosshairs.Modulate = _colCross;
@@ -680,36 +681,175 @@ public partial class HUD : Godot.Control {
             _texMiniMapQT.Update(_imgMiniMapQT);
         }
 
-        if (XB.AData.S.SC.ShowGuides) {
-            string guideText = "";
-            if (XB.ManagerSphere.Linking) {
-                guideText += "Linking ";
-                if (XB.ManagerSphere.LinkingID == XB.ManagerSphere.MaxSphereAmount) {
-                } else {
-                    guideText += "LID:";
-                    guideText += XB.ManagerSphere.LinkingID.ToString();
-                    guideText += " ";
-                }
-            } else {
-            }
-            if (XB.ManagerSphere.Highlight) {
-                guideText += "Highlight ";
-            } else {
-            }
-            if (XB.ManagerSphere.NextSphere == 0) {
-                guideText += "No Spheres ";
-            } else if (XB.ManagerSphere.NextSphere == XB.ManagerSphere.MaxSphereAmount+1) { 
-                guideText += "All Spheres Used ";
-            } else {
-                guideText += "Some Spheres Used ";
-            }
-        }
+        if (XB.AData.S.SC.ShowGuides) { UpdateGuides(); }
 
         _lbFps.Text = Godot.Engine.GetFramesPerSecond().ToString();
 
 #if XBDEBUG
         debug.End();
 #endif 
+    }
+
+    // on screen guide has three columns:
+    // 0: menu
+    //    aim
+    //    run
+    //    toggle 1st/3rd
+    //    toggle overlay
+    //
+    // 1: in linking
+    //    place sphere
+    //    remove highlighted sphere
+    //    move highlighted sphere
+    //    enter linking
+    //
+    // 2: linking id
+    //    set linking id / link
+    //    change radius of highlighted sphere
+    //    change angle of highlighted sphere
+    //    unlink
+    private void UpdateGuides() {
+        _guide[0, 0] = Tr("GUIDE_OPENMENU")
+                       + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.Start].Key;
+        if (XB.AData.PCtrl.Move == XB.MoveSt.Walk) {
+            _guide[0, 2] = Tr("GUIDE_RUN")
+                           + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.DUp].Key;
+        } else {
+            _guide[0, 2] = _guideUnused;
+        }
+        if (XB.AData.PCtrl.ThirdP) {
+            _guide[0, 1] = Tr("GUIDE_AIM")
+                           + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.SLBot].Key;
+            _guide[0, 3] = Tr("GUIDE_FIRSTPERSON")
+                           + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.DDown].Key;
+        } else {
+            _guide[0, 1] = _guideUnused;
+            _guide[0, 3] = Tr("GUIDE_THIRDPERSON")
+                           + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.DDown].Key;
+        }
+        _guide[0, 4] = Tr("GUIDE_OVERLAY")
+                           + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.Select].Key;
+
+        if (XB.ManagerSphere.NextSphere == 0) {
+            if (!XB.AData.PCtrl.PlAiming && XB.AData.PCtrl.ThirdP) {
+                _guide[1, 1] = Tr("GUIDE_AIMTOINTERACT");
+            } else {
+                if (XB.ManagerSphere.LinkingID == XB.ManagerSphere.MaxSphereAmount) {
+                    _guide[1, 1] = Tr("GUIDE_SPHEREPLACE")
+                                   + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.SLTop].Key;
+                }
+                else {
+                    _guide[1, 1] = Tr("GUIDE_SPHEREPLACELINK")
+                                   + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.SLTop].Key;
+                }
+            }
+        } else {
+            if (!XB.AData.PCtrl.PlAiming && XB.AData.PCtrl.ThirdP) {
+                _guide[1, 1] = Tr("GUIDE_AIMTOINTERACT");
+            } else {
+                if (XB.ManagerSphere.NextSphere == XB.ManagerSphere.MaxSphereAmount+1) { 
+                    _guide[1, 1] = Tr("GUIDE_SPHERESMAX");
+                } else {
+                    if (XB.ManagerSphere.LinkingID == XB.ManagerSphere.MaxSphereAmount) {
+                        _guide[1, 1] = Tr("GUIDE_SPHEREPLACE")
+                                       + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.SLTop].Key;
+                    } else {
+                        _guide[1, 1] = Tr("GUIDE_SPHEREPLACELINK")
+                                       + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.SLTop].Key;
+                    }
+                }
+            }
+        }
+        if (XB.ManagerSphere.HLSphereID < XB.ManagerSphere.MaxSphereAmount) {
+            _guide[1, 2] = Tr("GUIDE_SPHEREREMOVE")
+                           + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.SRTop].Key;
+            _guide[1, 3] = Tr("GUIDE_SPHEREMOVE")
+                           + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.SRBot].Key;
+            _guide[2, 2] = Tr("GUIDE_SPHERECHNGRADIUS")
+                           + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.DLeft].Key
+                           + "+" + XB.AData.Input.InputActions[(int)XB.KeyID.SRBot].Key;
+            _guide[2, 3] = Tr("GUIDE_SPHERECHNGANGLE")
+                           + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.DRight].Key
+                           + "+" + XB.AData.Input.InputActions[(int)XB.KeyID.SRBot].Key;
+        } else {
+            if (!XB.AData.PCtrl.PlAiming && XB.AData.PCtrl.ThirdP) {
+                _guide[1, 2] = _guideUnused;
+                _guide[1, 3] = _guideUnused;
+                _guide[2, 2] = _guideUnused;
+                _guide[2, 3] = _guideUnused;
+            } else {
+                _guide[1, 2] = Tr("GUIDE_NOHIGHLIGHT");
+                _guide[1, 3] = Tr("GUIDE_NOHIGHLIGHT");
+                _guide[2, 2] = Tr("GUIDE_NOHIGHLIGHT");
+                _guide[2, 3] = Tr("GUIDE_NOHIGHLIGHT");
+            }
+        }
+
+            if (XB.ManagerSphere.Linking) {
+                _guide[2, 1] = Tr("GUIDE_LINKINGSET")
+                               + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.FUp].Key;
+            } else {
+                _guide[2, 1] = _guideUnused;
+            }
+
+        if (XB.ManagerSphere.Linking) {
+            _guide[1, 0] = Tr("GUIDE_INLINKING");
+            _guide[1, 4] = Tr("GUIDE_LINKINGEXIT")
+                           + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.FRight].Key;
+
+            if (XB.ManagerSphere.LinkingID == XB.ManagerSphere.MaxSphereAmount) {
+                _guide[2, 0] = _guideUnused;
+                if (XB.ManagerSphere.HLSphereID < XB.ManagerSphere.MaxSphereAmount) {
+                    _guide[2, 1] = Tr("GUIDE_LINKINGSET")
+                                   + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.FUp].Key;
+                } else {
+                    _guide[2, 1] = _guideUnused;
+                }
+                _guide[2, 4] = _guideUnused;
+            } else if (   XB.ManagerSphere.LinkingID == XB.ManagerSphere.HLSphereID
+                       && XB.ManagerSphere.Spheres[XB.ManagerSphere.LinkingID].Linked) {
+                _guide[2, 0] = Tr("GUIDE_LINKINGID") + " " + XB.ManagerSphere.LinkingID.ToString();
+                _guide[2, 1] = Tr("GUIDE_LINKINGUNSET")
+                               + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.FUp].Key;
+                _guide[2, 4] = Tr("GUIDE_LINKINGUNLINK")
+                               + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.FLeft].Key;
+            } else {
+                _guide[2, 0] = Tr("GUIDE_LINKINGID") + " " + XB.ManagerSphere.LinkingID.ToString();
+                if (XB.ManagerSphere.HLSphereID < XB.ManagerSphere.MaxSphereAmount) {
+                    if (XB.ManagerSphere.HLSphereID != XB.ManagerSphere.LinkingID) {
+                        //NOTE[ALEX]: does not reflect updating linking id
+                        _guide[2, 1] = Tr("GUIDE_LINKINGLINK")
+                                       + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.FUp].Key;
+                    } else {
+                        _guide[2, 1] = Tr("GUIDE_LINKINGUNSET")
+                                       + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.FUp].Key;
+                    }
+                    if (XB.ManagerSphere.Spheres[XB.ManagerSphere.HLSphereID].Linked) {
+                        _guide[2, 4] = Tr("GUIDE_LINKINGUNLINK")
+                                       + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.FLeft].Key;
+                    } else {
+                        _guide[2, 4] = _guideUnused;
+                    }
+                } else {
+                    _guide[2, 1] = Tr("GUIDE_LINKINGUNSET")
+                                   + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.FUp].Key;
+                    _guide[2, 4] = _guideUnused;
+                }
+            }
+        } else {
+            _guide[1, 0] = _guideUnused;
+            _guide[1, 4] = Tr("GUIDE_LINKINGENTER")
+                           + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.FRight].Key;
+            _guide[2, 0] = _guideUnused;
+            _guide[2, 4] = _guideUnused;
+        }
+
+        _lbGuide[0].Text =   _guide[0, 0] + '\n' + _guide[0, 1] + '\n' + _guide[0, 2] + '\n'
+                           + _guide[0, 3] + '\n' + _guide[0, 4];
+        _lbGuide[1].Text =   _guide[1, 0] + '\n' + _guide[1, 1] + '\n' + _guide[1, 2] + '\n'
+                           + _guide[1, 3] + '\n' + _guide[1, 4];
+        _lbGuide[2].Text =   _guide[2, 0] + '\n' + _guide[2, 1] + '\n' + _guide[2, 2] + '\n'
+                           + _guide[2, 3] + '\n' + _guide[2, 4];
     }
 }
 } // namespace close

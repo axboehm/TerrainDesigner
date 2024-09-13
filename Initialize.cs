@@ -47,6 +47,7 @@ public partial class Initialize : Godot.Node3D {
 
         _player.InitializePController();
         _player.InitializeHud();
+        XB.AData.PCtrl = _player;
 
         XB.AData.S.SetPresetSettings(XB.SettingsPreset.Default);
         XB.AData.S.SetApplicationDefaults();

@@ -5,15 +5,17 @@ using SysCG = System.Collections.Generic;
 // all data retaining to the sphere and the cone it represents are dealt with here
 // spheres get created on initialization and never deleted but re-used
 public partial class Sphere : Godot.CharacterBody3D {
-    [Godot.Export] private Godot.NodePath        _sphereMeshNode;
-                   private Godot.MeshInstance3D  _meshInstSphere;
-                   private Godot.ShaderMaterial  _shellMat;
-                   private Godot.ShaderMaterial  _screenMat;
-                   private Godot.ShaderMaterial  _scrGhostMat;
-                   private Godot.MeshInstance3D  _meshInstCone;
-    [Godot.Export] private Godot.AnimationPlayer _animPl;
-                   private Godot.Image           _imgScrolling;
-                   private Godot.ImageTexture    _texScrolling;
+    [Godot.Export] private Godot.NodePath         _sphereMeshNode;
+                   private Godot.MeshInstance3D   _meshInstSphere;
+    [Godot.Export] private Godot.NodePath         _sphereColliderNode;
+                   private Godot.CollisionShape3D _colSphere;
+                   private Godot.ShaderMaterial   _shellMat;
+                   private Godot.ShaderMaterial   _screenMat;
+                   private Godot.ShaderMaterial   _scrGhostMat;
+                   private Godot.MeshInstance3D   _meshInstCone;
+    [Godot.Export] private Godot.AnimationPlayer  _animPl;
+                   private Godot.Image            _imgScrolling;
+                   private Godot.ImageTexture     _texScrolling;
 
     private const int _repeats    = 8;   // how often the id gets repeated in the texture
     private const int _dimScrollX = 128; //NOTE[ALEX]: based on textures created for sphere
@@ -98,7 +100,9 @@ public partial class Sphere : Godot.CharacterBody3D {
         TexSt          = XB.SphereTexSt.Inactive;
         _linkedSpheres = new SysCG.List<XB.Sphere>();
 
-        _meshInstSphere = GetNode<Godot.MeshInstance3D>(_sphereMeshNode);
+        _meshInstSphere = GetNode<Godot.MeshInstance3D>  (_sphereMeshNode);
+        _colSphere      = GetNode<Godot.CollisionShape3D>(_sphereColliderNode);
+        _colSphere.Disabled = true;
 
         _materialCone        = new Godot.ShaderMaterial();
         _materialCone.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.ConeDamShader);
@@ -276,6 +280,7 @@ public partial class Sphere : Godot.CharacterBody3D {
 #endif
 
         Show();
+        _colSphere.Disabled = false;
         GlobalPosition = pos;
         Active         = true;
         XB.ManagerSphere.FindNextAvailableSphere();
@@ -390,6 +395,7 @@ public partial class Sphere : Godot.CharacterBody3D {
         _animPl.Play("expand");
         _animPl.Stop(); // stop animation at beginning of expand animation (contracted state)
         Hide();
+        _colSphere.Disabled = true;
         Active = false;
         XB.ManagerSphere.FindNextAvailableSphere();
         TexSt = XB.SphereTexSt.Inactive;

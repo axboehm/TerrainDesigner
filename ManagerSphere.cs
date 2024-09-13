@@ -317,7 +317,6 @@ public class ManagerSphere {
     public static int  HLSphereID      = MaxSphereAmount;
     public static int  LinkingID       = MaxSphereAmount; // id of sphere to link with
     public static bool Linking         = false;
-    public static bool Highlight       = false; // only used for guide in hud
 
     public  static XB.Sphere[] Spheres = new XB.Sphere[MaxSphereAmount];
     private static SysCG.List<XB.DamSegment> _damSegments;
@@ -358,9 +357,6 @@ public class ManagerSphere {
 
         if (HLSphereID < MaxSphereAmount) { // for sphere under crosshairs
             Spheres[HLSphereID].Highlighted = 1.0f;
-            Highlight = true;
-        } else {
-            Highlight = false;
         }
         if (LinkingID < MaxSphereAmount) {  // for spheres that are linked to
             Spheres[LinkingID].Highlighted  = 1.0f;

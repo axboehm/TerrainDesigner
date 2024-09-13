@@ -9,9 +9,51 @@ public class InputAction {
     public InputAction(string name, string description, string key, Godot.InputEvent iEvent) {
         Name        = name;
         Description = description;
-        Key         = key;
+        UpdateKey(key);
         Event       = iEvent;
     }
+
+    public void UpdateKey(string key) {
+        switch (key) {
+            case "Left Mouse Button":   { Key = "LMB";        break; }
+            case "Middle Mouse Button": { Key = "MMB";        break; }
+            case "Right Mouse Button":  { Key = "RMB";        break; }
+            case "Mouse Wheel Up":      { Key = "Wheel Up";   break; }
+            case "Mouse Wheel Down":    { Key = "Wheel Down"; break; }
+            default:                    { Key = key;          break; }
+        }
+    }
+}
+
+// cast these to find the id of a specific key in Input arrays
+// useful for guide overlay
+public enum KeyID {
+    Start,
+    Select,
+    LUp,
+    LDown,
+    LLeft,
+    LRight,
+    LIn,
+    RUp,
+    RDown,
+    RLeft,
+    RRight,
+    RIn,
+    DUp,
+    DDown,
+    DLeft,
+    DRight,
+    FUp,
+    FDown,
+    FLeft,
+    FRight,
+    SLTop,
+    SLBot,
+    SRTop,
+    SRBot,
+    ZoomIn,
+    ZoomOut,
 }
 
 //NOTE[ALEX]: only one Input exists, that persists throughout the running of the game
@@ -95,7 +137,7 @@ public partial class Input : Godot.Node {
             "INP_SLTOP",
             "INP_SLBOT",
             "INP_SRTOP",
-            "INP_SLBOT",
+            "INP_SRBOT",
             "INP_ZOOMIN",
             "INP_ZOOMOUT",
         };
@@ -135,7 +177,7 @@ public partial class Input : Godot.Node {
         if (Godot.Input.IsActionPressed    ("RRight"))  { CamX   -= 1.0f; }
         if (Godot.Input.IsActionJustPressed("RIn"))     { RIn     = true; }  // unused
         // d pad
-        if (Godot.Input.IsActionJustPressed("DUp"))     { DUp     = true; }  // toggle walk/run
+        if (Godot.Input.IsActionJustPressed("DUp"))     { DUp     = true; }  // run
         if (Godot.Input.IsActionJustPressed("DDown"))   { DDown   = true; }  // toggle 1st/3rd person
         if (Godot.Input.IsActionPressed    ("DLeft"))   { DLeft   = true; }  // sphere radius modifier
         if (Godot.Input.IsActionPressed    ("DRight"))  { DRight  = true; }  // sphere angle modifier
