@@ -1,5 +1,6 @@
 // #define XBSINGLETHREADED
 #define XBDEBUG
+// #define XBPROFILE // for timing FBM generation
 namespace XB { // namespace open
 public enum Direction {
     Up,
@@ -23,9 +24,13 @@ public class Terrain {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainFBM);
 #endif
+#if XBPROFILE
+        var stopWatch = new System.Diagnostics.Stopwatch();
+        stopWatch.Start();
+#endif
 
         // Godot.GD.Print("FBM: " + amountX + ", " + amountZ + ", sizeX: " + sizeX
-        //                + ", sizeZ: " + sizeZ + ", height: " + height + ", scale: " + scale
+        //                + ", sizeZ: " + sizeZ + ", scale: " + scale
         //                + ", off: " + offsetX + ", " + offsetZ + ", octaves: " + octaves
         //                + ", persistence: " + lacunarity + ", exponentation: " + exponentation);
 
@@ -41,9 +46,25 @@ public class Terrain {
             amplitude     *= ampMult;
         }
 
-        //TODO[ALEX]: retime this
-        // non parallel way: 508.2472 - 535.7532
-        // parallel way: 164.9999 (first) 34.0475 - 42.4827 (subsequent)
+        //NOTE[ALEX]: profiled times during test runs (AMD Ryzen 5950X)
+        //            FBM: 2049, 2049, sizeX: 256, sizeZ: 256, scale: 0.0174,
+        //            off: 0.46, 0.33, octaves: 6, persistence: 2.15, exponentation: 5.21
+        //            random seed was changed for re-generation via menu
+        //
+        // successive runs within variance (+- ~100ms of these values)
+        // Single Threaded FBM Creation: 6428.535900ms // startup generation
+        // Single Threaded FBM Creation: 6141.665300ms // generation via menu
+        // Single Threaded FBM Creation: 6148.978400ms // generation via menu
+        // Single Threaded FBM Creation: 6212.752200ms // generation via menu
+        // Single Threaded FBM Creation: 6133.478700ms // generation via menu
+        //
+        // successive runs within variance (+- ~10ms of these values)
+        // Multi Threaded FBM Creation: 560.302700ms // startup generation
+        // Multi Threaded FBM Creation: 368.527900ms // generation via menu
+        // Multi Threaded FBM Creation: 364.526400ms // generation via menu
+        // Multi Threaded FBM Creation: 362.160600ms // generation via menu
+        // Multi Threaded FBM Creation: 347.743700ms // generation via menu
+        //
 #if XBSINGLETHREADED
         float amp     = 1.0f;
         float freq    = 1.0f;
@@ -56,7 +77,7 @@ public class Terrain {
                 total = 0.0f;
                 value = 0.0f;
 
-                for (int o = 0; o < Octaves; o++) {
+                for (int o = 0; o < octaves; o++) {
                     float x = i*xStep + offsetX;
                     float z = j*zStep + offsetZ;
                     value  = XB.Random.ValueNoise2D(x*freq, z*freq);
@@ -72,6 +93,11 @@ public class Terrain {
                 tHeights[i, j] = total;
             }
         }
+
+#if XBPROFILE
+        Godot.GD.Print("Single Threaded FBM Creation: " 
+                       + stopWatch.Elapsed.TotalMilliseconds.ToString("F6") + "ms");
+#endif
 #else
         System.Threading.Tasks.Parallel.For(0, amountX, i => {
             float amp   = 1.0f;
@@ -100,6 +126,11 @@ public class Terrain {
                 tHeights[i, j] = total;
             }
         });
+
+#if XBPROFILE
+        Godot.GD.Print("Multi Threaded FBM Creation: " 
+                       + stopWatch.Elapsed.TotalMilliseconds.ToString("F6") + "ms");
+#endif
 #endif
 
 #if XBDEBUG
