@@ -1,10 +1,15 @@
 shader_type canvas_item;
 
-uniform vec4 colBright : source_color;
-uniform vec4 colDim    : source_color;
+uniform vec4 colInnerBright : source_color;
+uniform vec4 colInnerDim    : source_color;
+uniform vec4 colOutline     : source_color;
 
 uniform float squareRatio = 1.777777778; // 16.0/9.0
 uniform float ringRad     = 0.6;
+uniform float ringThick   = 0.88;
+uniform float ringOutline = 0.05;
+uniform float gradientStr = 1.0;
+uniform float outlineStr  = 0.6;
 
 uniform float alphaMult = 1.0;
 
@@ -40,7 +45,13 @@ void fragment() {
     float maskRing = sdfCircle(uvSq, ctr, ringRad);
           maskRing = 1.0 - abs(maskRing);
           maskRing = pow(maskRing, 36.0);
-          maskRing = clamp(maskRing, 0.0, 1.0);
+    float maskOutline = step(maskRing, ringThick-ringOutline);
+          maskOutline = 1.0 - maskOutline;
+    float maskInner = step(maskRing, ringThick);
+          maskInner = 1.0 - maskInner;
+    float gradient  = UV.y;
+          gradient  = pow(gradient, 3.0);
+          gradient  = clamp(gradient, 0.0, 1.0);
 
     float trapREdge = 0.63;
     float trapRCtr = 0.13;
@@ -52,9 +63,11 @@ void fragment() {
     trapBot = 1.0-abs(trapBot);
     float maskTrap = trapTop+trapBot;
 
-    color = colBright;
+    vec4 colorInner   = mix(colInnerBright, colInnerDim, gradient*gradientStr);
+    vec4 colorOutline = mix(colorInner, colOutline, outlineStr);
+    color = mix(colorOutline, colorInner, maskInner);
 
-    float alpha = maskRing - maskTrap;
+    float alpha = maskOutline - maskTrap;
     color.a = alpha*alphaMult;
 
     COLOR = color;

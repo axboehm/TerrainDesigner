@@ -304,8 +304,6 @@ public class Settings {
         window.Size = Resolutions[SC.Resolution];
         float scale = ((float)Resolutions[SC.Resolution].X) / ((float)Resolutions[_baseResolution].X);
 
-        //TODO[ALEX]: should the mouse multiplier be adjusted in fullscreen?
-        //            test if looking around feels the same or it needs adjustment
         if (SC.FullScreen) {
             window.Mode               = Godot.Window.ModeEnum.Fullscreen;
             XB.AData.PCtrl.Hud.Scale  = new Godot.Vector2(scale, scale);

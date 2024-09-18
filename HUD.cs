@@ -46,6 +46,7 @@ public partial class HUD : Godot.Control {
     private float       _linkingAlpha    = 0.0f;
     private Godot.Color _colLinking      = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
     private float       _miniMapAlpha    = 0.0f;
+    private float       _miniMapLinking  = 0.0f;
     private Godot.Color _colMiniMap      = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
     private float       _blockMultCur    = 1.0f;
     private float       _blockMult       = 0.0f;
@@ -54,6 +55,7 @@ public partial class HUD : Godot.Control {
     private Godot.Color _colMiniMapQT    = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
     private float       _guideAlpha      = 0.0f;
     private Godot.Color _colGuideBG      = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
+    private Godot.Color _colGuideText    = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
 
     private Godot.Rect2I[] _rects = new Godot.Rect2I[XB.Utils.MaxRectSize];
     private int            _rSize = 0; // how many entries in _rects were used by function
@@ -67,7 +69,7 @@ public partial class HUD : Godot.Control {
     private Godot.ImageTexture _texLinking;
 
     private Godot.ShaderMaterial _matLinking;
-    private const float          _linkingRingRadius = 0.6f;
+    private const float          _linkingRingRadius = 0.5f;
 
     private Godot.Image        _imgSpheres;
     private Godot.ImageTexture _texSpheres;
@@ -204,12 +206,13 @@ public partial class HUD : Godot.Control {
         _trLinking.Texture     = _texLinking;
         _matLinking            = new Godot.ShaderMaterial();
         _matLinking.Shader     = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.LinkingShader);
-        _matLinking.SetShaderParameter("colBright",   XB.Col.LinkBri);
-        _matLinking.SetShaderParameter("colDim",      XB.Col.LinkDim);
-        _matLinking.SetShaderParameter("squareRatio", (float)XB.Settings.BaseResX/
-                                                      (float)XB.Settings.BaseResY );
-        _matLinking.SetShaderParameter("ringRad",     _linkingRingRadius);
-        _matLinking.SetShaderParameter("alphaMult",   1.0f);
+        _matLinking.SetShaderParameter("colInnerBright", XB.Col.LinkBri);
+        _matLinking.SetShaderParameter("colInnerDim",    XB.Col.LinkDim);
+        _matLinking.SetShaderParameter("colOutline",     XB.Col.Black);
+        _matLinking.SetShaderParameter("squareRatio",    (float)XB.Settings.BaseResX/
+                                                         (float)XB.Settings.BaseResY );
+        _matLinking.SetShaderParameter("ringRad",        _linkingRingRadius);
+        _matLinking.SetShaderParameter("alphaMult",      1.0f);
         _trLinking.Material    = _matLinking;
 
         float columns = (float)XB.ManagerSphere.MaxSphereAmount/((float)_texMaxY/(float)_dimSp);
@@ -285,6 +288,7 @@ public partial class HUD : Godot.Control {
         _matMiniMapO        = new Godot.ShaderMaterial();
         _matMiniMapO.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.MiniMapOShader);
         _matMiniMapO.SetShaderParameter("plColor",     XB.Col.MPlayer);
+        _matMiniMapO.SetShaderParameter("plColorLink", XB.Col.MPlayerL);
         _matMiniMapO.SetShaderParameter("squareRatio", (float)_dimMMY/(float)_dimMMX);
         _matMiniMapO.SetShaderParameter("halfWidth",   (_playerTriWidth/_dimMMX)/2.0f);
         _matMiniMapO.SetShaderParameter("halfHeight",  (_playerTriHeight/_dimMMY)/2.0f);
@@ -686,6 +690,14 @@ public partial class HUD : Godot.Control {
             _guideAlpha   = 0.0f;
         }
 
+        if (XB.ManagerSphere.Linking) { 
+            _miniMapLinking = 1.0f;
+            _colGuideText   = _colGuideText.Lerp(XB.Col.LinkBri, _hudSm*dt);
+        } else {
+            _miniMapLinking = 0.0f;
+            _colGuideText   = _colGuideText.Lerp(XB.Col.White, _hudSm*dt);
+        }
+
         _colCross.A            = XB.Utils.LerpF(_colCross.A, _crossAlpha, _hudSm*dt);
         _trCrosshairs.Modulate = _colCross;
         _colFps.A              = XB.Utils.LerpF(_colFps.A, _fpsAlpha, _hudSm*dt);
@@ -698,6 +710,7 @@ public partial class HUD : Godot.Control {
         _trMiniMap.Modulate    = _colMiniMap;
         _trMiniMapO.Modulate   = _colMiniMap;
         _matMiniMapO.SetShaderParameter("alphaMult", _miniMapAlpha);
+        _matMiniMapO.SetShaderParameter("linking",   _miniMapLinking);
         _trMiniMapG.Modulate   = _colMiniMap;
         _trMiniMapBG.Modulate  = _colMiniMap;
         _colMMLegend.A         = XB.Utils.LerpF(_colMMLegend.A,    _miniMapAlpha, _hudSm*dt);
@@ -714,7 +727,11 @@ public partial class HUD : Godot.Control {
         _trMiniMapQT.Modulate  = _colMiniMapQT;
         _colGuideBG.A          = XB.Utils.LerpF(_colGuideBG.A, _guideAlpha, _hudSm*dt);
         _trGuideBG.Modulate    = _colGuideBG;
-        _trGuideName.Modulate    = _colGuideBG;
+        _trGuideName.Modulate  = _colGuideBG;
+        for (int i = 0; i < _dimGSegDiv; i++) {
+            _lbGuide[i].AddThemeColorOverride("font_color", _colGuideText);
+        }
+        _lbGuideName.AddThemeColorOverride("font_color", _colGuideText);
 
         UpdateMiniMapOverlayTexture();
 

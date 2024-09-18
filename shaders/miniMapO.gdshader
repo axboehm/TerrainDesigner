@@ -1,6 +1,7 @@
 shader_type canvas_item;
 
-uniform vec4 plColor : source_color;
+uniform vec4 plColor     : source_color;
+uniform vec4 plColorLink : source_color;
 
 uniform float plPosX     = 0.5; // as relative of heightmap texture (ends up halfway up the triangle)
 uniform float plPosZ     = 0.5;
@@ -19,6 +20,7 @@ uniform vec4[64] spCol;
 uniform float spRadius    = 0.1;
 uniform float squareRatio = 1.0;
 
+uniform float linking   = 1.0;
 uniform float alphaMult = 1.0;
 
 // sdf functions based on: https://iquilezles.org/articles/distfunctions2d/
@@ -80,7 +82,8 @@ void fragment() {
         color = mix(color, spCol[i], maskSp);
     }
 
-    color = mix(color, plColor, maskPl);
+    vec4 colorPlayer = mix(plColor, plColorLink, linking);
+    color = mix(color, colorPlayer, maskPl);
     color.a *= alphaMult;
 
     COLOR = color;
