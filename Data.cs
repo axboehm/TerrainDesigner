@@ -36,13 +36,14 @@ public struct Col {
     public static Godot.Color Red     = new Godot.Color(1.0f, 0.0f, 0.0f, 1.0f);
     public static Godot.Color Green   = new Godot.Color(0.0f, 1.0f, 0.0f, 1.0f);
     public static Godot.Color Blue    = new Godot.Color(0.0f, 0.0f, 1.0f, 1.0f);
+    public static Godot.Color Teal    = new Godot.Color(0.0f, 1.0f, 1.0f, 1.0f);
     public static Godot.Color Black   = new Godot.Color(0.0f, 0.0f, 0.0f, 1.0f);
     public static Godot.Color White   = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
     public static Godot.Color Transp  = new Godot.Color(0.0f, 0.0f, 0.0f, 0.0f);
     // terrain colors
     public static Godot.Color Fog     = new Godot.Color(0.686f, 0.871f, 0.878f, 1.0f);
     // UI colors
-    public static Godot.Color MPlayer = new Godot.Color(0.22f, 0.44f, 1.0f, 1.0f);
+    public static Godot.Color MPlayer = new Godot.Color(0.33f, 0.66f, 1.0f, 1.0f);
     public static Godot.Color MSphere = new Godot.Color(0.0f, 0.22f, 1.0f, 1.0f);
     public static Godot.Color Hl      = new Godot.Color(0.6f, 1.0f, 0.6f, 1.0f);
     public static Godot.Color Outline = new Godot.Color(0.0f, 0.0f, 0.0f, 0.6f);

@@ -127,6 +127,7 @@ public partial class HUD : Godot.Control {
     private const int          _guideLbFontSize     = 20;
     private const int          _guideLbOutlSize     = 1;
     private const int          _offsetEGuide        = 8; // distance between sphere BG and guide BG
+    private const int          _guideBordDetThick   = 1; // thickness of guide border detail
 
 
     public void InitializeHud() {
@@ -333,6 +334,7 @@ public partial class HUD : Godot.Control {
         int dimGSegX = (dimGX - (2 + _dimGSegDiv)*_offsetE) / _dimGSegDiv;
         _imgGuideBG = Godot.Image.Create(dimGX, _dimGY, false, Godot.Image.Format.Rgba8);
         _imgGuideBG.Fill(XB.Col.BGDark);
+        DrawBorderDetail(_imgGuideBG, _dimBord, _guideBordDetThick, ref XB.Col.Teal);
         _texGuideBG.SetImage(_imgGuideBG);
         _trGuideBG.Size        = new Godot.Vector2I(dimGX, _dimGY);
         _trGuideBG.Position    = new Godot.Vector2I((XB.Settings.BaseResX/2) - (dimGX/2),
@@ -342,7 +344,8 @@ public partial class HUD : Godot.Control {
         _trGuideBG.Texture     = _texGuideBG;
 
         _imgGuideName = Godot.Image.Create(_dimGY, _dimSpX, false, Godot.Image.Format.Rgba8);
-        _imgGuideName.Fill(XB.Col.BG);
+        _imgGuideName.Fill(XB.Col.BGDark);
+        DrawBorderDetail(_imgGuideName, _dimBord, _guideBordDetThick, ref XB.Col.Teal);
         _texGuideName.SetImage(_imgGuideName);
         _trGuideName.Size        = new Godot.Vector2I(_dimGY, _dimSpX + 2*_offsetE);
         _trGuideName.Position    = new Godot.Vector2I(3*_offsetE +  _dimSpX,
@@ -490,6 +493,48 @@ public partial class HUD : Godot.Control {
 #if XBDEBUG
         debug.End();
 #endif 
+    }
+
+    // draw four rectangles that resemble lines offset from the edges of img
+    //NOTE[ALEX]: does not check if the image is large enough to correctly draw these rectangles
+    private void DrawBorderDetail(Godot.Image img, int offset, int thickness, ref Godot.Color col) {
+        var v2 = new Godot.Vector2I(0, 0);
+        int iW = img.GetWidth();
+        int iH = img.GetHeight();
+
+        // top rectangle
+        v2.X = offset;
+        v2.Y = offset;
+        _rects[0].Position = v2;
+        v2.X = iW - 2*offset;
+        v2.Y = thickness;
+        _rects[0].Size     = v2;
+
+        // bottom rectangle
+        v2.X = offset;
+        v2.Y = iH - offset - thickness;
+        _rects[1].Position = v2;
+        v2.X = iW - 2*offset;
+        v2.Y = thickness;
+        _rects[1].Size     = v2;
+
+        // left rectangle
+        v2.X = offset;
+        v2.Y = offset;
+        _rects[2].Position = v2;
+        v2.X = thickness;
+        v2.Y = iH - 2*offset;
+        _rects[2].Size     = v2;
+
+        // right rectangle
+        v2.X = iW - offset - thickness;
+        v2.Y = offset;
+        _rects[3].Position = v2;
+        v2.X = thickness;
+        v2.Y = iH - 2*offset;
+        _rects[3].Size     = v2;
+
+        XB.Utils.FillRectanglesInImage(img, _rects, 4, ref col);
     }
 
     public void UpdateSphereTexture(int id, XB.SphereTexSt state) {
