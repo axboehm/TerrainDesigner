@@ -22,13 +22,14 @@ public struct LayerMasks {                //24--20--16--12--8---4---
 }
 
 public struct Constants {
-    public const float Tau     = 6.28318530718f;
-    public const float Pi      = 3.14159265359f;
-    public const float PiHalf  = 1.57079632679f;
-    public const float Sqrt2   = 1.41421356237f;
-    public const float Deg2Rad = 0.01745329251f;
-    public const float Rad2Deg = 57.2957795131f;
-    public const float Epsilon = 0.01f; // for floating point comparisons (empiric)
+    public const float  Tau     = 6.28318530718f;
+    public const float  Pi      = 3.14159265359f;
+    public const float  PiHalf  = 1.57079632679f;
+    public const float  Sqrt2   = 1.41421356237f;
+    public const float  Deg2Rad = 0.01745329251f;
+    public const float  Rad2Deg = 57.2957795131f;
+    public const float  Epsilon = 0.01f; // for floating point comparisons (empiric)
+    public const string HeightFormat = "F2"; // for diplay of low and high points of terrain
 }
 
 //NOTE[ALEX]: struct name intentionally kept short
@@ -344,6 +345,7 @@ public class WData {
 
         XB.Terrain.UpdateHeightMap(TerrainHeights, LowestPoint, HighestPoint, ImgMiniMap);
         XB.AData.PCtrl.Hud.UpdateMiniMap(LowestPoint, HighestPoint);
+        XB.AData.PCtrl.Menu.UpdatePauseMiniMap(LowestPoint, HighestPoint);
 
         XB.Terrain.BakePointiness(TerrainHeights, WorldVerts.X, WorldVerts.Y, ImgPointiness);
         TexPointiness.Update(ImgPointiness);

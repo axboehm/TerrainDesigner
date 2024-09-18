@@ -32,10 +32,13 @@ public partial class Menu : Godot.Control {
     private const int _tCon    = 2;
 
     // pause tab
-    [Godot.Export] private Godot.Button _bQuit;
-    [Godot.Export] private Godot.Button _bGenerate;
-    [Godot.Export] private Godot.Button _bApplySpheres;
-    [Godot.Export] private Godot.Button _bClearSpheres;
+    [Godot.Export] private Godot.Button      _bQuit;
+    [Godot.Export] private Godot.Button      _bGenerate;
+    [Godot.Export] private Godot.Button      _bApplySpheres;
+    [Godot.Export] private Godot.Button      _bClearSpheres;
+    [Godot.Export] private Godot.TextureRect _trPauseMap;
+    [Godot.Export] private Godot.Label       _lbPauseLow;
+    [Godot.Export] private Godot.Label       _lbPauseHigh;
 
     // system tab
     [Godot.Export] private Godot.TabContainer _tabSys;
@@ -150,10 +153,13 @@ public partial class Menu : Godot.Control {
         _bResume.Pressed   += ButtonResumeOnPressed;
 
         // pause tab
-        _bQuit.Pressed         += ButtonPopupQuitOnPressed;
-        _bGenerate.Pressed     += ButtonGenerateTerrainOnPressed;
-        _bApplySpheres.Pressed += ButtonPopupApplySpheresOnPressed;
-        _bClearSpheres.Pressed += ButtonClearSpheresOnPressed;
+        _bQuit.Pressed          += ButtonPopupQuitOnPressed;
+        _bGenerate.Pressed      += ButtonGenerateTerrainOnPressed;
+        _bApplySpheres.Pressed  += ButtonPopupApplySpheresOnPressed;
+        _bClearSpheres.Pressed  += ButtonClearSpheresOnPressed;
+        _trPauseMap.Texture      = XB.AData.PCtrl.Hud.TexMiniMap;
+        _trPauseMap.ExpandMode   = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
+        _trPauseMap.StretchMode  = Godot.TextureRect.StretchModeEnum.Scale;
 
         // system tab
         _bApplyCode.Pressed    += ButtonApplyCodeOnPressed;
@@ -480,6 +486,12 @@ public partial class Menu : Godot.Control {
 
     private void UpdatePauseTab() {
         _lbTab.Text = Tr("TAB_PAUSE");
+    }
+
+    public void UpdatePauseMiniMap(float low, float high) {
+        //NOTE[ALEX]: the minimap texture itself gets updated in HUD.UpdateMiniMap
+        _lbPauseLow.Text  = low.ToString (XB.Constants.HeightFormat) + "m";
+        _lbPauseHigh.Text = high.ToString(XB.Constants.HeightFormat) + "m";
     }
 
     private void UpdateTabNames() {

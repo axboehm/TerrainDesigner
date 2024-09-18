@@ -101,7 +101,6 @@ public partial class HUD : Godot.Control {
     private const float        _playerTriWidth  = 6.0f;
     private const float        _playerTriHeight = 10.0f;
     private const float        _sphereCirRadius = 2.0f;
-    private const string       _heightFormat    = "F2";
     private const int          _gradLbFontSize  = 16;
     private const int          _gradLbOutlSize  = 2;
 
@@ -409,8 +408,8 @@ public partial class HUD : Godot.Control {
         TexMiniMap.SetImage(XB.WData.ImgMiniMap); // required because the heightmap gets created
                                                   // after hud gets initialized
         TexMiniMap.Update(XB.WData.ImgMiniMap);
-        _lbHeightL.Text = low.ToString (_heightFormat) + "m";
-        _lbHeightH.Text = high.ToString(_heightFormat) + "m";
+        _lbHeightL.Text = low.ToString (XB.Constants.HeightFormat) + "m";
+        _lbHeightH.Text = high.ToString(XB.Constants.HeightFormat) + "m";
 
 #if XBDEBUG
         debug.End();
