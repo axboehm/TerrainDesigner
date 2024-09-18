@@ -29,19 +29,19 @@ public partial class PController : Godot.CharacterBody3D {
     [Godot.Export] private Godot.NodePath       _cameraNode;
                    private Godot.Camera3D       _cam;                 // camera object
     [Godot.Export] private Godot.NodePath       _cameraRotationHNode; // camera's rot ctr horizontally
-             public static Godot.Node3D         CCtrH;
+                   public  Godot.Node3D         CCtrH;
     [Godot.Export] private Godot.NodePath       _cameraRotationVNode; // camera's rot ctr vertically
                    private Godot.Node3D         _cCtrV;
     [Godot.Export] private Godot.NodePath       _playerRiggedNode;
-             public static Godot.Node3D         PModel; //TODO[ALEX]: remove static 
+                   public  Godot.Node3D         PModel;
     [Godot.Export] private Godot.NodePath       _animationTreeNode;
                    private Godot.AnimationTree  _pATree;
     [Godot.Export] private Godot.NodePath       _gunTipNode;
                    private Godot.Node3D         _gunTip;    // reference point for camera ray casting
     [Godot.Export] private Godot.NodePath       _hudNode;
-             public static XB.HUD               Hud;
+                   public  XB.HUD               Hud;
     [Godot.Export] private Godot.NodePath       _menuNode;
-             public static XB.Menu              Menu;
+                   public  XB.Menu              Menu;
     [Godot.Export] private Godot.NodePath       _hairNode;
                    private Godot.BaseMaterial3D _hairMat;
     [Godot.Export] private Godot.NodePath       _lashNode;

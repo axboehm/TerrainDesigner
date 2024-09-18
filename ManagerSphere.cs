@@ -374,7 +374,7 @@ public class ManagerSphere {
 
         if (HLSphereID == newHLSphereID) { return; }
 
-        XB.PController.Hud.UpdateSphereTextureHighlight(HLSphereID, newHLSphereID);
+        XB.AData.PCtrl.Hud.UpdateSphereTextureHighlight(HLSphereID, newHLSphereID);
         HLSphereID = newHLSphereID;
 
 #if XBDEBUG
@@ -525,12 +525,10 @@ public class ManagerSphere {
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereApplyTerrain);
 #endif
 
-            Godot.GD.Print("testkkPre");
         for (int i = 0; i < MaxSphereAmount; i++) {
             if (!Spheres[i].Active) { continue; }
 
             XB.WData.ApplySphereCone(Spheres[i].GlobalPosition, Spheres[i].Radius, Spheres[i].Angle);
-            XB.PController.Menu.ShowMessage("testpost"); //TODO[ALEX]: this does not show up when I want it to
         }
         for (int i = 0; i < _damSegments.Count; i++) {
             if (!_damSegments[i].InUse) { continue; }
@@ -590,7 +588,7 @@ public class ManagerSphere {
             return false; 
         }
 
-        XB.PController.Hud.UpdateSphereTextureHighlight(HLSphereID, NextSphere);
+        XB.AData.PCtrl.Hud.UpdateSphereTextureHighlight(HLSphereID, NextSphere);
         HLSphereID = NextSphere; // so that linking immediately works
         Spheres[NextSphere].PlaceSphere(ref pos);
         if (Linking && LinkingID < MaxSphereAmount) { LinkSpheres(); }

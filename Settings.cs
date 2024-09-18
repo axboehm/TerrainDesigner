@@ -308,14 +308,14 @@ public class Settings {
         //            test if looking around feels the same or it needs adjustment
         if (SC.FullScreen) {
             window.Mode               = Godot.Window.ModeEnum.Fullscreen;
-            XB.PController.Hud.Scale  = new Godot.Vector2(scale, scale);
-            XB.PController.Menu.Scale = new Godot.Vector2(scale, scale);
+            XB.AData.PCtrl.Hud.Scale  = new Godot.Vector2(scale, scale);
+            XB.AData.PCtrl.Menu.Scale = new Godot.Vector2(scale, scale);
             window.ContentScaleFactor = 1.0f/scale;
             window.ContentScaleMode   = Godot.Window.ContentScaleModeEnum.Viewport;
         } else {
             window.Mode               = Godot.Window.ModeEnum.Windowed;
-            XB.PController.Hud.Scale  = new Godot.Vector2(1.0f, 1.0f);
-            XB.PController.Menu.Scale = new Godot.Vector2(1.0f, 1.0f);
+            XB.AData.PCtrl.Hud.Scale  = new Godot.Vector2(1.0f, 1.0f);
+            XB.AData.PCtrl.Menu.Scale = new Godot.Vector2(1.0f, 1.0f);
             window.ContentScaleFactor = scale;
             window.ContentScaleMode   = Godot.Window.ContentScaleModeEnum.Disabled;
         }
@@ -331,7 +331,7 @@ public class Settings {
         SC.ShowGuides = showGuides;
         SC.BlockGrid  = blockGrid;
         SC.QTreeVis   = qTreeVis;
-        XB.PController.Hud.UpdateHUDElementVisibility(SC.ShowFps, SC.ShowGuides,
+        XB.AData.PCtrl.Hud.UpdateHUDElementVisibility(SC.ShowFps, SC.ShowGuides,
                                                       SC.BlockGrid, SC.QTreeVis);
     }
 

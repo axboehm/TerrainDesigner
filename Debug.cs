@@ -176,9 +176,12 @@ public partial class DebugHUD : Godot.Control {
         }
 
         // player position
-        string plPos  = "X: " + (-XB.PController.PModel.GlobalPosition.X).ToString(_playerPosFormat) + '\n';
-               plPos += "Y: " + XB.PController.PModel.GlobalPosition.Y.ToString(_playerPosFormat) + '\n';
-               plPos += "Z: " + (-XB.PController.PModel.GlobalPosition.Z).ToString(_playerPosFormat) + '\n';
+        string plPos  = "X: " + (-XB.AData.PCtrl.PModel.GlobalPosition.X).ToString(_playerPosFormat)
+                              + '\n';
+               plPos += "Y: " + XB.AData.PCtrl.PModel.GlobalPosition.Y.ToString(_playerPosFormat)
+                              + '\n';
+               plPos += "Z: " + (-XB.AData.PCtrl.PModel.GlobalPosition.Z).ToString(_playerPosFormat)
+                              + '\n';
         _lbPlayerPos.Text = plPos;
 
         _texBlueNoise.Update(XB.Random.BlueNoise);

@@ -627,7 +627,7 @@ public class MeshContainer {
         MaterialTile.SetShaderParameter("uv3Scale",    WData.Mat3UVScale);
         MaterialTile.SetShaderParameter("uv4Scale",    WData.Mat4UVScale);
         MaterialTile.SetShaderParameter("noisePScale", WData.NoisePScale);
-        MaterialTile.SetShaderParameter("tHeight",     XB.PController.Hud.TexMiniMap);
+        MaterialTile.SetShaderParameter("tHeight",     XB.AData.PCtrl.Hud.TexMiniMap);
         MaterialTile.SetShaderParameter("tPointy",     XB.WData.TexPointiness);
 
 #if XBDEBUG

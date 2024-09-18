@@ -606,10 +606,10 @@ public partial class HUD : Godot.Control {
         //            world has z+ going forward and x+ going left,
         //            so 0|0 in world coordinates is 0|0 in world coordinates
         //            but the axes of the terrain in world space go in negative direction
-        float posX = -XB.PController.PModel.GlobalPosition.X/XB.WData.WorldDim.X;
-        float posZ = -XB.PController.PModel.GlobalPosition.Z/XB.WData.WorldDim.Y;
-        float xDir = XB.PController.CCtrH.GlobalTransform.Basis.Z.X; // X coordinate of Z basis vector
-        float zDir = XB.PController.CCtrH.GlobalTransform.Basis.Z.Z;
+        float posX = -XB.AData.PCtrl.PModel.GlobalPosition.X/XB.WData.WorldDim.X;
+        float posZ = -XB.AData.PCtrl.PModel.GlobalPosition.Z/XB.WData.WorldDim.Y;
+        float xDir = +XB.AData.PCtrl.CCtrH.GlobalTransform.Basis.Z.X; // X coordinate of Z basis vector
+        float zDir = +XB.AData.PCtrl.CCtrH.GlobalTransform.Basis.Z.Z;
 
         _matMiniMapO.SetShaderParameter("plPosX", posX);
         _matMiniMapO.SetShaderParameter("plPosZ", posZ);

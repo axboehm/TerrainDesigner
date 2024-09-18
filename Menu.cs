@@ -95,6 +95,11 @@ public partial class Menu : Godot.Control {
                    private bool           _mouseRelease = false;
                    private int            _setKeyID     = 0;
 
+    // popup apply spheres
+    [Godot.Export] private Godot.Control _ctrlPopupA;
+    [Godot.Export] private Godot.Button  _bPopAppSpCancel;
+    [Godot.Export] private Godot.Button  _bPopAppSp;
+
     // popup quit
     [Godot.Export] private Godot.Control _ctrlPopupQ;
     [Godot.Export] private Godot.Button  _bPopQuitCancel;
@@ -147,7 +152,7 @@ public partial class Menu : Godot.Control {
         // pause tab
         _bQuit.Pressed         += ButtonPopupQuitOnPressed;
         _bGenerate.Pressed     += ButtonGenerateTerrainOnPressed;
-        _bApplySpheres.Pressed += ButtonApplySpheresOnPressed;
+        _bApplySpheres.Pressed += ButtonPopupApplySpheresOnPressed;
         _bClearSpheres.Pressed += ButtonClearSpheresOnPressed;
 
         // system tab
@@ -257,6 +262,11 @@ public partial class Menu : Godot.Control {
         _bCK[23].Pressed     += ButtonCK23OnPressed;
         _bDefaultsCK.Pressed += ButtonDefaultsCKOnPressed;
         _chngMsg.Visible      = false;
+
+        // popup apply spheres
+        _bPopAppSpCancel.Pressed += ButtonPopupCancelOnPressed;
+        _bPopAppSp.Pressed       += ButtonApplySpheresOnPressed;
+        _ctrlPopupA.Hide();
 
         // popup quit
         _bPopQuitCancel.Pressed += ButtonPopupCancelOnPressed;
@@ -551,6 +561,7 @@ public partial class Menu : Godot.Control {
         Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Captured;
         GetTree().Paused      = false;
         Hide();
+        _ctrlPopupA.Hide();
         _ctrlPopupG.Hide();
         _ctrlPopupQ.Hide();
         _menuType = XB.MenuType.None;
@@ -665,8 +676,14 @@ public partial class Menu : Godot.Control {
 
     private void ButtonPopupCancelOnPressed() {
         XB.Utils.PlayUISound(XB.ResourcePaths.ButtonAudio);
+        _ctrlPopupA.Hide();
         _ctrlPopupQ.Hide();
         _ctrlPopupG.Hide();
+    }
+
+    private void ButtonPopupApplySpheresOnPressed() {
+        XB.Utils.PlayUISound(XB.ResourcePaths.ButtonAudio);
+        _ctrlPopupA.Show();
     }
 
     private void ButtonPopupQuitOnPressed() {

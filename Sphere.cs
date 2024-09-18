@@ -285,7 +285,7 @@ public partial class Sphere : Godot.CharacterBody3D {
         Active         = true;
         XB.ManagerSphere.FindNextAvailableSphere();
         TexSt = XB.SphereTexSt.Active;
-        XB.PController.Hud.UpdateSphereTexture(ID, TexSt);
+        XB.AData.PCtrl.Hud.UpdateSphereTexture(ID, TexSt);
         UpdateConeMesh();
 
 #if XBDEBUG
@@ -300,10 +300,10 @@ public partial class Sphere : Godot.CharacterBody3D {
 #endif
 
         TexSt = XB.SphereTexSt.ActiveLinking;
-        XB.PController.Hud.UpdateSphereTexture(ID, TexSt);
+        XB.AData.PCtrl.Hud.UpdateSphereTexture(ID, TexSt);
         foreach (XB.Sphere lS in _linkedSpheres) {
             lS.TexSt = XB.SphereTexSt.ActiveLinked;
-            XB.PController.Hud.UpdateSphereTexture(lS.ID, lS.TexSt);
+            XB.AData.PCtrl.Hud.UpdateSphereTexture(lS.ID, lS.TexSt);
         }    
 
 #if XBDEBUG
@@ -318,10 +318,10 @@ public partial class Sphere : Godot.CharacterBody3D {
 #endif
 
         TexSt = XB.SphereTexSt.Active;
-        XB.PController.Hud.UpdateSphereTexture(ID, TexSt);
+        XB.AData.PCtrl.Hud.UpdateSphereTexture(ID, TexSt);
         foreach (XB.Sphere lS in _linkedSpheres) {
             lS.TexSt = XB.SphereTexSt.Active;
-            XB.PController.Hud.UpdateSphereTexture(lS.ID, lS.TexSt);
+            XB.AData.PCtrl.Hud.UpdateSphereTexture(lS.ID, lS.TexSt);
         }    
 
 #if XBDEBUG
@@ -353,7 +353,7 @@ public partial class Sphere : Godot.CharacterBody3D {
 
         _linkedSpheres.Remove(sphereUnlinkFrom);
         TexSt = XB.SphereTexSt.Active;
-        XB.PController.Hud.UpdateSphereTexture(ID, TexSt);
+        XB.AData.PCtrl.Hud.UpdateSphereTexture(ID, TexSt);
 
         if (_linkedSpheres.Count == 0) {
             if (Linked && _animPl.CurrentAnimation != "contract") { _animPl.Play("contract"); }
@@ -399,7 +399,7 @@ public partial class Sphere : Godot.CharacterBody3D {
         Active = false;
         XB.ManagerSphere.FindNextAvailableSphere();
         TexSt = XB.SphereTexSt.Inactive;
-        XB.PController.Hud.UpdateSphereTexture(ID, TexSt);
+        XB.AData.PCtrl.Hud.UpdateSphereTexture(ID, TexSt);
         if (ID == XB.ManagerSphere.LinkingID) { 
             XB.ManagerSphere.LinkingID = XB.ManagerSphere.MaxSphereAmount; 
         }

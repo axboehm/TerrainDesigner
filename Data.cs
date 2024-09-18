@@ -343,7 +343,7 @@ public class WData {
 #endif
 
         XB.Terrain.UpdateHeightMap(TerrainHeights, LowestPoint, HighestPoint, ImgMiniMap);
-        XB.PController.Hud.UpdateMiniMap(LowestPoint, HighestPoint);
+        XB.AData.PCtrl.Hud.UpdateMiniMap(LowestPoint, HighestPoint);
 
         XB.Terrain.BakePointiness(TerrainHeights, WorldVerts.X, WorldVerts.Y, ImgPointiness);
         TexPointiness.Update(ImgPointiness);
