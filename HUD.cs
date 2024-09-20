@@ -253,7 +253,7 @@ public partial class HUD : Godot.Control {
         int dimMMBGX  = _dimMMX + 2*_offsetE;
         int dimMMBGY  = _dimMMY + 2*_offsetE + 3*_dimMMSp + _dimMMGY + _gradLbFontSize;
         _imgMiniMapBG = Godot.Image.Create(dimMMBGX, dimMMBGY, false, Godot.Image.Format.Rgba8);
-        _imgMiniMapBG.Fill(XB.Col.BG);
+        _imgMiniMapBG.Fill(XB.Col.BGDark);
         var miniMapPosition = new Godot.Vector2I(2*_offsetE, XB.Settings.BaseResY/2 - dimMMBGY/2);
         _trMiniMap.Position      = miniMapPosition;
         _trMiniMapQT.Position    = miniMapPosition;

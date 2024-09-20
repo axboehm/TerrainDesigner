@@ -629,6 +629,9 @@ public class MeshContainer {
         MaterialTile.SetShaderParameter("noisePScale", WData.NoisePScale);
         MaterialTile.SetShaderParameter("tHeight",     XB.AData.PCtrl.Hud.TexMiniMap);
         MaterialTile.SetShaderParameter("tPointy",     XB.WData.TexPointiness);
+        MaterialTile.SetShaderParameter("axisBlendSharpen", XB.WData.AxisBlSharpen);
+        MaterialTile.SetShaderParameter("axisBlendWidth",   XB.WData.AxisBlWidth);
+        MaterialTile.SetShaderParameter("axisBlendDepth",   XB.WData.AxisBlDepth);
 
 #if XBDEBUG
         debug.End();

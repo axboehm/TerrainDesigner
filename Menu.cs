@@ -490,8 +490,10 @@ public partial class Menu : Godot.Control {
 
     public void UpdatePauseMiniMap(float low, float high) {
         //NOTE[ALEX]: the minimap texture itself gets updated in HUD.UpdateMiniMap
-        _lbPauseLow.Text  = low.ToString (XB.Constants.HeightFormat) + "m";
-        _lbPauseHigh.Text = high.ToString(XB.Constants.HeightFormat) + "m";
+        _lbPauseLow.Text  =   Tr("MMLEGEND_LOW") + ": "
+                            + low.ToString(XB.Constants.HeightFormat) + "m";
+        _lbPauseHigh.Text =   Tr("MMLEGEND_HIGH") + ": "
+                            + high.ToString(XB.Constants.HeightFormat) + "m";
     }
 
     private void UpdateTabNames() {
@@ -533,7 +535,7 @@ public partial class Menu : Godot.Control {
                 // jump from 22 to 21 does not add horizontal space
             }
             _bCK[i].AddThemeFontSizeOverride("font_size", buttonFontSize);
-            Godot.GD.Print(_bCK[i].Text + " " + _bCK[i].Text.Length + " " + buttonFontSize);
+            // Godot.GD.Print(_bCK[i].Text + " " + _bCK[i].Text.Length + " " + buttonFontSize);
         }
     }
 
@@ -549,7 +551,7 @@ public partial class Menu : Godot.Control {
                                       _lbLOD, _slLOD,
                                       _obSSAO, _cbSSAOHalf,
                                       _obSSIL, _cbSSILHalf,
-                                      _cbSSR, _slVolume, _lbVolume, _obLanguage  );
+                                      _cbSSR, _slVolume, _lbVolume, _obLanguage       );
     }
 
     private void UpdateSettingsSliders() {
