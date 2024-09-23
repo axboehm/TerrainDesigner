@@ -73,6 +73,9 @@ public struct Col {
 }
 
 public struct ResourcePaths {
+    public static string Startup0Tex      = "res://assets/ui/startup0.png";
+    public static string Startup1Tex      = "res://assets/ui/startup1.png";
+    public static string Startup2Tex      = "res://assets/ui/startup2.png";
     public static string Player           = "res://assets/player/playerController.tscn";
     public static string FootStep01       = "res://assets/audio/footStep01.tscn";
     public static string FootStep02       = "res://assets/audio/footStep02.tscn";

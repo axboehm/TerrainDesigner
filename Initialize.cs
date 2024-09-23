@@ -32,7 +32,6 @@ public partial class Initialize : Godot.Node3D {
         XB.Resources.InitializeSphereTextures();
 
         Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Captured;
-        GetTree().Paused = false;
     }
 
     // after all children are ready, so all objects that are placed, so the player, lights, etc.
@@ -66,6 +65,7 @@ public partial class Initialize : Godot.Node3D {
         //            uses the incorrect location for distance calculations, consider this when
         //            debugging
         _player.SpawnPlayer(new Godot.Vector2(-XB.WData.WorldDim.X/2.0f, -XB.WData.WorldDim.Y/2.0f));
+        _player.Menu.ShowStartupScreen();
 
 #if XBDEBUG
         _player.InitializeDebugHud();

@@ -134,6 +134,8 @@ public partial class PController : Godot.CharacterBody3D {
     private Godot.Collections.Dictionary   _resultRC = new Godot.Collections.Dictionary();
     private Godot.CameraAttributesPhysical _cAP;
     private XB.Sphere _sphere;
+    private Godot.Transform3D _cctrhStartupTransform = new Godot.Transform3D(); // for resetting view
+    private Godot.Transform3D _cctrvStartupTransform = new Godot.Transform3D(); // for resetting view
 #if XBDEBUG
     public XB.DebugHUD DebugHud;
 #endif
@@ -214,6 +216,9 @@ public partial class PController : Godot.CharacterBody3D {
             _audFootStep[i] = (Godot.AudioStreamPlayer3D)footStepScn.Instantiate();
             AddChild(_audFootStep[i]);
         }
+
+        _cctrhStartupTransform = CCtrH.GlobalTransform;
+        _cctrvStartupTransform = _cCtrV.GlobalTransform;
 
 #if XBDEBUG
         debug.End();
@@ -980,6 +985,11 @@ public partial class PController : Godot.CharacterBody3D {
 #if XBDEBUG
         debug.End();
 #endif 
+    }
+
+    public void ResetView() {
+        CCtrH.GlobalTransform  = _cctrhStartupTransform;
+        _cCtrV.GlobalTransform = _cctrvStartupTransform;
     }
 
     public void RequestSpaceState(ref Godot.PhysicsDirectSpaceState3D spaceSt) {

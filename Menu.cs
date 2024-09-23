@@ -20,6 +20,7 @@ public partial class Menu : Godot.Control {
                    private float              _t          = 0.0f;
                    private float              _msgDur     = 2.0f; // in seconds
     [Godot.Export] private Godot.Button       _bResume;
+                   private bool               _inStartupScreen = false;
 
     // tab numbers
     private const int _tPau    = 0;
@@ -30,6 +31,15 @@ public partial class Menu : Godot.Control {
     private const int _tSysAud = 3;
     private const int _tSysLan = 4;
     private const int _tCon    = 2;
+
+    // startup popup
+    [Godot.Export] private Godot.Control     _ctrlPopupS;
+    [Godot.Export] private Godot.TextureRect _trStartup0;
+    [Godot.Export] private Godot.TextureRect _trStartup1;
+    [Godot.Export] private Godot.TextureRect _trStartup2;
+    [Godot.Export] private Godot.Label       _lbStartup0;
+    [Godot.Export] private Godot.Label       _lbStartup1;
+    [Godot.Export] private Godot.Label       _lbStartup2;
 
     // pause tab
     [Godot.Export] private Godot.Button      _bQuit;
@@ -151,6 +161,12 @@ public partial class Menu : Godot.Control {
         _tabPrev            = _tabCont.CurrentTab;
         _crMsg.Visible      = false;
         _bResume.Pressed   += ButtonResumeOnPressed;
+
+        // startup popup
+        _ctrlPopupS.Hide();
+        _trStartup0.Texture = Godot.ResourceLoader.Load<Godot.Texture2D>(XB.ResourcePaths.Startup0Tex);
+        _trStartup1.Texture = Godot.ResourceLoader.Load<Godot.Texture2D>(XB.ResourcePaths.Startup1Tex);
+        _trStartup2.Texture = Godot.ResourceLoader.Load<Godot.Texture2D>(XB.ResourcePaths.Startup2Tex);
 
         // pause tab
         _bQuit.Pressed          += ButtonPopupQuitOnPressed;
@@ -331,6 +347,15 @@ public partial class Menu : Godot.Control {
 
     // handling input before any other node to reassign controls
     public override void _Input(Godot.InputEvent @event) {
+        if (_inStartupScreen && @event is not Godot.InputEventMouseMotion) {
+            _inStartupScreen = false;
+            Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Captured;
+            _player.ResetView();
+            _ctrlPopupS.Hide();
+            Hide();
+            _menuType = XB.MenuType.None;
+        }
+
         if (_tabCont.CurrentTab != _tCon || !_setKey) { return; }
 
         if        (!_mouseRelease && @event is Godot.InputEventMouseButton) {
@@ -462,6 +487,15 @@ public partial class Menu : Godot.Control {
         }
     }
 
+    // application is not paused in startup screen -> terrain updates happen in background
+    // when the startup screen is dismissed, the player's camera is reset (called in _Input)
+    public void ShowStartupScreen() {
+        _inStartupScreen = true;
+        Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Visible;
+        Show();
+        _ctrlPopupS.Show();
+    }
+
     public void OpenMenu() {
         XB.AData.Input.ConsumeInputStart();
         _menuType   = XB.MenuType.Pause;
@@ -575,6 +609,7 @@ public partial class Menu : Godot.Control {
         Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Captured;
         GetTree().Paused      = false;
         Hide();
+        _ctrlPopupS.Hide();
         _ctrlPopupA.Hide();
         _ctrlPopupG.Hide();
         _ctrlPopupQ.Hide();
@@ -690,6 +725,7 @@ public partial class Menu : Godot.Control {
 
     private void ButtonPopupCancelOnPressed() {
         XB.Utils.PlayUISound(XB.ResourcePaths.ButtonAudio);
+        _ctrlPopupS.Hide();
         _ctrlPopupA.Hide();
         _ctrlPopupQ.Hide();
         _ctrlPopupG.Hide();
