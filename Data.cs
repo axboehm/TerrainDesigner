@@ -282,7 +282,7 @@ public class WData {
     public static float BlendColStr   = 0.2f;
     public static float BlendColScale = 4.0f;
     public static float AxisBlSharpen = 0.5f;    // triplanar blend sharpen
-    public static float AxisBlWidth   = 3.0f;    // triplanar blend width (inverse)
+    public static float AxisBlWidth   = 0.50f;   // triplanar blend width (lower values -> wider blend)
     public static float AxisBlDepth   = 0.17f;   // triplanar blend depth (% of 0.0-1.0)
     //public static float FogDistance   = 4000.0f; // terrain shader depth albedo blend far distance (in m)
 

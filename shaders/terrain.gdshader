@@ -59,9 +59,6 @@ uniform float blendCScale = 4.0;
 varying vec2  uvX;
 varying vec2  uvY;
 varying vec2  uvZ;
-varying vec2  uvXScaled;
-varying vec2  uvYScaled;
-varying vec2  uvZScaled;
 varying vec3  axisBlendSmooth;
 uniform float axisBlendSharpen = 0.5;
 uniform float axisBlendWidth   = 3.0;
@@ -95,12 +92,12 @@ vec3 smoothTriplanarBlend(vec3 worldNormal, float sharpness) {
 // z axis is along the normal (world normal z axis) of the triangle and not stored in the texture
 // x axis runs along the tangent (left right) and y axis along the bitangent (up down)
 vec3 heightTriplanarBlend(vec3 blend, sampler2D samplerHeight, vec2 uvx, vec2 uvy, vec2 uvz,
-                          float width, float heightBlendDepth                               ) {
+                          float uvScaleX, float uvScaleY, float width, float heightBlendDepth) {
     vec3 axisHeight;
-    axisHeight.x  = texture(samplerHeight, uvx).r;
-    axisHeight.y  = texture(samplerHeight, uvy).r;
-    axisHeight.z  = texture(samplerHeight, uvz).r;
-    axisHeight   += blend * blendWidth;
+    axisHeight.x  = texture(samplerHeight, vec2(uvx.x*uvScaleX, uvx.y*uvScaleY)).r;
+    axisHeight.y  = texture(samplerHeight, vec2(uvy.x*uvScaleX, uvy.y*uvScaleY)).r;
+    axisHeight.z  = texture(samplerHeight, vec2(uvz.x*uvScaleX, uvz.y*uvScaleY)).r;
+    axisHeight   += blend*width;
 
     float heightStart = max(max(axisHeight.x, axisHeight.y), axisHeight.z) - heightBlendDepth;
 
@@ -156,10 +153,35 @@ float heightBlendF(float floatA, float floatB, float heightA, float heightB,
     return res;
 }
 
-vec3 triplanarSampleV3(vec3 blend, sampler2D sampler, vec2 uvx, vec2 uvy, vec2 uvz, float uvScale) {
-    vec3 sampleX = texture(sampler, uvx * uvScale).rgb;
-    vec3 sampleY = texture(sampler, uvy * uvScale).rgb;
-    vec3 sampleZ = texture(sampler, uvz * uvScale).rgb;
+vec3 triplanarSampleV3(vec3 blend, sampler2D sampler, vec2 uvx, vec2 uvy, vec2 uvz,
+                       float uvScaleX, float uvScaleY                              ) {
+    vec3 sampleX = texture(sampler, vec2(uvx.x*uvScaleX, uvx.y*uvScaleY)).rgb;
+    vec3 sampleY = texture(sampler, vec2(uvy.x*uvScaleX, uvy.y*uvScaleY)).rgb;
+    vec3 sampleZ = texture(sampler, vec2(uvz.x*uvScaleX, uvz.y*uvScaleY)).rgb;
+
+    return (sampleX * blend.x + sampleY * blend.y + sampleZ * blend.z);
+}
+
+vec3 triplanarTextureBombSampleV3(vec3 blend, sampler2D sampler, vec2 uvx, vec2 uvy, vec2 uvz,
+                                  float uvScaleX, float uvScaleY,
+                                  sampler2D noiseSampler, float noiseScale                    ) {
+    vec3 noise = triplanarSampleV3(blend, noiseSampler, uvx, uvy, uvz,
+                                   uvScaleX*noiseScale, uvScaleY*noiseScale);
+    vec3 sampleX = textureBomb(sampler, vec2(uvx.x*uvScaleX, uvx.y*uvScaleY), noise.x).rgb;
+    vec3 sampleY = textureBomb(sampler, vec2(uvy.x*uvScaleX, uvy.y*uvScaleY), noise.y).rgb;
+    vec3 sampleZ = textureBomb(sampler, vec2(uvz.x*uvScaleX, uvz.y*uvScaleY), noise.z).rgb;
+
+    return (sampleX * blend.x + sampleY * blend.y + sampleZ * blend.z);
+}
+
+float triplanarTextureBombSampleF(vec3 blend, sampler2D sampler, vec2 uvx, vec2 uvy, vec2 uvz,
+                                  float uvScaleX, float uvScaleY,
+                                  sampler2D noiseSampler, float noiseScale                    ) {
+    vec3  noise = triplanarSampleV3(blend, noiseSampler, uvx, uvy, uvz,
+                                    uvScaleX*noiseScale, uvScaleY*noiseScale);
+    float sampleX = textureBomb(sampler, vec2(uvx.x*uvScaleX, uvx.y*uvScaleY), noise.x).r;
+    float sampleY = textureBomb(sampler, vec2(uvy.x*uvScaleX, uvy.y*uvScaleY), noise.y).r;
+    float sampleZ = textureBomb(sampler, vec2(uvz.x*uvScaleX, uvz.y*uvScaleY), noise.z).r;
 
     return (sampleX * blend.x + sampleY * blend.y + sampleZ * blend.z);
 }
@@ -182,52 +204,61 @@ void vertex() {
     uvZ.y *= -1.0;
     uvX.x *= sign(NORMAL.x);
     uvZ.x *= sign(NORMAL.z);
-    // scale uvs
-    uvXScaled.x = uvX.x * scaleX;
-    uvXScaled.y = uvX.y * scaleY;
-    uvYScaled.x = uvY.x * scaleX;
-    uvYScaled.y = uvY.y * scaleY;
-    uvZScaled.x = uvZ.x * scaleX;
-    uvZScaled.y = uvZ.y * scaleY;
 
     axisBlendSmooth = smoothTriplanarBlend(NORMAL, axisBlendSharpen);
 }
 
 void fragment() {
-    vec2 UVscaled    = UV;
+    vec2 UVscaled    = UV; // uvs from mesh are projected from above
          UVscaled.x *= scaleX;
          UVscaled.y *= scaleY;
     float noiseP1  = texture(tNoiseP1, UVscaled*noisePScale).r;
     float noiseP2  = texture(tNoiseP2, UV).r;
           noiseP2  = pow(noiseP2, 3.0);
 
-    vec2  uv1          = UVscaled*uv1Scale;
-    vec3  albedoM1     = textureBomb(tAlbedoM1, uv1, noiseP1);
-    vec3  albedoM1Dark = albedoM1*albedoMult;
-    float roughnessM1  = textureBomb(tRMM1,     uv1, noiseP1).r;
-    vec3  normalM1     = textureBomb(tNormalM1, uv1, noiseP1);
-    float heightM1     = textureBomb(tHeightM1, uv1, noiseP1).r;
+    vec3  axisBlend1  = heightTriplanarBlend(axisBlendSmooth, tHeightM1, uvX, uvY, uvZ,
+                                             uv1Scale, uv1Scale, axisBlendWidth, axisBlendDepth);
+    vec3  albedoM1    = triplanarTextureBombSampleV3(axisBlend1, tAlbedoM1, uvX, uvY, uvZ,
+                                                     uv1Scale, uv1Scale, tNoiseP1, noisePScale);
+    float roughnessM1 = triplanarTextureBombSampleF (axisBlend1, tRMM1, uvX, uvY, uvZ,
+                                                     uv1Scale, uv1Scale, tNoiseP1, noisePScale);
+    vec3  normalM1    = triplanarTextureBombSampleV3(axisBlend1, tNormalM1, uvX, uvY, uvZ,
+                                                     uv1Scale, uv1Scale, tNoiseP1, noisePScale);
+    float heightM1    = triplanarTextureBombSampleF (axisBlend1, tHeightM1, uvX, uvY, uvZ,
+                                                     uv1Scale, uv1Scale, tNoiseP1, noisePScale);
 
-    vec2  uv2          = UVscaled*uv2Scale;
-    vec3  albedoM2     = textureBomb(tAlbedoM2, uv2, noiseP1);
-    vec3  albedoM2Dark = albedoM2*albedoMult;
-    float roughnessM2  = textureBomb(tRMM2,     uv2, noiseP1).r;
-    vec3  normalM2     = textureBomb(tNormalM2, uv2, noiseP1);
-    float heightM2     = textureBomb(tHeightM2, uv2, noiseP1).r;
+    vec3  axisBlend2  = heightTriplanarBlend(axisBlendSmooth, tHeightM2, uvX, uvY, uvZ,
+                                             uv2Scale, uv2Scale, axisBlendWidth, axisBlendDepth);
+    vec3  albedoM2    = triplanarTextureBombSampleV3(axisBlend2, tAlbedoM2, uvX, uvY, uvZ,
+                                                     uv2Scale, uv2Scale, tNoiseP1, noisePScale);
+    float roughnessM2 = triplanarTextureBombSampleF (axisBlend2, tRMM2, uvX, uvY, uvZ,
+                                                     uv2Scale, uv2Scale, tNoiseP1, noisePScale);
+    vec3  normalM2    = triplanarTextureBombSampleV3(axisBlend2, tNormalM2, uvX, uvY, uvZ,
+                                                     uv2Scale, uv2Scale, tNoiseP1, noisePScale);
+    float heightM2    = triplanarTextureBombSampleF (axisBlend2, tHeightM2, uvX, uvY, uvZ,
+                                                     uv2Scale, uv2Scale, tNoiseP1, noisePScale);
 
-    vec2  uv3          = UVscaled*uv3Scale;
-    vec3  albedoM3     = textureBomb(tAlbedoM3, uv3, noiseP1);
-    vec3  albedoM3Dark = albedoM3*albedoMult;
-    float roughnessM3  = textureBomb(tRMM3,     uv3, noiseP1).r;
-    vec3  normalM3     = textureBomb(tNormalM3, uv3, noiseP1);
-    float heightM3     = textureBomb(tHeightM3, uv3, noiseP1).r;
+    vec3  axisBlend3  = heightTriplanarBlend(axisBlendSmooth, tHeightM3, uvX, uvY, uvZ,
+                                             uv3Scale, uv3Scale, axisBlendWidth, axisBlendDepth);
+    vec3  albedoM3    = triplanarTextureBombSampleV3(axisBlend3, tAlbedoM3, uvX, uvY, uvZ,
+                                                     uv3Scale, uv3Scale, tNoiseP1, noisePScale);
+    float roughnessM3 = triplanarTextureBombSampleF (axisBlend3, tRMM3, uvX, uvY, uvZ,
+                                                     uv3Scale, uv3Scale, tNoiseP1, noisePScale);
+    vec3  normalM3    = triplanarTextureBombSampleV3(axisBlend3, tNormalM3, uvX, uvY, uvZ,
+                                                     uv3Scale, uv3Scale, tNoiseP1, noisePScale);
+    float heightM3    = triplanarTextureBombSampleF (axisBlend3, tHeightM3, uvX, uvY, uvZ,
+                                                     uv3Scale, uv3Scale, tNoiseP1, noisePScale);
 
-    vec2  uv4          = UVscaled*uv4Scale;
-    vec3  albedoM4     = textureBomb(tAlbedoM4, uv4, noiseP1);
-    vec3  albedoM4Dark = albedoM4*albedoMult;
-    float roughnessM4  = textureBomb(tRMM4,     uv4, noiseP1).r;
-    vec3  normalM4     = textureBomb(tNormalM4, uv4, noiseP1);
-    float heightM4     = textureBomb(tHeightM4, uv4, noiseP1).r;
+    vec3  axisBlend4  = heightTriplanarBlend(axisBlendSmooth, tHeightM4, uvX, uvY, uvZ,
+                                             uv4Scale, uv4Scale, axisBlendWidth, axisBlendDepth);
+    vec3  albedoM4    = triplanarTextureBombSampleV3(axisBlend4, tAlbedoM4, uvX, uvY, uvZ,
+                                                     uv4Scale, uv4Scale, tNoiseP1, noisePScale);
+    float roughnessM4 = triplanarTextureBombSampleF (axisBlend4, tRMM4, uvX, uvY, uvZ,
+                                                     uv4Scale, uv4Scale, tNoiseP1, noisePScale);
+    vec3  normalM4    = triplanarTextureBombSampleV3(axisBlend4, tNormalM4, uvX, uvY, uvZ,
+                                                     uv4Scale, uv4Scale, tNoiseP1, noisePScale);
+    float heightM4    = triplanarTextureBombSampleF (axisBlend4, tHeightM4, uvX, uvY, uvZ,
+                                                     uv4Scale, uv4Scale, tNoiseP1, noisePScale);
 
     float maskBlockX  = fract(UVscaled.x*blockScale);
           maskBlockX  = step(maskBlockX, 0.5);
@@ -279,9 +310,10 @@ void fragment() {
 
     //      albedo = mix(albedo, albedoLight, scaledDepth); // lighten terrain color in distance
           albedo = mix(albedo, albVis, albVisStr);
-          albedo = mix(albedo, albedo * block, blockStr * maskBlock        );
-          albedo = mix(albedo, albedo + block, blockStr * (1.0 - maskBlock));
+          albedo = mix(albedo, albedo * block, blockStr * maskBlock        ); // dark tiles
+          albedo = mix(albedo, albedo + block, blockStr * (1.0 - maskBlock)); // light tiles
 
+          //albedo = triplanarVisualize(albedo, axisBlendSmooth);
           //albedo = vec3(UV.x, UV.y, 0.0);
           //albedo = vec3(texture(tPointy, UV).r);
           //albedo = vec3(noiseP2);
@@ -301,18 +333,6 @@ void fragment() {
                                 mask23, 1.0-mask23, blendDepth       );
          normal = heightBlendV3(normalM1, normal, heightM1, heightM2,
                                 mask12, 1.0-mask12, blendDepth       );
-
-
-/////
-//TODO[ALEX]: finish triplanar terrain blending
-    vec3 axisBlend = heightTriplanarBlend(axisBlendSmooth, tHeightM1, uvX, uvY, uvZ,
-                                          axisBlendWidth, axisBlendDepth            );
-         albedo = triplanarSampleV3(axisBlend, tAlbedoM1, uvX, uvY, uvZ, uv1Scale);
-         //albedo = triplanarVisualize(albedo, axisBlend);
-         vec3 rm = triplanarSampleV3(axisBlend, tRMM1, uvX, uvY, uvZ, uv1Scale);
-         roughness = rm.r;
-         normal = triplanarSampleV3(axisBlend, tNormalM1, uvX, uvY, uvZ, uv1Scale);
-/////
 
     ALBEDO     = albedo;
     ROUGHNESS  = roughness;
