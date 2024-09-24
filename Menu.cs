@@ -45,6 +45,7 @@ public partial class Menu : Godot.Control {
     [Godot.Export] private Godot.Button      _bGenerate;
     [Godot.Export] private Godot.Button      _bApplySpheres;
     [Godot.Export] private Godot.Button      _bClearSpheres;
+    [Godot.Export] private Godot.Button      _bShowStartup;
     [Godot.Export] private Godot.TextureRect _trPauseMap;
     [Godot.Export] private Godot.Label       _lbPauseLow;
     [Godot.Export] private Godot.Label       _lbPauseHigh;
@@ -183,6 +184,7 @@ public partial class Menu : Godot.Control {
         _bGenerate.Pressed      += ButtonGenerateTerrainOnPressed;
         _bApplySpheres.Pressed  += ButtonPopupApplySpheresOnPressed;
         _bClearSpheres.Pressed  += ButtonClearSpheresOnPressed;
+        _bShowStartup.Pressed   += ButtonShowStartupOnPressed;
         _trPauseMap.Texture      = _hud.TexMiniMap;
         _trPauseMap.ExpandMode   = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
         _trPauseMap.StretchMode  = Godot.TextureRect.StretchModeEnum.Scale;
@@ -356,6 +358,10 @@ public partial class Menu : Godot.Control {
     }
 
     public void InputStartup(Godot.InputEvent @event, XB.PController pCtrl) {
+        if (_justOpened) { // prevent immediate closing of startup popup
+            _justOpened = false;
+            return;
+        }
         if (_inStartupScreen && @event is not Godot.InputEventMouseMotion) {
             _inStartupScreen = false;
             Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Captured;
@@ -486,11 +492,15 @@ public partial class Menu : Godot.Control {
     // application is not paused in startup screen -> terrain updates happen in background
     // when the startup screen is dismissed, the player's camera is reset (called in _Input)
     public void ShowStartupScreen() {
+        _justOpened      = true;
         _inStartupScreen = true;
         Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Visible;
         Show();
         _ctrlPopupS.Show();
         _appSt.St = XB.AppState.Startup;
+        _lbStartup0.Text = Tr("STARTUP_0");
+        _lbStartup1.Text = Tr("STARTUP_1");
+        _lbStartup2.Text = Tr("STARTUP_2");
     }
 
     public void OpenMenu() {
@@ -878,6 +888,17 @@ public partial class Menu : Godot.Control {
         XB.ManagerSphere.ClearSpheres(_hud);
         ShowMessage(Tr("CLEARED_SPHERES"));
         ButtonResumeOnPressed();
+    }
+
+    private void ButtonShowStartupOnPressed() {
+        PlayUISound(XB.ResourcePaths.ButtonAudio);
+        GetTree().Paused = false;
+        Hide();
+        _ctrlPopupS.Hide();
+        _ctrlPopupA.Hide();
+        _ctrlPopupG.Hide();
+        _ctrlPopupQ.Hide();
+        ShowStartupScreen();
     }
 
     private void ButtonPopupGenApplyOnPressed() {

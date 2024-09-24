@@ -3,9 +3,9 @@ namespace XB { // namespace open
 
 public enum AppState {
     Uninit,
+    Startup,
     Application,
     Menu,
-    Startup,
 }
 
 //TODO[ALEX]: this should not be necessary, but just passing the enum variable by ref does not work
@@ -139,18 +139,9 @@ public partial class MainLoop : Godot.Node3D {
     // similarly to _PhysicsProcess below, there is only one _Input in the entire code base
     public override void _Input(Godot.InputEvent @event) {
         switch (_appSt.St) {
-            case XB.AppState.Application: {
-                PCtrl.Input(@event, Sett);
-                break;
-            }
-            case XB.AppState.Menu: {
-                Menu.Input(@event);
-                break;
-            }
-            case XB.AppState.Startup: {
-                Menu.InputStartup(@event, PCtrl);
-                break;
-            }
+            case XB.AppState.Application: { PCtrl.Input(@event, Sett);        break; }
+            case XB.AppState.Menu:        { Menu.Input(@event);               break; }
+            case XB.AppState.Startup:     { Menu.InputStartup(@event, PCtrl); break; }
         }
     }
 
@@ -166,6 +157,7 @@ public partial class MainLoop : Godot.Node3D {
         Input.GetInputs();
         Hud.UpdateHUD(dt, PCtrl, Sett, Input);
         switch (_appSt.St) {
+            case XB.AppState.Startup: // continue updating all things behind the startup graphic
             case XB.AppState.Application: {
                 XB.ManagerSphere.UpdateSpheres(dt);
                 _pModelPos.X = PCtrl.PModel.GlobalPosition.X;
@@ -178,15 +170,6 @@ public partial class MainLoop : Godot.Node3D {
             }
             case XB.AppState.Menu: {
                 Menu.UpdateMenu(dt);
-                break;
-            }
-            case XB.AppState.Startup: {
-                _pModelPos.X = PCtrl.PModel.GlobalPosition.X;
-                _pModelPos.Y = PCtrl.PModel.GlobalPosition.Z;
-                XB.ManagerTerrain.UpdateQTreeMeshes(ref _pModelPos, XB.WData.LowestPoint, 
-                                                    XB.WData.HighestPoint, XB.WData.ImgMiniMap,
-                                                    MainRoot, Hud.TexMiniMap                   );
-                PCtrl.UpdatePlayer(dt, Hud, Menu, Input, Sett, MainRoot);
                 break;
             }
         }
