@@ -274,7 +274,7 @@ public partial class Sphere : Godot.CharacterBody3D {
     }
 
     // player places sphere in world
-    public void PlaceSphere(ref Godot.Vector3 pos) {
+    public void PlaceSphere(ref Godot.Vector3 pos, XB.HUD hud) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.SpherePlaceSphere);
 #endif
@@ -285,7 +285,7 @@ public partial class Sphere : Godot.CharacterBody3D {
         Active         = true;
         XB.ManagerSphere.FindNextAvailableSphere();
         TexSt = XB.SphereTexSt.Active;
-        XB.AData.PCtrl.Hud.UpdateSphereTexture(ID, TexSt);
+        hud.UpdateSphereTexture(ID, TexSt);
         UpdateConeMesh();
 
 #if XBDEBUG
@@ -294,16 +294,16 @@ public partial class Sphere : Godot.CharacterBody3D {
     }
 
     // update materials when sphere gets linked
-    public void SphereTextureAddLinked() {
+    public void SphereTextureAddLinked(XB.HUD hud) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.SphereSphereTextureAddLinked);
 #endif
 
         TexSt = XB.SphereTexSt.ActiveLinking;
-        XB.AData.PCtrl.Hud.UpdateSphereTexture(ID, TexSt);
+        hud.UpdateSphereTexture(ID, TexSt);
         foreach (XB.Sphere lS in _linkedSpheres) {
             lS.TexSt = XB.SphereTexSt.ActiveLinked;
-            XB.AData.PCtrl.Hud.UpdateSphereTexture(lS.ID, lS.TexSt);
+            hud.UpdateSphereTexture(lS.ID, lS.TexSt);
         }    
 
 #if XBDEBUG
@@ -312,16 +312,16 @@ public partial class Sphere : Godot.CharacterBody3D {
     }
 
     // update materials when sphere gets unlinked
-    public void SphereTextureRemoveLinked() {
+    public void SphereTextureRemoveLinked(XB.HUD hud) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.SphereSphereTextureRemoveLinked);
 #endif
 
         TexSt = XB.SphereTexSt.Active;
-        XB.AData.PCtrl.Hud.UpdateSphereTexture(ID, TexSt);
+        hud.UpdateSphereTexture(ID, TexSt);
         foreach (XB.Sphere lS in _linkedSpheres) {
             lS.TexSt = XB.SphereTexSt.Active;
-            XB.AData.PCtrl.Hud.UpdateSphereTexture(lS.ID, lS.TexSt);
+            hud.UpdateSphereTexture(lS.ID, lS.TexSt);
         }    
 
 #if XBDEBUG
@@ -346,14 +346,14 @@ public partial class Sphere : Godot.CharacterBody3D {
 #endif 
     }
 
-    public void UnlinkSphere(XB.Sphere sphereUnlinkFrom) {
+    public void UnlinkSphere(XB.Sphere sphereUnlinkFrom, XB.HUD hud) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.SphereUnlinkSphere);
 #endif
 
         _linkedSpheres.Remove(sphereUnlinkFrom);
         TexSt = XB.SphereTexSt.Active;
-        XB.AData.PCtrl.Hud.UpdateSphereTexture(ID, TexSt);
+        hud.UpdateSphereTexture(ID, TexSt);
 
         if (_linkedSpheres.Count == 0) {
             if (Linked && _animPl.CurrentAnimation != "contract") { _animPl.Play("contract"); }
@@ -365,14 +365,14 @@ public partial class Sphere : Godot.CharacterBody3D {
 #endif 
     }
 
-    public void UnlinkFromAllSpheres() {
+    public void UnlinkFromAllSpheres(XB.HUD hud) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.SphereUnlinkFromAllSpheres);
 #endif
 
         if (!Linked) { return; }
 
-        foreach (XB.Sphere lS in _linkedSpheres) { lS.UnlinkSphere(this); }
+        foreach (XB.Sphere lS in _linkedSpheres) { lS.UnlinkSphere(this, hud); }
         _linkedSpheres.Clear();
 
         if (_animPl.CurrentAnimation != "contract") { _animPl.Play("contract"); }
@@ -386,12 +386,12 @@ public partial class Sphere : Godot.CharacterBody3D {
     }
 
     // remove sphere from world (does not remove from Manager Spheres array)
-    public void RemoveSphere() {
+    public void RemoveSphere(XB.HUD hud) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.SphereRemoveSphere);
 #endif
 
-        UnlinkFromAllSpheres();
+        UnlinkFromAllSpheres(hud);
         _animPl.Play("expand");
         _animPl.Stop(); // stop animation at beginning of expand animation (contracted state)
         Hide();
@@ -399,7 +399,7 @@ public partial class Sphere : Godot.CharacterBody3D {
         Active = false;
         XB.ManagerSphere.FindNextAvailableSphere();
         TexSt = XB.SphereTexSt.Inactive;
-        XB.AData.PCtrl.Hud.UpdateSphereTexture(ID, TexSt);
+        hud.UpdateSphereTexture(ID, TexSt);
         if (ID == XB.ManagerSphere.LinkingID) { 
             XB.ManagerSphere.LinkingID = XB.ManagerSphere.MaxSphereAmount; 
         }

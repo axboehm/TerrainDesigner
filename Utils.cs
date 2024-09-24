@@ -152,20 +152,6 @@ public class Utils {
 #endif 
     }
 
-    public static void PlayUISound(string path) {
-#if XBDEBUG
-        var debug = new XB.DebugTimedBlock(XB.D.UtilsPlayUISound);
-#endif
-
-        var sScn  = Godot.ResourceLoader.Load<Godot.PackedScene>(path);
-        var sound = sScn.Instantiate();
-        XB.AData.MainRoot.AddChild(sound);
-
-#if XBDEBUG
-        debug.End();
-#endif 
-    }
-
     public static ulong BitStringToULong(string bitString, int length) {
         ulong result = 0;
         for (int i = 0; i < length; i++) {

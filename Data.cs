@@ -77,6 +77,11 @@ public struct ResourcePaths {
     public static string Startup1Tex      = "res://assets/ui/startup1.png";
     public static string Startup2Tex      = "res://assets/ui/startup2.png";
     public static string Player           = "res://assets/player/playerController.tscn";
+    public static string Hud              = "res://assets/ui/hud.tscn";
+    public static string Menu             = "res://assets/ui/menu.tscn";
+    public static string NameOverlay      = "res://assets/ui/nameOverlay.tscn";
+    public static string Environment      = "res://configs/environmentMain.tscn";
+    public static string MainLight        = "res://configs/lightSun.tscn";
     public static string FootStep01       = "res://assets/audio/footStep01.tscn";
     public static string FootStep02       = "res://assets/audio/footStep02.tscn";
     public static string FootStep03       = "res://assets/audio/footStep03.tscn";
@@ -345,14 +350,15 @@ public class WData {
     // if reInitialize is true, the quadtree holding the terrain tiles is also created,
     // otherwise merely reset to have all tiles recalculated using the assigned heightmap
     // then the terrain collision is updated
-    public static void UpdateTerrain(bool reInitialize) {
+    public static void UpdateTerrain(bool reInitialize, XB.HUD hud, XB.Menu menu,
+                                     Godot.Node mainRoot                         ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.WorldDataUpdateTerrain);
 #endif
 
         XB.Terrain.UpdateHeightMap(TerrainHeights, LowestPoint, HighestPoint, ImgMiniMap);
-        XB.AData.PCtrl.Hud.UpdateMiniMap(LowestPoint, HighestPoint);
-        XB.AData.PCtrl.Menu.UpdatePauseMiniMap(LowestPoint, HighestPoint);
+        hud.UpdateMiniMap(LowestPoint, HighestPoint);
+        menu.UpdatePauseMiniMap(LowestPoint, HighestPoint);
 
         XB.Terrain.BakePointiness(TerrainHeights, WorldVerts.X, WorldVerts.Y, ImgPointiness);
         TexPointiness.Update(ImgPointiness);
@@ -361,9 +367,11 @@ public class WData {
             XB.ManagerTerrain.InitializeQuadTree(WorldDim.X, WorldDim.Y, WorldRes,
                                                  CollisionRes, ColliderSizeMult*TerrainTileMinimum,
                                                  TerrainTileMinimum, TerrainDivisionsMax,
-                                                 LowestPoint, HighestPoint, ImgMiniMap             );
+                                                 LowestPoint, HighestPoint, ImgMiniMap, 
+                                                 mainRoot, hud.TexMiniMap                          );
         } else {
-            XB.ManagerTerrain.ResetQuadTree(LowestPoint, HighestPoint, ImgMiniMap);
+            XB.ManagerTerrain.ResetQuadTree(LowestPoint, HighestPoint, ImgMiniMap,
+                                            mainRoot, hud.TexMiniMap              );
         }
 
         XB.ManagerTerrain.UpdateCollisionTiles(LowestPoint, HighestPoint, ImgMiniMap);
@@ -437,17 +445,5 @@ public class WData {
         debug.End();
 #endif 
     }
-}
-
-// holds objects that live for the duration of the applications lifetime
-public class AData {
-    public static XB.Input                 Input;
-    public static XB.PController           PCtrl;
-    public static XB.Settings              S;
-    public static Godot.DirectionalLight3D MainLight;
-    public static Godot.Environment        Environment;
-    public static Godot.Node               MainRoot;
-    public static uint                     InitialSeed = 0; // random seed on application startup
-                                                            // set to get the same starting terrain
 }
 } // namespace close

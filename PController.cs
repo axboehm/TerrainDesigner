@@ -38,10 +38,6 @@ public partial class PController : Godot.CharacterBody3D {
                    private Godot.AnimationTree  _pATree;
     [Godot.Export] private Godot.NodePath       _gunTipNode;
                    private Godot.Node3D         _gunTip;    // reference point for camera ray casting
-    [Godot.Export] private Godot.NodePath       _hudNode;
-                   public  XB.HUD               Hud;
-    [Godot.Export] private Godot.NodePath       _menuNode;
-                   public  XB.Menu              Menu;
     [Godot.Export] private Godot.NodePath       _hairNode;
                    private Godot.BaseMaterial3D _hairMat;
     [Godot.Export] private Godot.NodePath       _lashNode;
@@ -112,6 +108,7 @@ public partial class PController : Godot.CharacterBody3D {
     private float         _blIdle    = 0.0f;     // animation moveIdle blend value
 
     private Godot.PhysicsDirectSpaceState3D _spaceSt;
+    private Godot.Collections.Dictionary _resultRC = new Godot.Collections.Dictionary();
     private Godot.Vector3     _v            = new Godot.Vector3(0.0f, 0.0f, 0.0f);
     private Godot.Vector3     _spV          = new Godot.Vector3(0.0f, 0.0f, 0.0f);
     private Godot.Vector3     _vRot         = new Godot.Vector3(0.0f, 0.0f, 0.0f);
@@ -127,20 +124,13 @@ public partial class PController : Godot.CharacterBody3D {
     private Godot.Vector3     _camNewPos    = new Godot.Vector3(0.0f, 0.0f, 0.0f);
     private Godot.Vector3     _plNewRot     = new Godot.Vector3(0.0f, 0.0f, 0.0f);
     private Godot.Vector3     _gunDir       = new Godot.Vector3(0.0f, 0.0f, 0.0f);
-    private Godot.Vector2     _pModelPos    = new Godot.Vector2(0.0f, 0.0f);
     private Godot.Vector3     _spSpawnPos   = new Godot.Vector3(0.0f, 0.0f, 0.0f);
     private Godot.Transform3D _camTransThis = new Godot.Transform3D(); // for moving spheres
     private Godot.Transform3D _camTransPrev = new Godot.Transform3D(); // for moving spheres
-    private Godot.Collections.Dictionary   _resultRC = new Godot.Collections.Dictionary();
     private Godot.CameraAttributesPhysical _cAP;
     private XB.Sphere _sphere;
-    private Godot.Transform3D _cctrhStartupTransform = new Godot.Transform3D(); // for resetting view
-    private Godot.Transform3D _cctrvStartupTransform = new Godot.Transform3D(); // for resetting view
-#if XBDEBUG
-    public XB.DebugHUD DebugHud;
-#endif
 
-    public void InitializePController() {
+    public void InitializePController(XB.Settings sett) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.PControllerInitializePController);
 #endif
@@ -149,18 +139,15 @@ public partial class PController : Godot.CharacterBody3D {
         CollisionMask  = XB.LayerMasks.PlayerMask;
         CollisionLayer = XB.LayerMasks.PlayerLayer;
 
-        _cam    = GetNode<Godot.Camera3D>        (_cameraNode);
-        CCtrH   = GetNode<Godot.Node3D>          (_cameraRotationHNode);
-        _cCtrV  = GetNode<Godot.Node3D>          (_cameraRotationVNode);
-        _gunTip = GetNode<Godot.Node3D>          (_gunTipNode);
-        PModel  = GetNode<Godot.Node3D>          (_playerRiggedNode);
-        _pATree = GetNode<Godot.AnimationTree>   (_animationTreeNode);
-        Hud     = (XB.HUD)GetNode<Godot.Control> (_hudNode);
-        Menu    = (XB.Menu)GetNode<Godot.Control>(_menuNode);
-        Menu.Hide();
+        _cam    = GetNode<Godot.Camera3D>     (_cameraNode);
+        CCtrH   = GetNode<Godot.Node3D>       (_cameraRotationHNode);
+        _cCtrV  = GetNode<Godot.Node3D>       (_cameraRotationVNode);
+        _gunTip = GetNode<Godot.Node3D>       (_gunTipNode);
+        PModel  = GetNode<Godot.Node3D>       (_playerRiggedNode);
+        _pATree = GetNode<Godot.AnimationTree>(_animationTreeNode);
 
         ThirdP   = true;
-        _cDist   = XB.AData.S.SC.CamMaxDist;
+        _cDist   = sett.SC.CamMaxDist;
         _camZoom = 0.0f;
         _spawn   = false;
 
@@ -217,62 +204,36 @@ public partial class PController : Godot.CharacterBody3D {
             AddChild(_audFootStep[i]);
         }
 
-        _cctrhStartupTransform = CCtrH.GlobalTransform;
-        _cctrvStartupTransform = _cCtrV.GlobalTransform;
-
 #if XBDEBUG
         debug.End();
 #endif 
     }
 
-    // to avoid having to give an additional reference of hud and menu to Initialize
-    public void InitializeHud() {
-        Hud.InitializeHud();
-    }
-
-    public void InitializeMenu() {
-        Menu.InitializeMenu();
-    }
-
-#if XBDEBUG
-    public void InitializeDebugHud() {
-        DebugHud = new XB.DebugHUD();
-        AddChild(DebugHud);
-        DebugHud.InitializeDebugHUD();
-    }
-#endif 
-
     // get input using godot's system, used for mouse movement input, 
     // general input is handled at beginning of _PhysicsProcess below
-    public override void _Input(Godot.InputEvent @event) {
+    public void Input(Godot.InputEvent @event, XB.Settings sett) {
 #if XBDEBUG
-        var debug = new XB.DebugTimedBlock(XB.D.PController_Input);
+        var debug = new XB.DebugTimedBlock(XB.D.PControllerInput);
 #endif
 
         if (@event is not Godot.InputEventMouseMotion) { return; }
 
         var mouseM = (Godot.InputEventMouseMotion)@event;
-        _mouse.X   = XB.AData.S.SC.MouseMultX * mouseM.Relative.X;
-        _mouse.Y   = XB.AData.S.SC.MouseMultY * mouseM.Relative.Y;
+        _mouse.X   = sett.SC.MouseMultX * mouseM.Relative.X;
+        _mouse.Y   = sett.SC.MouseMultY * mouseM.Relative.Y;
 
 #if XBDEBUG
         debug.End();
 #endif 
     }
 
-    // Called every frame at fixed time steps (_PhysicsProcess is a Godot built in that every
-    // object has, however the order of their calling is not fixed among all the objects)
     //NOTE[ALEX]: the update is split into functions to make timing easier,
     //            and to make explicit which variables are touched by each part
-    public override void _PhysicsProcess(double delta) {
-        float dt = (float)delta;
-
+    public void UpdatePlayer(float dt, XB.HUD hud, XB.Menu menu, XB.Input input, XB.Settings sett,
+                             Godot.Node mainRoot                                                  ) {
 #if XBDEBUG
-         DebugHud.UpdateDebugHUD(dt); // not part of the debug block or it will be included in the time
-        var debug = new XB.DebugTimedBlock(XB.D.PController_PhysicsProcess);
+        var debug = new XB.DebugTimedBlock(XB.D.PControllerUpdatePlayer);
 #endif
-
-        UpdateGeneral(dt, Hud, ref _pModelPos, ref PModel, ref _spaceSt);
 
         if (GetTree().Paused) {
 #if XBDEBUG
@@ -280,6 +241,8 @@ public partial class PController : Godot.CharacterBody3D {
 #endif
             return;
         }
+
+        _spaceSt = GetWorld3D().DirectSpaceState; // get spacestate for raycasting
 
         if (_spawn) { 
             SpawnPlayerDelayed(ref _spawnPos, _respawnOff, ref _spaceSt, ref _resultRC,
@@ -289,63 +252,40 @@ public partial class PController : Godot.CharacterBody3D {
         UpdateMovement(dt, ref _plJ, ref _plA, ref _plYV, _plGrav, _maxVertVelo, this,
                        _respawnOff, ref Move, _jumpStr, ref _moveSpd, _walkSpd, _runSpd, _moveSm,
                        ref _v, ref _vRot, ref _spV, CCtrH, ref _plMoved,
-                       ref _tFootStep, _walkAnm, _audFootStep, _audFootStepAmnt                   );
+                       ref _tFootStep, _walkAnm, _audFootStep, _audFootStepAmnt, input           );
 
-        UpdateCamera(dt, ref ThirdP, Hud, ref PlAiming, ref _aimOff, _cSmooth, Move,
+        UpdateCamera(dt, ref ThirdP, hud, ref PlAiming, ref _aimOff, _cSmooth, Move,
                      _aimHOff, _aimVOff, ref _mouse, ref CCtrH, ref _rotCtr, ref _toCam,
                      ref _toCamG, _maxVAng, ref _cCtrV, ref _cam, ref _cDist, ref _cOrig, ref _cDir,
                      ref _pOrig, ref _pNrm, ref _rDest, ref _spaceSt, ref _resultRC, ref _camAimHit,
                      ref _rOrig, ref _toCollision, _camCollDist, ref _camZoom, ref _camNewPos,
-                     ref _plNewRot, ref _plMoved, ref _plA, ref _vRot, ref PModel                   );
+                     ref _plNewRot, ref _plMoved, ref _plA, ref _vRot, ref PModel, input, sett      );
 
         UpdateAiming(dt, ref ThirdP, ref _canShoot, ref PlAiming, ref _fov, ref _cam, ref _camHit,
                      ref _cOrig, ref _cDir, ref _pOrig, ref _pNrm, ref _gunTip, ref _rOrig,
                      ref _spaceSt, ref _resultRC, ref _gunDir, ref _rDest, ref _stickyDrag,
-                     ref _stickyID, ref _cAP, _cSmooth, _aimEmpty                               );
+                     ref _stickyID, ref _cAP, _cSmooth, _aimEmpty, sett                           );
 
         UpdateSphereInteractions(dt, ref ThirdP, ref PlAiming, ref _rOrig, ref _cam, ref _cOrig,
                                  ref _cDir, ref _pOrig, ref _pNrm, ref CCtrH, ref _rDest,
-                                 ref _spaceSt, ref _resultRC, _sphere                         );
+                                 ref _spaceSt, ref _resultRC, _sphere, hud                      );
 
         UpdateAnimations(dt, ref _walkBlend, ref _blMove, ref _plA, _moveSm, ref _plMoved, _walkAnm,
                          ref PlAiming, ref _blIdle, ref _blWalk, _walkSm, ref _plJ, ref _pATree,
-                         ref Move                                                                  );
+                         ref Move, input                                                            );
 
         UpdatePlayerMaterial(dt, ref ThirdP, ref _colCurrent, _colSm,
                              ref _hairMat, ref _lashMat, ref _eyesMat, ref _bodyMat, ref _headMat);
 
-        UpdateInputs(dt, Menu, Hud, ref _camZoom, _camZoomSens, _camZoomMax, ref ThirdP,
+        UpdateInputs(dt, menu, hud, ref _camZoom, _camZoomSens, _camZoomMax, ref ThirdP,
                      ref _canShoot, _sphereSpawnDist, ref _stickyDrag, ref _stickyID,
-                     ref _camTransThis, ref _camTransPrev, ref _spV, ref _spaceSt, ref _cam, ref CCtrH);
-
-#if XBDEBUG
-        UpdateDebugInputs(DebugHud);
-#endif 
+                     ref _camTransThis, ref _camTransPrev, ref _spV, ref _spaceSt, ref _cam,
+                     ref CCtrH, input, mainRoot                                             );
 
         // to fix axes drifting apart due to imprecision (recommended in Godot wiki)
         _cam.Transform  = _cam.Transform.Orthonormalized();
         CCtrH.Transform = CCtrH.Transform.Orthonormalized();
         _camTransPrev   = _cam.GlobalTransform; // store for sphere movement
-
-#if XBDEBUG
-        debug.End();
-#endif 
-    }
-
-    private void UpdateGeneral(float dt, XB.HUD hud, ref Godot.Vector2 pModelPos,
-                               ref Godot.Node3D pModel, ref Godot.PhysicsDirectSpaceState3D spaceSt) {
-#if XBDEBUG
-        var debug = new XB.DebugTimedBlock(XB.D.PControllerUpdateGeneral);
-#endif
-
-        XB.AData.Input.GetInputs();
-        hud.UpdateHUD(dt);
-        XB.ManagerSphere.UpdateSpheres(dt);
-        pModelPos.X = pModel.GlobalPosition.X;
-        pModelPos.Y = pModel.GlobalPosition.Z;
-        XB.ManagerTerrain.UpdateQTreeMeshes(ref pModelPos, XB.WData.LowestPoint, 
-                                            XB.WData.HighestPoint, XB.WData.ImgMiniMap);
-        RequestSpaceState(ref spaceSt); // get spacestate for raycasting
 
 #if XBDEBUG
         debug.End();
@@ -360,7 +300,8 @@ public partial class PController : Godot.CharacterBody3D {
                                 ref Godot.Vector3 v, ref Godot.Vector3 vRot, ref Godot.Vector3 spV,
                                 Godot.Node3D cCtrH, ref bool plMoved,
                                 ref float tFootStep, float walkAnm, 
-                                Godot.AudioStreamPlayer3D[] audFootStep, int audFootStepAmnt) {
+                                Godot.AudioStreamPlayer3D[] audFootStep, int audFootStepAmnt,
+                                XB.Input input                                                     ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.PControllerUpdateMovement);
 #endif
@@ -375,7 +316,7 @@ public partial class PController : Godot.CharacterBody3D {
             }
 
             plYV = 0.0f; // reset vertical velocity when landing on the ground
-            if (XB.AData.Input.FDown) {
+            if (input.FDown) {
                 plYV = -jumpStr;
                 plJ  = XB.JumpSt.OneJumpS; // jumping start frame
                 plA  = XB.AirSt.Rising;
@@ -386,7 +327,7 @@ public partial class PController : Godot.CharacterBody3D {
 
             if (Velocity.Y == 0.0f) { plYV = 0.0f; }   // player hit ceiling
 
-            if (XB.AData.Input.FDown && plJ == XB.JumpSt.OneJumpP) { // double jump
+            if (input.FDown && plJ == XB.JumpSt.OneJumpP) { // double jump
                 plYV = -jumpStr;
                 plJ  = XB.JumpSt.TwoJumpS;
             }
@@ -433,24 +374,24 @@ public partial class PController : Godot.CharacterBody3D {
         switch (move) {
             case XB.MoveSt.Walk: {
                 moveSpd = XB.Utils.LerpF(moveSpd, walkSpd, moveSm*dt);
-                if (XB.AData.Input.DUp) {
+                if (input.DUp) {
                     move = XB.MoveSt.Run;
                 }
                 break;
             }
             case XB.MoveSt.Run: {
                 moveSpd = XB.Utils.LerpF(moveSpd, runSpd,  moveSm*dt);
-                if (XB.AData.Input.MoveX == 0.0f && XB.AData.Input.MoveY == 0.0f ||
-                    plJ != XB.JumpSt.OnGround || XB.AData.Input.LIn) {
+                if (input.MoveX == 0.0f && input.MoveY == 0.0f ||
+                    plJ != XB.JumpSt.OnGround || input.LIn) {
                     move = XB.MoveSt.Walk;
                 }
                 break;
             }
         }
 
-        v.X = XB.AData.Input.MoveX;
+        v.X = input.MoveX;
         v.Y = 0.0f; //NOTE[ALEX]: technically not necessary
-        v.Z = XB.AData.Input.MoveY;
+        v.Z = input.MoveY;
         v   = v.Normalized()*moveSpd;
         spV.X = 0.0f;
         spV.Y = 0.0f;
@@ -484,7 +425,7 @@ public partial class PController : Godot.CharacterBody3D {
         MoveAndSlide();
 
         // STEP 5: footstep sounds
-        if ((XB.AData.Input.MoveX != 0.0f || XB.AData.Input.MoveY != 0.0f)
+        if ((input.MoveX != 0.0f || input.MoveY != 0.0f)
             && plJ == XB.JumpSt.OnGround                                  ) {
             // align footstep timing with animation
             switch (move) {
@@ -516,7 +457,8 @@ public partial class PController : Godot.CharacterBody3D {
                               ref Godot.Vector3 rOrig, ref Godot.Vector3 toCollision,
                               float camCollDist, ref float camZoom, ref Godot.Vector3 camNewPos,
                               ref Godot.Vector3 plNewRot, ref bool plMoved, ref XB.AirSt plA,
-                              ref Godot.Vector3 vRot, ref Godot.Node3D pModel                        ) {
+                              ref Godot.Vector3 vRot, ref Godot.Node3D pModel,
+                              XB.Input input, XB.Settings sett                                       ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.PControllerUpdateCamera);
 #endif
@@ -527,7 +469,7 @@ public partial class PController : Godot.CharacterBody3D {
             plAiming = false;
             aimOff.X = XB.Utils.LerpF(aimOff.X, 0.0f, cSmooth*dt);
             aimOff.Y = XB.Utils.LerpF(aimOff.Y, 0.0f, cSmooth*dt);
-        } else if (XB.AData.Input.SLBot) {
+        } else if (input.SLBot) {
             hud.CrossVisible = true;
             move     = XB.MoveSt.Walk;
             plAiming = true;
@@ -540,13 +482,13 @@ public partial class PController : Godot.CharacterBody3D {
             aimOff.Y = XB.Utils.LerpF(aimOff.Y, 0.0f, cSmooth*dt);
         }
 
-        XB.AData.Input.CamX += mouse.X;
-        XB.AData.Input.CamY += mouse.Y;
+        input.CamX += mouse.X;
+        input.CamY += mouse.Y;
         mouse.X = 0.0f;
         mouse.Y = 0.0f;
 
         // STEP 2: horizontal camera movement
-        float horAmount = dt*XB.AData.S.SC.CamXSens*XB.AData.Input.CamX;
+        float horAmount = dt*sett.SC.CamXSens*input.CamX;
         cCtrH.RotateObjectLocal(cCtrH.Transform.Basis.Y, horAmount);
 
         // STEP 3: vertical camera movement
@@ -558,10 +500,10 @@ public partial class PController : Godot.CharacterBody3D {
         toCamG   = toCam;
         toCamG.Y = 0.0f;
         float cAngle    = toCam.AngleTo(toCamG)*XB.Constants.Rad2Deg;
-        float verAmount = dt*XB.AData.S.SC.CamYSens*XB.AData.Input.CamY;
+        float verAmount = dt*sett.SC.CamYSens*input.CamY;
         if (cAngle > maxVAng) {
-            if      (toCam.Y > 0.0f && XB.AData.Input.CamY < 0.0f) { verAmount = 0.0f; }
-            else if (toCam.Y < 0.0f && XB.AData.Input.CamY > 0.0f) { verAmount = 0.0f; }
+            if      (toCam.Y > 0.0f && input.CamY < 0.0f) { verAmount = 0.0f; }
+            else if (toCam.Y < 0.0f && input.CamY > 0.0f) { verAmount = 0.0f; }
         }
         cCtrV.RotateObjectLocal(cCtrV.Transform.Basis.X, verAmount);
 
@@ -569,7 +511,7 @@ public partial class PController : Godot.CharacterBody3D {
         if (!thirdP) {
             cDist = XB.Utils.LerpF(cDist, 0.0f, cSmooth*dt);
         } else if (plAiming) {
-            cDist = XB.Utils.LerpF(cDist, XB.AData.S.SC.CamAimDist, cSmooth*dt);
+            cDist = XB.Utils.LerpF(cDist, sett.SC.CamAimDist, cSmooth*dt);
 
             cOrig = cam.GlobalPosition;
             cDir  = cam.GlobalTransform.Basis.Z;
@@ -581,7 +523,7 @@ public partial class PController : Godot.CharacterBody3D {
             if (resultRC.Count > 0) {
                 camAimHit = (Godot.Vector3)resultRC["position"];
                 float camAimOff = (cam.GlobalPosition - camAimHit).Length();
-                cDist = XB.AData.S.SC.CamAimDist - camAimOff;
+                cDist = sett.SC.CamAimDist - camAimOff;
             }
         } else {
             rOrig = cCtrH.GlobalPosition;
@@ -591,10 +533,10 @@ public partial class PController : Godot.CharacterBody3D {
                 toCollision = (Godot.Vector3)resultRC["position"]-cCtrH.GlobalPosition;
                 float newDist = toCollision.Length() - camCollDist;
                       newDist = XB.Utils.ClampF(newDist, XB.Settings.CamMinDist,
-                                                XB.AData.S.SC.CamMaxDist + camZoom);
+                                                sett.SC.CamMaxDist + camZoom    );
                 cDist = newDist;
             } else {
-                cDist = XB.Utils.LerpF(cDist, XB.AData.S.SC.CamMaxDist + camZoom, cSmooth*dt);
+                cDist = XB.Utils.LerpF(cDist, sett.SC.CamMaxDist + camZoom, cSmooth*dt);
             }
         }
         camNewPos.X  = aimOff.X;
@@ -627,14 +569,15 @@ public partial class PController : Godot.CharacterBody3D {
                               ref Godot.PhysicsDirectSpaceState3D spaceSt,
                               ref Godot.Collections.Dictionary resultRC, ref Godot.Vector3 gunDir,
                               ref Godot.Vector3 rDest, ref bool stickyDrag, ref int stickyID,
-                              ref Godot.CameraAttributesPhysical cAP, float cSmooth, float aimEmpty) {
+                              ref Godot.CameraAttributesPhysical cAP, float cSmooth, float aimEmpty,
+                              XB.Settings sett                                                      ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.PControllerUpdateAiming);
 #endif
 
         if (!thirdP) {
             canShoot = true;
-            fov = XB.AData.S.SC.FovDef;
+            fov = sett.SC.FovDef;
         } else if (plAiming) {
             canShoot = true;
             camHit = cam.GlobalPosition - cam.GlobalTransform.Basis.Z*1000.0f;
@@ -656,12 +599,12 @@ public partial class PController : Godot.CharacterBody3D {
             rDest = cam.GlobalPosition + 0.1f*gunDir;
             XB.Utils.Raycast(ref spaceSt, ref rOrig, ref rDest, XB.LayerMasks.AimMask, ref resultRC);
             if (resultRC.Count > 0) { canShoot = false; }
-            fov = XB.AData.S.SC.FovAim;
+            fov = sett.SC.FovAim;
         } else {
             canShoot   = false;
             stickyDrag = false;
             stickyID   = XB.ManagerSphere.MaxSphereAmount;
-            fov = XB.AData.S.SC.FovDef;
+            fov = sett.SC.FovDef;
         }
 
         cAP                    = (Godot.CameraAttributesPhysical)cam.Attributes;
@@ -675,7 +618,7 @@ public partial class PController : Godot.CharacterBody3D {
                                           ref Godot.Node3D cCtrH, ref Godot.Vector3 rDest,
                                           ref Godot.PhysicsDirectSpaceState3D spaceSt,
                                           ref Godot.Collections.Dictionary resultRC,
-                                          XB.Sphere sphere                                ) {
+                                          XB.Sphere sphere, XB.HUD hud                    ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.PControllerUpdateSphereInteractions);
 #endif
@@ -695,12 +638,12 @@ public partial class PController : Godot.CharacterBody3D {
             XB.Utils.Raycast(ref spaceSt, ref rOrig, ref rDest, XB.LayerMasks.SphereMask, ref resultRC);
             if (resultRC.Count > 0) {
                 sphere = (XB.Sphere)resultRC["collider"];
-                XB.ManagerSphere.ChangeHighlightSphere(sphere.ID);
+                XB.ManagerSphere.ChangeHighlightSphere(sphere.ID, hud);
             } else {
-                XB.ManagerSphere.ChangeHighlightSphere(XB.ManagerSphere.MaxSphereAmount);
+                XB.ManagerSphere.ChangeHighlightSphere(XB.ManagerSphere.MaxSphereAmount, hud);
             }
         } else {
-            XB.ManagerSphere.ChangeHighlightSphere(XB.ManagerSphere.MaxSphereAmount);
+            XB.ManagerSphere.ChangeHighlightSphere(XB.ManagerSphere.MaxSphereAmount, hud);
         }
 
 #if XBDEBUG
@@ -712,7 +655,7 @@ public partial class PController : Godot.CharacterBody3D {
                                   ref XB.AirSt plA, float moveSm, ref bool plMoved, float walkAnm,
                                   ref bool plAiming, ref float blIdle, ref Godot.Vector2 blWalk,
                                   float walkSm, ref XB.JumpSt plJ, ref Godot.AnimationTree pATree,
-                                  ref XB.MoveSt move                                              ) {
+                                  ref XB.MoveSt move, XB.Input input                              ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.PControllerUpdateAnimations);
 #endif
@@ -726,11 +669,11 @@ public partial class PController : Godot.CharacterBody3D {
             if (plMoved) {
                 idleMode = 1.0f; // walk
                 if (plAiming) {
-                    walkBlend.X = XB.AData.Input.MoveX; // walk left/right
-                    walkBlend.Y = XB.AData.Input.MoveY; // walk forwards/backwards
+                    walkBlend.X = input.MoveX; // walk left/right
+                    walkBlend.Y = input.MoveY; // walk forwards/backwards
                 } else { // condense 2D movement into single value representing amount
-                    float length  = XB.AData.Input.MoveX*XB.AData.Input.MoveX;
-                          length += XB.AData.Input.MoveY*XB.AData.Input.MoveY;
+                    float length  = input.MoveX*input.MoveX;
+                          length += input.MoveY*input.MoveY;
                           length  = System.MathF.Sqrt(length);
                     walkBlend.Y = length;
                 }
@@ -812,65 +755,64 @@ public partial class PController : Godot.CharacterBody3D {
                               ref int stickyID, ref Godot.Transform3D camTransThis,
                               ref Godot.Transform3D camTransPrev, ref Godot.Vector3 spV,
                               ref Godot.PhysicsDirectSpaceState3D spaceSt, ref Godot.Camera3D cam,
-                              ref Godot.Node3D cCtrH                                              ) {
+                              ref Godot.Node3D cCtrH, XB.Input input, Godot.Node mainRoot         ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.PControllerUpdateInputs);
 #endif
 
-        if        (XB.AData.Input.Start) { // system menu
+        if        (input.Start) { // system menu
             menu.OpenMenu();
-        } else if (XB.AData.Input.Select) { // toggle HUD visibility
+        } else if (input.Select) { // toggle HUD visibility
             hud.ToggleHUD();
         } else {
             // Zooming
-            if (XB.AData.Input.Zoom != 0.0f) {
-                camZoom = camZoom + XB.AData.Input.Zoom*camZoomSens;
+            if (input.Zoom != 0.0f) {
+                camZoom = camZoom + input.Zoom*camZoomSens;
                 camZoom = XB.Utils.ClampF(camZoom , 0.0f, camZoomMax);
             }
             // LIn
             // RIn
             // DUp // toggle walk/run (handled earlier)
-            if (XB.AData.Input.DDown) { // swap between first and third person view
+            if (input.DDown) { // swap between first and third person view
                 thirdP = !thirdP;
             }
             // DLeft  // modifier for sphere radius (handled below)
             // DRight // modifier for sphere angle (handled below)
-            if (canShoot && XB.AData.Input.FUp) { // link
+            if (canShoot && input.FUp) { // link
                 if (   XB.ManagerSphere.Linking
                     && XB.ManagerSphere.HLSphereID < XB.ManagerSphere.MaxSphereAmount) {
-                    XB.ManagerSphere.LinkSpheres();
+                    XB.ManagerSphere.LinkSpheres(mainRoot, hud);
                 } else {
-                    XB.ManagerSphere.UnsetLinkingID();
+                    XB.ManagerSphere.UnsetLinkingID(hud);
                 }
             }
             // FDown - jump (handled earlier)
-            if (XB.AData.Input.FLeft) { // unlink highlighted sphere
+            if (input.FLeft) { // unlink highlighted sphere
                 if (   XB.ManagerSphere.Linking 
                     && XB.ManagerSphere.HLSphereID < XB.ManagerSphere.MaxSphereAmount) {
-                    XB.ManagerSphere.UnlinkSpheres();
+                    XB.ManagerSphere.UnlinkSpheres(hud);
                 }
             }
-            if (XB.AData.Input.FRight) { // toggle linking
-                XB.ManagerSphere.ToggleLinking();
+            if (input.FRight) { // toggle linking
+                XB.ManagerSphere.ToggleLinking(hud);
             }
-            if (canShoot && XB.AData.Input.SLTop) { // place sphere
+            if (canShoot && input.SLTop) { // place sphere
                 _spSpawnPos =   cCtrH.GlobalPosition
                               + cam.GlobalTransform.Basis.Z*-sphereSpawnDist;
-                if (!XB.ManagerSphere.RequestSphere(ref _spSpawnPos)) {
+                if (!XB.ManagerSphere.RequestSphere(ref _spSpawnPos, hud, mainRoot)) {
                     // Godot.GD.Print("all spheres used");
                 }
             }
             // SLBot - aiming (handled earlier)
-            if (canShoot && XB.AData.Input.SRTop) { // remove sphere
+            if (canShoot && input.SRTop) { // remove sphere
                 if (XB.ManagerSphere.HLSphereID < XB.ManagerSphere.MaxSphereAmount) {
-                    XB.ManagerSphere.Spheres[XB.ManagerSphere.HLSphereID].RemoveSphere();
+                    XB.ManagerSphere.Spheres[XB.ManagerSphere.HLSphereID].RemoveSphere(hud);
                     stickyDrag = false;
                     stickyID   = XB.ManagerSphere.MaxSphereAmount;
                 }
             }
             // SRBot - Sphere interactions
-            if (canShoot && XB.AData.Input.SRBot
-                    && !XB.AData.Input.DLeft && !XB.AData.Input.DRight) {
+            if (canShoot && input.SRBot && !input.DLeft && !input.DRight) {
                 if (XB.ManagerSphere.HLSphereID < XB.ManagerSphere.MaxSphereAmount) {
                     camTransThis = cam.GlobalTransform;
                     XB.ManagerSphere.Spheres[XB.ManagerSphere.HLSphereID].MoveSphere
@@ -878,21 +820,19 @@ public partial class PController : Godot.CharacterBody3D {
                 }
             }
             if (!stickyDrag
-                && (   (canShoot && XB.AData.Input.SRBot && XB.AData.Input.DLeft)
-                    || (canShoot && XB.AData.Input.SRBot && XB.AData.Input.DRight))) {
+                && (   (canShoot && input.SRBot && input.DLeft)
+                    || (canShoot && input.SRBot && input.DRight))) {
                 stickyDrag = true;
                 stickyID   = XB.ManagerSphere.HLSphereID;
             }
             if (stickyDrag) {
-                if (XB.AData.Input.SRBot) {
+                if (input.SRBot) {
                     if (stickyID < XB.ManagerSphere.MaxSphereAmount) {
-                        if (XB.AData.Input.DLeft) {
-                            XB.ManagerSphere.Spheres[stickyID].ChangeSphereRadius
-                                (XB.AData.Input.CamY*dt);
+                        if (input.DLeft) {
+                            XB.ManagerSphere.Spheres[stickyID].ChangeSphereRadius(input.CamY*dt);
                         }
-                        if (XB.AData.Input.DRight) {
-                            XB.ManagerSphere.Spheres[stickyID].ChangeSphereAngle
-                                (XB.AData.Input.CamY*dt);
+                        if (input.DRight) {
+                            XB.ManagerSphere.Spheres[stickyID].ChangeSphereAngle(input.CamY*dt);
                         }
                     }
                 } else {
@@ -906,17 +846,6 @@ public partial class PController : Godot.CharacterBody3D {
         debug.End();
 #endif 
     }
-
-#if XBDEBUG
-    private void UpdateDebugInputs(XB.DebugHUD debugHud) {
-        // DEBUG BUTTONS
-        if (XB.AData.Input.Debug1) { debugHud.Debug1(); }
-        if (XB.AData.Input.Debug2) { debugHud.Debug2(); }
-        if (XB.AData.Input.Debug3) { debugHud.Debug3(); }
-        if (XB.AData.Input.Debug4) { debugHud.Debug4(); }
-        if (XB.AData.Input.Debug5) { debugHud.Debug5(); }
-    }
-#endif 
 
     //NOTE[ALEX]: if a raycast happens in the same frame that a mesh gets assigned,
     //            then that mesh will not be hit, 
@@ -948,11 +877,10 @@ public partial class PController : Godot.CharacterBody3D {
         var spawnPoint  = new Godot.Vector3(spawnPos.X,   high, spawnPos.Y  );
         var origin      = new Godot.Vector3(spawnPoint.X, high, spawnPoint.Z);
         var destination = new Godot.Vector3(spawnPoint.X, low,  spawnPoint.Z);
-        RequestSpaceState(ref spaceSt);
         XB.Utils.Raycast(ref spaceSt, ref origin, ref destination, XB.LayerMasks.EnvironmentMask,
                          ref resultRC                                                            );
         // Godot.GD.Print("try spawn at: " + spawnPoint + ", o: " + origin + ", d: " + destination
-        //                + ", PlPos: " + GlobalPosition);
+        //                + ", PlPos: " + GlobalPosition                                          );
         if (resultRC.Count > 0) {
             spawnPoint      = (Godot.Vector3)resultRC["position"];
             spawnPoint.Y   += respawnOff;
@@ -985,15 +913,6 @@ public partial class PController : Godot.CharacterBody3D {
 #if XBDEBUG
         debug.End();
 #endif 
-    }
-
-    public void ResetView() {
-        CCtrH.GlobalTransform  = _cctrhStartupTransform;
-        _cCtrV.GlobalTransform = _cctrvStartupTransform;
-    }
-
-    public void RequestSpaceState(ref Godot.PhysicsDirectSpaceState3D spaceSt) {
-        spaceSt = GetWorld3D().DirectSpaceState;
     }
 }
 } // namespace close

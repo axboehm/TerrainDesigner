@@ -614,7 +614,7 @@ public class MeshContainer {
     }
 
     //NOTE[ALEX]: hard coded because it is very specific to the shader used
-    public void SetTerrainShaderAttributes() {
+    public void SetTerrainShaderAttributes(Godot.ImageTexture miniMap) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.MeshContainerSetTerrainShaderAttributes);
 #endif
@@ -627,7 +627,7 @@ public class MeshContainer {
         MaterialTile.SetShaderParameter("uv3Scale",    WData.Mat3UVScale);
         MaterialTile.SetShaderParameter("uv4Scale",    WData.Mat4UVScale);
         MaterialTile.SetShaderParameter("noisePScale", WData.NoisePScale);
-        MaterialTile.SetShaderParameter("tHeight",     XB.AData.PCtrl.Hud.TexMiniMap);
+        MaterialTile.SetShaderParameter("tHeight",     miniMap);
         MaterialTile.SetShaderParameter("tPointy",     XB.WData.TexPointiness);
         MaterialTile.SetShaderParameter("axisBlendSharpen", XB.WData.AxisBlSharpen);
         MaterialTile.SetShaderParameter("axisBlendWidth",   XB.WData.AxisBlWidth);
@@ -932,7 +932,8 @@ public class ManagerTerrain {
 
     public static void InitializeQuadTree(float xSize, float zSize, float resM, float resC,
                                           float sizeCTile, float sizeMTileMin, int divMax,
-                                          float lowest, float highest, Godot.Image imgHeightMap) {
+                                          float lowest, float highest, Godot.Image imgHeightMap,
+                                          Godot.Node mainRoot, Godot.ImageTexture miniMap       ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainInitializeQuadTree);
 #endif
@@ -992,14 +993,14 @@ public class ManagerTerrain {
                 colZPos = j*_sizeCTile*_resolutionC + colZSize/2.0f;
 
                 _terrainColTiles[i, j] = new XB.CollisionTile
-                    (XB.AData.MainRoot, -colXPos, -colZPos, colXSize, colZSize, _resolutionC,
-                     XB.LayerMasks.EnvironmentLayer, XB.LayerMasks.EnvironmentMask         );
+                    (mainRoot, -colXPos, -colZPos, colXSize, colZSize, _resolutionC,
+                     XB.LayerMasks.EnvironmentLayer, XB.LayerMasks.EnvironmentMask  );
             }
         }
 
         _reqQueue = new SysCG.Queue<XB.QNode>();
 
-        ShowLargestTile(_qRoot, lowest, highest, imgHeightMap);
+        ShowLargestTile(_qRoot, lowest, highest, imgHeightMap, mainRoot, miniMap);
 
 #if XBDEBUG
         debug.End();
@@ -1065,14 +1066,15 @@ public class ManagerTerrain {
     }
 
     public static void UpdateQTreeMeshes(ref Godot.Vector2 refPos, float lowestPoint,
-                                         float highestPoint, Godot.Image imgHeightMap) {
+                                         float highestPoint, Godot.Image imgHeightMap,
+                                         Godot.Node mainRoot, Godot.ImageTexture miniMap) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainUpdateQTreeMeshes);
 #endif
 
         // Godot.GD.Print("UpdateQTreeMeshes");
-        UpdateQNodeMesh(ref refPos, _qRoot);
-        QueueRequestProcess(_queueBudget, lowestPoint, highestPoint, imgHeightMap);
+        UpdateQNodeMesh(ref refPos, _qRoot, mainRoot);
+        QueueRequestProcess(_queueBudget, lowestPoint, highestPoint, imgHeightMap, miniMap);
         QNodeShowReadyMeshes(_qRoot);
 
 #if XBDEBUG
@@ -1080,7 +1082,8 @@ public class ManagerTerrain {
 #endif 
     }
 
-    private static void UpdateQNodeMesh(ref Godot.Vector2 refPos, XB.QNode qNode) {
+    private static void UpdateQNodeMesh(ref Godot.Vector2 refPos, XB.QNode qNode,
+                                        Godot.Node mainRoot                      ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainUpdateQNodeMesh);
 #endif
@@ -1088,7 +1091,7 @@ public class ManagerTerrain {
             if (!qNode.Active) {
                 // Godot.GD.Print("UpdateQNodeMesh no children act: " + qNode.ID);
                 qNode.Activate();
-                RequestMeshContainer(qNode);
+                RequestMeshContainer(qNode, mainRoot);
                 QueueRequestMeshUpdate(qNode);
             }
             // Godot.GD.Print("UpdateQNodeMesh tile already active, ends at: " + qNode.ID);
@@ -1110,15 +1113,15 @@ public class ManagerTerrain {
                 // recycling happens in QNodeShowReadyMeshes after updating the request queue
             }
             // Godot.GD.Print("UpdateQNodeMesh go one level deeper " + qNode.ID);
-            UpdateQNodeMesh(ref refPos, qNode.Children[0]);
-            UpdateQNodeMesh(ref refPos, qNode.Children[1]);
-            UpdateQNodeMesh(ref refPos, qNode.Children[2]);
-            UpdateQNodeMesh(ref refPos, qNode.Children[3]);
+            UpdateQNodeMesh(ref refPos, qNode.Children[0], mainRoot);
+            UpdateQNodeMesh(ref refPos, qNode.Children[1], mainRoot);
+            UpdateQNodeMesh(ref refPos, qNode.Children[2], mainRoot);
+            UpdateQNodeMesh(ref refPos, qNode.Children[3], mainRoot);
         } else { // reached correct resolution
             if (!qNode.Active) {
                 // Godot.GD.Print("UpdateQNodeMesh correct resolution " + qNode.ID);
                 qNode.Activate();
-                RequestMeshContainer(qNode);
+                RequestMeshContainer(qNode, mainRoot);
                 QueueRequestMeshUpdate(qNode);
             }
         }
@@ -1211,7 +1214,7 @@ public class ManagerTerrain {
     // only the assignment of the newly sampled mesh data is limited to processAmount tiles per tick
     // using the queue, other parts are much faster to do and can be done immediately
     private static void QueueRequestProcess(int processAmount, float lowest, float highest,
-                                            Godot.Image imgHeightMap                       ) {
+                                            Godot.Image imgHeightMap, Godot.ImageTexture miniMap) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainQueueRequestProcess);
 #endif
@@ -1227,7 +1230,7 @@ public class ManagerTerrain {
             _reqNode.MeshContainer.UseMesh(_reqNode.XPos, _reqNode.ZPos,
                                            _reqNode.XSize, _reqNode.ZSize, 
                                            _worldXSize, _worldZSize, _reqNode.Res);
-            _reqNode.MeshContainer.SetTerrainShaderAttributes();
+            _reqNode.MeshContainer.SetTerrainShaderAttributes(miniMap);
             _reqNode.UpdateAssignedMesh(_worldXSize, _worldZSize, lowest, highest, imgHeightMap);
             // Godot.GD.Print("Queue Assigned " + _reqNode.ID + " recycling children");
             RecycleChildMesh(_reqNode.Children[0]);
@@ -1255,7 +1258,7 @@ public class ManagerTerrain {
 #endif 
     }
 
-    private static void RequestMeshContainer(XB.QNode qNode) {
+    private static void RequestMeshContainer(XB.QNode qNode, Godot.Node mainRoot) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainRequestMeshContainer);
 #endif
@@ -1273,8 +1276,8 @@ public class ManagerTerrain {
         }
 
         int newID = _terrainMeshes.Count;
-        var mC    = new XB.MeshContainer(XB.AData.MainRoot, newID,
-                                         qNode.XPos/_worldXSize, qNode.ZPos/_worldZSize);
+        var mC    = new XB.MeshContainer(mainRoot, newID, qNode.XPos/_worldXSize,
+                                         qNode.ZPos/_worldZSize                  );
         _terrainMeshes.Add(mC);
         qNode.AssignMeshContainer(_terrainMeshes[newID]);
 
@@ -1284,18 +1287,19 @@ public class ManagerTerrain {
     }
 
     private static void ShowLargestTile(XB.QNode qNode, float lowest, float highest,
-                                        Godot.Image imgHeightMap                    ) {
+                                        Godot.Image imgHeightMap, Godot.Node mainRoot,
+                                        Godot.ImageTexture miniMap                    ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainShowLargestTile);
 #endif
 
         // Godot.GD.Print("ShowLargestTile " + qNode.ID);
         qNode.Activate();
-        RequestMeshContainer(qNode);
+        RequestMeshContainer(qNode, mainRoot);
         qNode.MeshContainer.UseMesh(qNode.XPos, qNode.ZPos,
                                     qNode.XSize, qNode.ZSize, 
                                     _worldXSize, _worldZSize, qNode.Res);
-        qNode.MeshContainer.SetTerrainShaderAttributes();
+        qNode.MeshContainer.SetTerrainShaderAttributes(miniMap);
         qNode.UpdateAssignedMesh(_worldXSize, _worldZSize, lowest, highest, imgHeightMap);
         qNode.ShowMeshContainer();
         qNode.DeActivate(); // the largest tile should not stick around
@@ -1305,13 +1309,14 @@ public class ManagerTerrain {
 #endif 
     }
 
-    public static void ResetQuadTree(float lowest, float highest, Godot.Image imgHeightMap) {
+    public static void ResetQuadTree(float lowest, float highest, Godot.Image imgHeightMap,
+                                     Godot.Node mainRoot, Godot.ImageTexture miniMap       ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainResetQuadTree);
 #endif
 
         ResetQNode(_qRoot);
-        ShowLargestTile(_qRoot, lowest, highest, imgHeightMap);
+        ShowLargestTile(_qRoot, lowest, highest, imgHeightMap, mainRoot, miniMap);
 
 #if XBDEBUG
         debug.End();

@@ -125,7 +125,7 @@ public partial class DebugHUD : Godot.Control {
         Hide();
     }
 
-    public void UpdateDebugHUD(float dt) {
+    public void UpdateDebugHUD(float dt, XB.PController pCtrl) {
         if (!_pauseDebug) { XB.DebugProfiling.ProcessCollectedTimes(dt); }
         if (!_visible)    { return; }
 
@@ -176,11 +176,11 @@ public partial class DebugHUD : Godot.Control {
         }
 
         // player position
-        string plPos  = "X: " + (-XB.AData.PCtrl.PModel.GlobalPosition.X).ToString(_playerPosFormat)
+        string plPos  = "X: " + (-pCtrl.PModel.GlobalPosition.X).ToString(_playerPosFormat)
                               + '\n';
-               plPos += "Y: " + XB.AData.PCtrl.PModel.GlobalPosition.Y.ToString(_playerPosFormat)
+               plPos += "Y: " +   pCtrl.PModel.GlobalPosition.Y.ToString(_playerPosFormat)
                               + '\n';
-               plPos += "Z: " + (-XB.AData.PCtrl.PModel.GlobalPosition.Z).ToString(_playerPosFormat)
+               plPos += "Z: " + (-pCtrl.PModel.GlobalPosition.Z).ToString(_playerPosFormat)
                               + '\n';
         _lbPlayerPos.Text = plPos;
 
@@ -305,13 +305,12 @@ public enum D {
     MeshContainerSkirtTriangleIndices,
     MeshContainerUse,
     MeshContainerUseMesh,
-    PController_Input,
-    PController_PhysicsProcess,
+    PControllerInput,
+    PControllerUpdatePlayer,
     PControllerInitializePController,
     PControllerPlacePlayer,
     PControllerSpawnPlayer,
     PControllerSpawnPlayerDelayed,
-    PControllerUpdateGeneral,
     PControllerUpdateMovement,
     PControllerUpdateCamera,
     PControllerUpdateAiming,
@@ -370,7 +369,6 @@ public enum D {
     UtilsDigitRectangles,
     UtilsFillRectanglesInImage,
     UtilsIntersectRayPlaneV3,
-    UtilsPlayUISound,
     UtilsPointRectangles,
     UtilsRaycast,
     UtilsRectangleOutline,

@@ -323,7 +323,7 @@ public class ManagerSphere {
 
     // at startup, all spheres are created,
     // dam segments are not created here but when they are required
-    public static void InitializeSpheres() {
+    public static void InitializeSpheres(Godot.Node mainRoot) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereInitializeSpheres);
 #endif
@@ -338,7 +338,7 @@ public class ManagerSphere {
         for (int i = 0; i < MaxSphereAmount; i++) {
             sphere = (XB.Sphere)sphereScn.Instantiate();
             sphere.InitializeSphere(i, ref rects, ref rSize);
-            XB.AData.MainRoot.AddChild(sphere);
+            mainRoot.AddChild(sphere);
             Spheres[i] = sphere;
         }
         FindNextAvailableSphere();
@@ -367,14 +367,14 @@ public class ManagerSphere {
 #endif 
     }
 
-    public static void ChangeHighlightSphere(int newHLSphereID) {
+    public static void ChangeHighlightSphere(int newHLSphereID, XB.HUD hud) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereChangeHighlightSphere);
 #endif
 
         if (HLSphereID == newHLSphereID) { return; }
 
-        XB.AData.PCtrl.Hud.UpdateSphereTextureHighlight(HLSphereID, newHLSphereID);
+        hud.UpdateSphereTextureHighlight(HLSphereID, newHLSphereID);
         HLSphereID = newHLSphereID;
 
 #if XBDEBUG
@@ -397,7 +397,7 @@ public class ManagerSphere {
 #endif 
     }
 
-    public static void ToggleLinking() {
+    public static void ToggleLinking(XB.HUD hud) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereToggleLinking);
 #endif
@@ -405,7 +405,7 @@ public class ManagerSphere {
         Linking = !Linking;
         if (!Linking) { 
             if (LinkingID < MaxSphereAmount) {
-                Spheres[LinkingID].SphereTextureRemoveLinked();
+                Spheres[LinkingID].SphereTextureRemoveLinked(hud);
             }
             LinkingID = MaxSphereAmount; 
         }
@@ -415,25 +415,25 @@ public class ManagerSphere {
 #endif 
     }
 
-    public static void LinkSpheres() {
+    public static void LinkSpheres(Godot.Node mainRoot, XB.HUD hud) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereLinkSpheres);
 #endif
 
         // Godot.GD.Print("linking: " + LinkingID + " with " + HLSphereID);
         if        (LinkingID == HLSphereID) {
-            Spheres[LinkingID].SphereTextureRemoveLinked();
+            Spheres[LinkingID].SphereTextureRemoveLinked(hud);
             LinkingID = MaxSphereAmount;
         } else if (LinkingID == MaxSphereAmount) {
             LinkingID = HLSphereID;
-            Spheres[LinkingID].SphereTextureAddLinked();
+            Spheres[LinkingID].SphereTextureAddLinked(hud);
         } else {
-            Spheres[LinkingID].SphereTextureRemoveLinked();
+            Spheres[LinkingID].SphereTextureRemoveLinked(hud);
             Spheres[HLSphereID].LinkSphere(LinkingID);
             Spheres[LinkingID].LinkSphere(HLSphereID);
 
             int damID = -1; //NOTE[ALEX]: deliberately set to -1 to catch errors
-            RequestDamSegment(ref damID, LinkingID, HLSphereID);
+            RequestDamSegment(ref damID, LinkingID, HLSphereID, mainRoot);
             _damSegments[damID].UpdateMesh(XB.WData.SphereEdgeLength,
                                           Spheres[LinkingID].GlobalPosition,
                                           Spheres[LinkingID].Radius, Spheres[LinkingID].Angle,
@@ -442,7 +442,7 @@ public class ManagerSphere {
             _damSegments[damID].ApplyToMesh();
 
             LinkingID = HLSphereID;
-            Spheres[LinkingID].SphereTextureAddLinked();
+            Spheres[LinkingID].SphereTextureAddLinked(hud);
         }
 
 #if XBDEBUG
@@ -450,14 +450,14 @@ public class ManagerSphere {
 #endif 
     }
 
-    public static void UnsetLinkingID() {
+    public static void UnsetLinkingID(XB.HUD hud) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereUnsetLinkingID);
 #endif
 
         if (LinkingID == MaxSphereAmount) { return; }
 
-        Spheres[LinkingID].SphereTextureRemoveLinked();
+        Spheres[LinkingID].SphereTextureRemoveLinked(hud);
         LinkingID = MaxSphereAmount;
 
 #if XBDEBUG
@@ -465,14 +465,14 @@ public class ManagerSphere {
 #endif 
     }
 
-    public static void UnlinkSpheres() {
+    public static void UnlinkSpheres(XB.HUD hud) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereUnlinkSpheres);
 #endif
 
         // Godot.GD.Print("unlinking: " + HLSphereID);
-        Spheres[HLSphereID].SphereTextureRemoveLinked();
-        Spheres[HLSphereID].UnlinkFromAllSpheres();
+        Spheres[HLSphereID].SphereTextureRemoveLinked(hud);
+        Spheres[HLSphereID].UnlinkFromAllSpheres(hud);
         RecycleDamSegment(HLSphereID);
         LinkingID = MaxSphereAmount;
 
@@ -520,7 +520,7 @@ public class ManagerSphere {
     //                also the order of operation matters for intersections of dam segments
     //            accepting these limitations allows the dam segments and also this function
     //            to be much more simple and easier to understand, so for now this approach is used
-    public static void ApplyTerrain() {
+    public static void ApplyTerrain(XB.HUD hud) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereApplyTerrain);
 #endif
@@ -544,7 +544,7 @@ public class ManagerSphere {
         for (int i = 0; i < MaxSphereAmount; i++) {
             if (!Spheres[i].Active) { continue; }
 
-            Spheres[i].RemoveSphere();
+            Spheres[i].RemoveSphere(hud);
         }
 
 #if XBDEBUG
@@ -553,7 +553,7 @@ public class ManagerSphere {
     }
 
     // remove all spheres and dam segments without applying them
-    public static void ClearSpheres() {
+    public static void ClearSpheres(XB.HUD hud) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereClearSpheres);
 #endif
@@ -566,7 +566,7 @@ public class ManagerSphere {
         for (int i = 0; i < MaxSphereAmount; i++) {
             if (!Spheres[i].Active) { continue; }
 
-            Spheres[i].RemoveSphere();
+            Spheres[i].RemoveSphere(hud);
         }
 
 #if XBDEBUG
@@ -576,7 +576,7 @@ public class ManagerSphere {
 
     // places the next available sphere at the requested position
     // if all spheres are in use, none are placed
-    public static bool RequestSphere(ref Godot.Vector3 pos) {
+    public static bool RequestSphere(ref Godot.Vector3 pos, XB.HUD hud, Godot.Node mainRoot) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereRequestSphere);
 #endif
@@ -588,10 +588,10 @@ public class ManagerSphere {
             return false; 
         }
 
-        XB.AData.PCtrl.Hud.UpdateSphereTextureHighlight(HLSphereID, NextSphere);
+        hud.UpdateSphereTextureHighlight(HLSphereID, NextSphere);
         HLSphereID = NextSphere; // so that linking immediately works
-        Spheres[NextSphere].PlaceSphere(ref pos);
-        if (Linking && LinkingID < MaxSphereAmount) { LinkSpheres(); }
+        Spheres[NextSphere].PlaceSphere(ref pos, hud);
+        if (Linking && LinkingID < MaxSphereAmount) { LinkSpheres(mainRoot, hud); }
 
 #if XBDEBUG
         debug.End();
@@ -602,7 +602,8 @@ public class ManagerSphere {
 
     // finds an unused dam segment or allocates a new one if none are available
     // writes the index of the segment that can be used into damID
-    private static void RequestDamSegment(ref int damID, int linkedToID1, int linkedToID2) {
+    private static void RequestDamSegment(ref int damID, int linkedToID1, int linkedToID2,
+                                          Godot.Node mainRoot                             ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerSphereRequestDamSegment);
 #endif
@@ -623,7 +624,7 @@ public class ManagerSphere {
         }
 
         int newID = _damSegments.Count;
-        var dS    = new XB.DamSegment(XB.AData.MainRoot, newID, XB.WData.DamSegmentDivisions);
+        var dS    = new XB.DamSegment(mainRoot, newID, XB.WData.DamSegmentDivisions);
         _damSegments.Add(dS);
         _damSegments[newID].UseMesh(linkedToID1, linkedToID2);
         damID = newID;

@@ -599,7 +599,7 @@ public partial class HUD : Godot.Control {
 #endif 
     }
 
-    private void UpdateMiniMapOverlayTexture() {
+    private void UpdateMiniMapOverlayTexture(XB.PController pCtrl) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.HUDUpdateMiniMapOverlayTexture);
 #endif
@@ -609,10 +609,10 @@ public partial class HUD : Godot.Control {
         //            world has z+ going forward and x+ going left,
         //            so 0|0 in world coordinates is 0|0 in world coordinates
         //            but the axes of the terrain in world space go in negative direction
-        float posX = -XB.AData.PCtrl.PModel.GlobalPosition.X/XB.WData.WorldDim.X;
-        float posZ = -XB.AData.PCtrl.PModel.GlobalPosition.Z/XB.WData.WorldDim.Y;
-        float xDir = +XB.AData.PCtrl.CCtrH.GlobalTransform.Basis.Z.X; // X coordinate of Z basis vector
-        float zDir = +XB.AData.PCtrl.CCtrH.GlobalTransform.Basis.Z.Z;
+        float posX = -pCtrl.PModel.GlobalPosition.X/XB.WData.WorldDim.X;
+        float posZ = -pCtrl.PModel.GlobalPosition.Z/XB.WData.WorldDim.Y;
+        float xDir = +pCtrl.CCtrH.GlobalTransform.Basis.Z.X; // X coordinate of Z basis vector
+        float zDir = +pCtrl.CCtrH.GlobalTransform.Basis.Z.Z;
 
         _matMiniMapO.SetShaderParameter("plPosX", posX);
         _matMiniMapO.SetShaderParameter("plPosZ", posZ);
@@ -659,7 +659,7 @@ public partial class HUD : Godot.Control {
         QTreeVisible     = showQTreeVis;
     }
 
-    public void UpdateHUD(float dt) {
+    public void UpdateHUD(float dt, XB.PController pCtrl, XB.Settings sett, XB.Input input) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.HUDUpdateHUD);
 #endif
@@ -733,16 +733,16 @@ public partial class HUD : Godot.Control {
         }
         _lbGuideName.AddThemeColorOverride("font_color", _colGuideText);
 
-        UpdateMiniMapOverlayTexture();
+        UpdateMiniMapOverlayTexture(pCtrl);
 
-        if (XB.AData.S.SC.QTreeVis) {
+        if (sett.SC.QTreeVis) {
             XB.ManagerTerrain.UpdateQTreeTexture(_imgMiniMapQT,
                                                  _imgMiniMapQT.GetWidth()/XB.WData.WorldDim.X,
                                                  _rects                                       );
             _texMiniMapQT.Update(_imgMiniMapQT);
         }
 
-        if (XB.AData.S.SC.ShowGuides) { UpdateGuides(); }
+        if (sett.SC.ShowGuides) { UpdateGuides(pCtrl, input); }
 
         _lbFps.Text = Godot.Engine.GetFramesPerSecond().ToString();
 
@@ -769,43 +769,43 @@ public partial class HUD : Godot.Control {
     //    change radius of highlighted sphere
     //    change angle of highlighted sphere
     //    unlink
-    private void UpdateGuides() {
+    private void UpdateGuides(XB.PController pCtrl, XB.Input input) {
         _guide[0, 0] = Tr("GUIDE_OPENMENU")
-                       + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.Start].Key;
-        if (XB.AData.PCtrl.Move == XB.MoveSt.Walk) {
+                       + _guideSp + input.InputActions[(int)XB.KeyID.Start].Key;
+        if (pCtrl.Move == XB.MoveSt.Walk) {
             _guide[0, 2] = Tr("GUIDE_RUN")
-                           + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.DUp].Key;
+                           + _guideSp + input.InputActions[(int)XB.KeyID.DUp].Key;
         } else {
             _guide[0, 2] = _guideUnused;
         }
-        if (XB.AData.PCtrl.ThirdP) {
+        if (pCtrl.ThirdP) {
             _guide[0, 1] = Tr("GUIDE_AIM")
-                           + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.SLBot].Key;
+                           + _guideSp + input.InputActions[(int)XB.KeyID.SLBot].Key;
             _guide[0, 3] = Tr("GUIDE_FIRSTPERSON")
-                           + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.DDown].Key;
+                           + _guideSp + input.InputActions[(int)XB.KeyID.DDown].Key;
         } else {
             _guide[0, 1] = _guideUnused;
             _guide[0, 3] = Tr("GUIDE_THIRDPERSON")
-                           + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.DDown].Key;
+                           + _guideSp + input.InputActions[(int)XB.KeyID.DDown].Key;
         }
         _guide[0, 4] = Tr("GUIDE_OVERLAY")
-                           + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.Select].Key;
+                           + _guideSp + input.InputActions[(int)XB.KeyID.Select].Key;
 
         if (XB.ManagerSphere.NextSphere == 0) {
-            if (!XB.AData.PCtrl.PlAiming && XB.AData.PCtrl.ThirdP) {
+            if (!pCtrl.PlAiming && pCtrl.ThirdP) {
                 _guide[1, 1] = Tr("GUIDE_AIMTOINTERACT");
             } else {
                 if (XB.ManagerSphere.LinkingID == XB.ManagerSphere.MaxSphereAmount) {
                     _guide[1, 1] = Tr("GUIDE_SPHEREPLACE")
-                                   + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.SLTop].Key;
+                                   + _guideSp + input.InputActions[(int)XB.KeyID.SLTop].Key;
                 }
                 else {
                     _guide[1, 1] = Tr("GUIDE_SPHEREPLACELINK")
-                                   + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.SLTop].Key;
+                                   + _guideSp + input.InputActions[(int)XB.KeyID.SLTop].Key;
                 }
             }
         } else {
-            if (!XB.AData.PCtrl.PlAiming && XB.AData.PCtrl.ThirdP) {
+            if (!pCtrl.PlAiming && pCtrl.ThirdP) {
                 _guide[1, 1] = Tr("GUIDE_AIMTOINTERACT");
             } else {
                 if (XB.ManagerSphere.NextSphere == XB.ManagerSphere.MaxSphereAmount+1) { 
@@ -813,27 +813,27 @@ public partial class HUD : Godot.Control {
                 } else {
                     if (XB.ManagerSphere.LinkingID == XB.ManagerSphere.MaxSphereAmount) {
                         _guide[1, 1] = Tr("GUIDE_SPHEREPLACE")
-                                       + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.SLTop].Key;
+                                       + _guideSp + input.InputActions[(int)XB.KeyID.SLTop].Key;
                     } else {
                         _guide[1, 1] = Tr("GUIDE_SPHEREPLACELINK")
-                                       + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.SLTop].Key;
+                                       + _guideSp + input.InputActions[(int)XB.KeyID.SLTop].Key;
                     }
                 }
             }
         }
         if (XB.ManagerSphere.HLSphereID < XB.ManagerSphere.MaxSphereAmount) {
             _guide[1, 2] = Tr("GUIDE_SPHEREREMOVE")
-                           + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.SRTop].Key;
+                           + _guideSp + input.InputActions[(int)XB.KeyID.SRTop].Key;
             _guide[1, 3] = Tr("GUIDE_SPHEREMOVE")
-                           + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.SRBot].Key;
+                           + _guideSp + input.InputActions[(int)XB.KeyID.SRBot].Key;
             _guide[2, 2] = Tr("GUIDE_SPHERECHNGRADIUS")
-                           + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.DLeft].Key
-                           + "+" + XB.AData.Input.InputActions[(int)XB.KeyID.SRBot].Key;
+                           + _guideSp + input.InputActions[(int)XB.KeyID.DLeft].Key
+                           + "+" + input.InputActions[(int)XB.KeyID.SRBot].Key;
             _guide[2, 3] = Tr("GUIDE_SPHERECHNGANGLE")
-                           + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.DRight].Key
-                           + "+" + XB.AData.Input.InputActions[(int)XB.KeyID.SRBot].Key;
+                           + _guideSp + input.InputActions[(int)XB.KeyID.DRight].Key
+                           + "+" + input.InputActions[(int)XB.KeyID.SRBot].Key;
         } else {
-            if (!XB.AData.PCtrl.PlAiming && XB.AData.PCtrl.ThirdP) {
+            if (!pCtrl.PlAiming && pCtrl.ThirdP) {
                 _guide[1, 2] = _guideUnused;
                 _guide[1, 3] = _guideUnused;
                 _guide[2, 2] = _guideUnused;
@@ -848,7 +848,7 @@ public partial class HUD : Godot.Control {
 
             if (XB.ManagerSphere.Linking) {
                 _guide[2, 1] = Tr("GUIDE_LINKINGSET")
-                               + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.FUp].Key;
+                               + _guideSp + input.InputActions[(int)XB.KeyID.FUp].Key;
             } else {
                 _guide[2, 1] = _guideUnused;
             }
@@ -856,13 +856,13 @@ public partial class HUD : Godot.Control {
         if (XB.ManagerSphere.Linking) {
             _guide[1, 0] = Tr("GUIDE_INLINKING");
             _guide[1, 4] = Tr("GUIDE_LINKINGEXIT")
-                           + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.FRight].Key;
+                           + _guideSp + input.InputActions[(int)XB.KeyID.FRight].Key;
 
             if (XB.ManagerSphere.LinkingID == XB.ManagerSphere.MaxSphereAmount) {
                 _guide[2, 0] = _guideUnused;
                 if (XB.ManagerSphere.HLSphereID < XB.ManagerSphere.MaxSphereAmount) {
                     _guide[2, 1] = Tr("GUIDE_LINKINGSET")
-                                   + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.FUp].Key;
+                                   + _guideSp + input.InputActions[(int)XB.KeyID.FUp].Key;
                 } else {
                     _guide[2, 1] = _guideUnused;
                 }
@@ -871,36 +871,36 @@ public partial class HUD : Godot.Control {
                        && XB.ManagerSphere.Spheres[XB.ManagerSphere.LinkingID].Linked) {
                 _guide[2, 0] = Tr("GUIDE_LINKINGID") + " " + XB.ManagerSphere.LinkingID.ToString();
                 _guide[2, 1] = Tr("GUIDE_LINKINGUNSET")
-                               + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.FUp].Key;
+                               + _guideSp + input.InputActions[(int)XB.KeyID.FUp].Key;
                 _guide[2, 4] = Tr("GUIDE_LINKINGUNLINK")
-                               + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.FLeft].Key;
+                               + _guideSp + input.InputActions[(int)XB.KeyID.FLeft].Key;
             } else {
                 _guide[2, 0] = Tr("GUIDE_LINKINGID") + " " + XB.ManagerSphere.LinkingID.ToString();
                 if (XB.ManagerSphere.HLSphereID < XB.ManagerSphere.MaxSphereAmount) {
                     if (XB.ManagerSphere.HLSphereID != XB.ManagerSphere.LinkingID) {
                         //NOTE[ALEX]: does not reflect updating linking id
                         _guide[2, 1] = Tr("GUIDE_LINKINGLINK")
-                                       + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.FUp].Key;
+                                       + _guideSp + input.InputActions[(int)XB.KeyID.FUp].Key;
                     } else {
                         _guide[2, 1] = Tr("GUIDE_LINKINGUNSET")
-                                       + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.FUp].Key;
+                                       + _guideSp + input.InputActions[(int)XB.KeyID.FUp].Key;
                     }
                     if (XB.ManagerSphere.Spheres[XB.ManagerSphere.HLSphereID].Linked) {
                         _guide[2, 4] = Tr("GUIDE_LINKINGUNLINK")
-                                       + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.FLeft].Key;
+                                       + _guideSp + input.InputActions[(int)XB.KeyID.FLeft].Key;
                     } else {
                         _guide[2, 4] = _guideUnused;
                     }
                 } else {
                     _guide[2, 1] = Tr("GUIDE_LINKINGUNSET")
-                                   + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.FUp].Key;
+                                   + _guideSp + input.InputActions[(int)XB.KeyID.FUp].Key;
                     _guide[2, 4] = _guideUnused;
                 }
             }
         } else {
             _guide[1, 0] = _guideUnused;
             _guide[1, 4] = Tr("GUIDE_LINKINGENTER")
-                           + _guideSp + XB.AData.Input.InputActions[(int)XB.KeyID.FRight].Key;
+                           + _guideSp + input.InputActions[(int)XB.KeyID.FRight].Key;
             _guide[2, 0] = _guideUnused;
             _guide[2, 4] = _guideUnused;
         }
