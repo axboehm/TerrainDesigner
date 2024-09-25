@@ -3,6 +3,8 @@
 Height Designer is a 3D application that lets you walk around a landscape and modify it interactively.
 The terrain is stored as a heightmap, a texture with pixel values ranging from black to white representing the height of the terrain at each point.
 Keeping the application running smoothly in real time was a main goal of the implementation. Working smoothly with detailed landscapes was a priority and the implementation is motivated by that goal.
+[[./readmeImages/test.png]]
+
 
 # General Concept
 
@@ -20,8 +22,11 @@ The solution was to use spheres that represent geometry. Each sphere sits on top
 Once the user has placed spheres and adjusted their properties they can be applied. Textures representing the changes are created and then blended with the original terrain. This step is not real-time but rather takes a few seconds, the result however is mathmatically exact and predictable.
 Then the terrain that the user walks on gets updated to represent this new state and further modifications can be made.
 
+
 # Technical Overview
 
 - MainLoop
 - Different components
 - Performance through QuadTree and staggering of updates
+- representation of geometry using signed distance fields
+- terrain shader made to be adaptive to any type of geometry using: height based blending, triplanar UV mapping, texture bombing
