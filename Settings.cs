@@ -542,7 +542,7 @@ public class Settings {
                 _scMod.ShadowSize     = ShadowSizes[3];
                 _scMod.ShadowFilter   = ShadowFilters[5];
                 _scMod.ShadowDistance = 250;
-                _scMod.LODSel         = LOD[3];
+                _scMod.LODSel         = LOD[2];
                 _scMod.SSAOSel        = SSAO[3];
                 _scMod.SSAOHalf       = false;
                 _scMod.SSILSel        = SSIL[3];

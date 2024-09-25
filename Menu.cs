@@ -65,16 +65,16 @@ public partial class Menu : Godot.Control {
     [Godot.Export] private Godot.OptionButton _obPresets;
     [Godot.Export] private Godot.Button       _bApplyPreset;
     [Godot.Export] private Godot.Button       _bAppDefaults;
+    [Godot.Export] private Godot.Button       _cbBlock;
+    [Godot.Export] private Godot.Button       _cbQTVis;
+    [Godot.Export] private Godot.Button       _cbGuides;
         // display
     [Godot.Export] private Godot.OptionButton _obRes;
     [Godot.Export] private Godot.OptionButton _obMode;
     [Godot.Export] private Godot.Label        _lbFrame;
     [Godot.Export] private Godot.Slider       _slFrame;
     [Godot.Export] private Godot.Button       _cbFps;
-    [Godot.Export] private Godot.Button       _cbGuides;
     [Godot.Export] private Godot.Button       _cbVSync;
-    [Godot.Export] private Godot.Button       _cbBlock;
-    [Godot.Export] private Godot.Button       _cbQTVis;
         // performance
     [Godot.Export] private Godot.ScrollContainer _scrPerf;
     [Godot.Export] private Godot.OptionButton    _obMSAA;
@@ -178,6 +178,12 @@ public partial class Menu : Godot.Control {
         _trStartup0.Texture = Godot.ResourceLoader.Load<Godot.Texture2D>(XB.ResourcePaths.Startup0Tex);
         _trStartup1.Texture = Godot.ResourceLoader.Load<Godot.Texture2D>(XB.ResourcePaths.Startup1Tex);
         _trStartup2.Texture = Godot.ResourceLoader.Load<Godot.Texture2D>(XB.ResourcePaths.Startup2Tex);
+        _lbStartup0.HorizontalAlignment = Godot.HorizontalAlignment.Center;
+        _lbStartup0.VerticalAlignment   = Godot.VerticalAlignment.Center;
+        _lbStartup1.HorizontalAlignment = Godot.HorizontalAlignment.Center;
+        _lbStartup1.VerticalAlignment   = Godot.VerticalAlignment.Center;
+        _lbStartup2.HorizontalAlignment = Godot.HorizontalAlignment.Center;
+        _lbStartup2.VerticalAlignment   = Godot.VerticalAlignment.Center;
 
         // pause tab
         _bQuit.Pressed          += ButtonPopupQuitOnPressed;
@@ -204,6 +210,9 @@ public partial class Menu : Godot.Control {
         _slCamVer.MaxValue     = XB.Settings.CamSensMax;
         _slCamVer.Step         = 1;
         _slCamVer.DragEnded   += SliderCamVerOnDragEnded;
+        _cbGuides.Pressed     += ButtonShowGuidesOnPressed;
+        _cbBlock.Pressed      += ButtonBlockGridOnPressed;
+        _cbQTVis.Pressed      += ButtonQuadTreeVisOnPressed;
         _bAppDefaults.Pressed += ButtonAppDefaultsOnPressed;
         _bApplyPreset.Pressed += ButtonApplyOnPressed;
         foreach (var preset in _sett.Presets) { _obPresets.AddItem(preset.Key); }
@@ -218,10 +227,7 @@ public partial class Menu : Godot.Control {
         _sett.AddSeparators(_obMode);
         _obMode.ItemSelected += OptionButtonModeOnItemSelected;
         _cbFps.Pressed       += ButtonShowFPSOnPressed;
-        _cbGuides.Pressed    += ButtonShowGuidesOnPressed;
         _cbVSync.Pressed     += ButtonVSyncOnPressed;
-        _cbBlock.Pressed     += ButtonBlockGridOnPressed;
-        _cbQTVis.Pressed     += ButtonQuadTreeVisOnPressed;
         _slFrame.MinValue     = 0.0f;
         _slFrame.MaxValue     = _sett.FpsOptions.Length - 1;
         _slFrame.DragEnded   += SliderFrameRateOnDragEnded;
@@ -560,6 +566,7 @@ public partial class Menu : Godot.Control {
     }
 
     private void UpdateControlTab() {
+        _lbTab.Text = Tr("TAB_CONTROLS");
         for (int i = 0; i < XB.Input.Amount; i++) {
             _bCK[i].Text = Tr(_input.InputActions[i].Description) + " - "
                            + _input.InputActions[i].Key;
