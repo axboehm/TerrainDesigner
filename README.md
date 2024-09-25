@@ -1,6 +1,7 @@
-# Height Designer
+# Terrain Designer
 
-Height Designer is a 3D application made using the game engine Godot, that lets you walk around a landscape and modify it interactively.
+Terrain Designer is a 3D application that lets you walk around a landscape and modify it interactively.
+It is made using the Godot game engine.
 
 ![Test Image Hover Description](./readmeImages/test.png)
 
@@ -22,3 +23,11 @@ Height Designer is a 3D application made using the game engine Godot, that lets 
 - Different components
 - representation of sphere geometry using signed distance fields
 - terrain shader made to be adaptive to any type of geometry using: height based blending, triplanar UV mapping, texture bombing
+
+
+# Credits
+
+The code and assets were entirely created by Alexander Boehm.
+3D models were created using Blender, ZBrush and Marvelous Designer.
+Textures were made using Substance Designer, assets were textured using Substance Painter and Blender.
+Some textures, such as those for the terrain and UI are created in code at runtime of the application.
