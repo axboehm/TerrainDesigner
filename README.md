@@ -1,7 +1,7 @@
 # Terrain Designer
 
-Terrain Designer is a 3D application that lets you walk around a landscape and modify it interactively.
-It is made using the Godot game engine.
+Terrain Designer is a 3D application that lets you walk around a landscape and modify it interactively.<br />
+It is made using the Godot game engine.<br />
 
 ![Test Image Hover Description](./readmeImages/test.png)
 
@@ -27,7 +27,7 @@ It is made using the Godot game engine.
 
 # Credits
 
-The code and assets were entirely created by Alexander Boehm.
-3D models were created using Blender, ZBrush and Marvelous Designer.
-Textures were made using Substance Designer, assets were textured using Substance Painter and Blender.
-Some textures, such as those for the terrain and UI are created in code at runtime of the application.
+The code and assets were entirely created by Alexander Boehm.<br />
+3D models were created using Blender, ZBrush and Marvelous Designer.<br />
+Textures were made using Substance Designer, assets were textured using Substance Painter and Blender.<br />
+Some textures, such as those for the terrain and UI are created in code at runtime of the application.\<br />
