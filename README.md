@@ -3,8 +3,7 @@
 Height Designer is a 3D application that lets you walk around a landscape and modify it interactively.
 The terrain is stored as a heightmap, a texture with pixel values ranging from black to white representing the height of the terrain at each point.
 Keeping the application running smoothly in real time was a main goal of the implementation. Working smoothly with detailed landscapes was a priority and the implementation is motivated by that goal.
-[[./readmeImages/test.png]]
-
+![Test Image Hover Description](./readmeImages/test.png)
 
 # General Concept
 
