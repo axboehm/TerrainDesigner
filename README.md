@@ -19,10 +19,10 @@ It is made using the Godot game engine.<br />
 
 # Technical Overview
 
-- Application written in C# using Godot v.4.2.1 for rendering and collisions.
+- Application written in C# using Godot Open Source Game Engine v.4.2.1 for rendering and collisions.
 - Real time performance even with large terrains was a main goal.
-- Large meshes maintain good performance by using a quadtree to continually adjust the mesh fidelity around the user.
-- Additional performance considerations were staggering of updates to various objects and pre-allocation of arrays with objects that are continuosly re-use of objects
+- Large meshes maintain good performance by using a quadtree to continually adjust the mesh fidelity around the user and efficiently reduce hardware load.
+- Additional performance optimizations were: staggering of updates to various objects and pre-allocation of arrays with objects that are continuosly re-use of objects
 - Single main loop that calls all other update functions to make the control flow obvious and prevent race conditions.
 - Code is separated into components that deal with contained tasks, e.g. terrain generation, updating spheres and their geometry, updating the 3D character, etc.
 - Representation of geometry using signed distance fields to get exact representations that are easy to story and modify.
@@ -37,3 +37,5 @@ The code and assets were entirely created by Alexander Boehm.<br />
 3D models were created using Blender, ZBrush and Marvelous Designer.<br />
 Textures were made using Substance Designer, assets were textured using Substance Painter and Blender.<br />
 Some textures, such as those for the terrain and UI are created in code at runtime of the application.<br />
+
+![Assets](./readmeImages/readmeAssets.png)
