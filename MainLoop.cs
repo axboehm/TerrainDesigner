@@ -9,7 +9,8 @@ public enum AppState {
 }
 
 //TODO[ALEX]: this should not be necessary, but just passing the enum variable by ref does not work
-public class AppSt {
+//NOTE[ALEX]: passing an enum as a reference does not seem to work, wrapping it in a class works
+public class AppStWrapper {
     public XB.AppState St = XB.AppState.Uninit;
 }
 
@@ -37,7 +38,7 @@ public partial class MainLoop : Godot.Node3D {
 #endif
 
     public static Godot.Node TR = new Godot.Node(); // for translation
-    public XB.AppSt _appSt;
+    public XB.AppStWrapper _appSt;
 
     private Godot.Vector2 _pModelPos = new Godot.Vector2(0.0f, 0.0f);
 
@@ -50,7 +51,7 @@ public partial class MainLoop : Godot.Node3D {
 
         ProcessMode = ProcessModeEnum.Always;
 
-        _appSt = new XB.AppSt();
+        _appSt = new XB.AppStWrapper();
 
         Input = new XB.Input();
         Input.ProcessMode = Godot.Node.ProcessModeEnum.Always;

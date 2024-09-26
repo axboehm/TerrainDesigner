@@ -14,12 +14,12 @@ public partial class Menu : Godot.Control {
                    private bool               _inStartupScreen = false;
 
                    // references to MainLoop variables
-                   private XB.Settings    _sett;  // reference to settings of MainLoop
-                   private XB.Input       _input; // reference to input of MainLoop
-                   private XB.PController _pCtrl; // reference
-                   private XB.HUD         _hud;   // reference
-                   private Godot.Node     _mainRoot; // reference for sound effects and terrain
-                   private XB.AppSt       _appSt;
+                   private XB.Settings     _sett;  // reference to settings of MainLoop
+                   private XB.Input        _input; // reference to input of MainLoop
+                   private XB.PController  _pCtrl; // reference
+                   private XB.HUD          _hud;   // reference
+                   private Godot.Node      _mainRoot; // reference for sound effects and terrain
+                   private XB.AppStWrapper _appSt;
 
     // tab numbers
     private const int _tPau    = 0;
@@ -155,7 +155,7 @@ public partial class Menu : Godot.Control {
 
     public void SetMainLoopReferences(XB.HUD hud, XB.Settings sett, XB.Input input,
                                       XB.PController pCtrl, Godot.Node mainRoot, 
-                                      ref XB.AppSt appSt                           ) {
+                                      ref XB.AppStWrapper appSt                    ) {
         _sett     = sett;
         _input    = input;
         _pCtrl    = pCtrl;
