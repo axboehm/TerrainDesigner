@@ -22,12 +22,12 @@ It is made using the Godot open source game engine.<br />
 - Application written in C# using Godot v.4.2.1 for rendering and collisions.
 - Real time performance even with large terrains was a major consideration.
 - Large meshes maintain good performance by using a quadtree to continually adjust the mesh fidelity around the user and efficiently reduce hardware load (mesh tiles closer to the user are smaller with higher resolution).
-- Additional performance optimizations were: staggering of updates of objects across multiple frames and pre-allocation of arrays with objects that are continuosly reused on startup.
-- Single main loop that initializes and calls all other update functions to make the control flow obvious and prevent race conditions.
+- Additional performance optimizations were: staggering updating of objects across multiple frames and pre-allocation of arrays with objects on startup that are continuosly reused.
+- Single main loop that initializes objects and calls all other update functions to make the control flow obvious and prevent race conditions.
 - Code is separated into components that deal with specific tasks, e.g. terrain generation, updating spheres and their geometry, updating the 3D character, etc.
 - Representation of geometry using signed distance fields to get exact representations that are easy to store and modify.
 - Terrain shader made to be adaptive to any type of geometry by using height based texture blending, triplanar UV mapping and texture bombing.
-- Profiling implemented as main tool to assess performance of code and algorithms.
+- Runtime Profiling implemented as main tool to assess performance of code and algorithms.
 
 ![Technical Overview](./readmeImages/readmeTechnical.jpg)
 
@@ -38,7 +38,7 @@ The code and assets were entirely created by Alexander Boehm.<br />
 Textures were made using Substance Designer, assets were textured using Substance Painter and Blender.<br />
 Some textures, such as those for the terrain and UI are created in code at runtime of the application.<br />
 <br />
-I made this application mainly as a tool to help me learn how to implement complex, interrelated systems that have to perform well to ensure a smooth user experience.<br />
+I made this application mainly as a tool to help me learn how to implement complex, interrelated systems that consistently have to perform well to ensure a smooth user experience.<br />
 The functionality that I implemented is limited in scope but still allowed me enough space to try out various implementations of the ideas I had. It also let me push the final product far enough to produce a polished result that shows a variety of skills.<br />
 
 ![Assets](./readmeImages/readmeAssets.jpg)
