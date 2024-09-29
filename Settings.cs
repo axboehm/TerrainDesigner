@@ -182,13 +182,7 @@ public class Settings {
     private Godot.Node               _mainRoot;
     private Godot.DirectionalLight3D _mainLight;
     private Godot.Environment        _environment;
-    private XB.HUD         _hud;
-    private XB.Menu        _menu;
-    private Godot.Control  _nameOverlay;
-    private XB.PController _pCtrl;
-#if XBDEBUG
-    private XB.DebugHUD    _debugHud;
-#endif
+    private XB.PlayerState           _pS;
 
     // settings code variables
     private static SysCG.Dictionary<string, ulong> _sPos =
@@ -253,22 +247,11 @@ public class Settings {
 
 
     public void SetMainLoopReferences(Godot.Node mainRoot, Godot.DirectionalLight3D mainLight,
-                                      Godot.Environment environment, XB.HUD hud, XB.Menu menu,
-                                      Godot.Control nameOverlay, XB.PController pCtrl
-#if XBDEBUG
-                                      , XB.DebugHUD debugHud
-#endif
-                                      ) {
+                                      Godot.Environment environment, XB.PlayerState pS        ) {
         _mainRoot    = mainRoot;
         _mainLight   = mainLight;
         _environment = environment;
-        _hud         = hud;
-        _menu        = menu;
-        _nameOverlay = nameOverlay;
-        _pCtrl       = pCtrl;
-#if XBDEBUG
-        _debugHud = debugHud;
-#endif
+        _pS          = pS;
     }
 
     public void UpdateSettings(XB.SettingsContainer sc) {
@@ -341,18 +324,22 @@ public class Settings {
 
         if (SC.FullScreen) {
             window.Mode               = Godot.Window.ModeEnum.Fullscreen;
-            _hud.Scale                = new Godot.Vector2(scale, scale);
-            _menu.Scale               = new Godot.Vector2(scale, scale);
-            _nameOverlay.Scale        = new Godot.Vector2(scale, scale);
-            _debugHud.Scale           = new Godot.Vector2(scale, scale);
+            _pS.Hud.Scale             = new Godot.Vector2(scale, scale);
+            _pS.Menu.Scale            = new Godot.Vector2(scale, scale);
+            _pS.NameOverlay.Scale     = new Godot.Vector2(scale, scale);
+#if XBDEBUG
+            _pS.DebugHud.Scale        = new Godot.Vector2(scale, scale);
+#endif
             window.ContentScaleFactor = 1.0f/scale;
             window.ContentScaleMode   = Godot.Window.ContentScaleModeEnum.Viewport;
         } else {
             window.Mode               = Godot.Window.ModeEnum.Windowed;
-            _hud.Scale                = new Godot.Vector2(1.0f, 1.0f);
-            _menu.Scale               = new Godot.Vector2(1.0f, 1.0f);
-            _nameOverlay.Scale        = new Godot.Vector2(1.0f, 1.0f);
-            _debugHud.Scale           = new Godot.Vector2(1.0f, 1.0f);
+            _pS.Hud.Scale             = new Godot.Vector2(1.0f, 1.0f);
+            _pS.Menu.Scale            = new Godot.Vector2(1.0f, 1.0f);
+            _pS.NameOverlay.Scale     = new Godot.Vector2(1.0f, 1.0f);
+#if XBDEBUG
+            _pS.DebugHud.Scale        = new Godot.Vector2(1.0f, 1.0f);
+#endif
             window.ContentScaleFactor = scale;
             window.ContentScaleMode   = Godot.Window.ContentScaleModeEnum.Disabled;
         }
@@ -368,7 +355,7 @@ public class Settings {
         SC.ShowGuides = showGuides;
         SC.BlockGrid  = blockGrid;
         SC.QTreeVis   = qTreeVis;
-        _hud.UpdateHUDElementVisibility(SC.ShowFps, SC.ShowGuides, SC.BlockGrid, SC.QTreeVis);
+        _pS.Hud.UpdateHUDElementVisibility(SC.ShowFps, SC.ShowGuides, SC.BlockGrid, SC.QTreeVis);
     }
 
     private void UpdateFov(float fovDef) {

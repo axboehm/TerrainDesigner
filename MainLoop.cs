@@ -1,6 +1,7 @@
 #define XBDEBUG
 namespace XB { // namespace open
 
+    //TODO[ALEX]: rethink this in regards to multiplayer (no pause in menu?)
 public enum AppState {
     Uninit,
     Startup,
@@ -8,10 +9,18 @@ public enum AppState {
     Menu,
 }
 
-//TODO[ALEX]: this should not be necessary, but just passing the enum variable by ref does not work
-//NOTE[ALEX]: passing an enum as a reference does not seem to work, wrapping it in a class works
-public class AppStWrapper {
-    public XB.AppState St = XB.AppState.Uninit;
+// holds all variables that are made per player
+public class PlayerState {
+    public XB.Input       Input;
+    public XB.PController PCtrl;
+    public XB.HUD         Hud;
+    public XB.Menu        Menu;
+    public Godot.Control  NameOverlay;
+    public XB.Settings    Sett;
+    public XB.AppState    AppSt;
+#if XBDEBUG
+    public XB.DebugHUD    DebugHud;
+#endif
 }
 
 // MainLoop is the first non engine code that runs
@@ -23,11 +32,7 @@ public class AppStWrapper {
 // and to control the order in which functions are called
 public partial class MainLoop : Godot.Node3D {
     // global variables that live for the duration of the applcation's lifetime
-    public XB.Input                 Input;
-    public XB.PController           PCtrl;
-    public XB.HUD                   Hud;
-    public XB.Menu                  Menu;
-    public XB.Settings              Sett;
+    public XB.PlayerState           PS; //NOTE[ALEX]: could become an array to allow for multiple
     public Godot.DirectionalLight3D MainLight;
     public Godot.Environment        Environment;
     public Godot.Node               MainRoot;
@@ -37,35 +42,27 @@ public partial class MainLoop : Godot.Node3D {
     // 1 - 2m, 2 - 4m, 3 - 8m, 4 - 16m, 5 - 32m, 6 - 64m, 7 - 128m, 8 - 256m, 9 - 512m
     private const int _worldSizeExpX = 8;
     private const int _worldSizeExpZ = 8;
-#if XBDEBUG
-    public XB.DebugHUD DebugHud;
-#endif
 
     public static Godot.Node TR = new Godot.Node(); // for translation
-    public XB.AppStWrapper _appSt;
 
     private Godot.Vector2 _pModelPos = new Godot.Vector2(0.0f, 0.0f);
 
     // the very first thing that happens, sets up variables that live for runtime
     // and loads default settings, etc.
     public override void _EnterTree() {
+        PS = new XB.PlayerState();
+
 #if XBDEBUG
         XB.DebugProfiling.StartProfiling();
-        DebugHud = new XB.DebugHUD();
-        AddChild(DebugHud);
+        PS.DebugHud = new XB.DebugHUD();
+        AddChild(PS.DebugHud);
 #endif
 
         ProcessMode = ProcessModeEnum.Always;
 
-        _appSt = new XB.AppStWrapper();
-
-        Input = new XB.Input();
-        Input.ProcessMode = Godot.Node.ProcessModeEnum.Always;
-        Input.DefaultInputActions();
-
         MainRoot = this;
         var pCtrlScene = Godot.ResourceLoader.Load<Godot.PackedScene>(XB.ResourcePaths.Player);
-        PCtrl = (XB.PController)pCtrlScene.Instantiate();
+        PS.PCtrl = (XB.PController)pCtrlScene.Instantiate();
         var environmentScene = Godot.ResourceLoader.Load<Godot.PackedScene>(XB.ResourcePaths.Environment);
         var environment = (Godot.WorldEnvironment)environmentScene.Instantiate();
         Environment = environment.Environment; // the node that "holds" the environment
@@ -74,26 +71,26 @@ public partial class MainLoop : Godot.Node3D {
                                                // it holds (WorldEnvironment.Environment)
         var mainLightScene = Godot.ResourceLoader.Load<Godot.PackedScene>(XB.ResourcePaths.MainLight);
         MainLight = (Godot.DirectionalLight3D)mainLightScene.Instantiate();
-        AddChild(PCtrl);
+        AddChild(PS.PCtrl);
         AddChild(environment); // place the node that "holds" the environment
         AddChild(MainLight);
 
-        var hudScene = Godot.ResourceLoader.Load<Godot.PackedScene>(XB.ResourcePaths.Hud);
-        Hud = (XB.HUD)hudScene.Instantiate();
-        var menuScene = Godot.ResourceLoader.Load<Godot.PackedScene>(XB.ResourcePaths.Menu);
-        Menu = (XB.Menu)menuScene.Instantiate();
-        AddChild(Hud);
-        AddChild(Menu);
-        var nameOverlayScene = Godot.ResourceLoader.Load<Godot.PackedScene>(XB.ResourcePaths.NameOverlay);
-        var nameOverlay = (Godot.Control)nameOverlayScene.Instantiate();
-        AddChild(nameOverlay);
+        PS.Input = new XB.Input();
+        PS.Input.DefaultInputActions();
+        PS.PCtrl.AddChild(PS.Input);
 
-        Sett = new XB.Settings();
-        Sett.SetMainLoopReferences(MainRoot, MainLight, Environment, Hud, Menu, nameOverlay, PCtrl,
-#if XBDEBUG
-                                   DebugHud
-#endif
-                                   );
+        var hudScene = Godot.ResourceLoader.Load<Godot.PackedScene>(XB.ResourcePaths.Hud);
+        PS.Hud = (XB.HUD)hudScene.Instantiate();
+        var menuScene = Godot.ResourceLoader.Load<Godot.PackedScene>(XB.ResourcePaths.Menu);
+        PS.Menu = (XB.Menu)menuScene.Instantiate();
+        PS.PCtrl.AddChild(PS.Hud);
+        PS.PCtrl.AddChild(PS.Menu);
+        var nameOverlayScene = Godot.ResourceLoader.Load<Godot.PackedScene>(XB.ResourcePaths.NameOverlay);
+        PS.NameOverlay = (Godot.Control)nameOverlayScene.Instantiate();
+        PS.PCtrl.AddChild(PS.NameOverlay);
+
+        PS.Sett = new XB.Settings();
+        PS.Sett.SetMainLoopReferences(MainRoot, MainLight, Environment, PS);
 
         XB.Random.InitializeRandom(InitialSeed); // fixed startup seed for reproducable runs
 
@@ -110,30 +107,30 @@ public partial class MainLoop : Godot.Node3D {
         var debug = new XB.DebugTimedBlock(XB.D.Initialize_Ready);
 #endif
 
-        AddChild(Input);
         XB.ManagerSphere.InitializeSpheres(MainRoot);
 
-        PCtrl.InitializePController(Sett);
-        Hud.InitializeHud();
+        PS.PCtrl.InitializePController(PS.Sett);
+        PS.Hud.InitializeHud();
 
-        Sett.SetPresetSettings(XB.SettingsPreset.Default);
-        Sett.SetApplicationDefaults();
+        PS.Sett.SetPresetSettings(XB.SettingsPreset.Default);
+        PS.Sett.SetApplicationDefaults();
 
         XB.WData.InitializeTerrainMesh(_worldSizeExpX, _worldSizeExpZ);
         XB.WData.GenerateRandomTerrain();
-        XB.WData.UpdateTerrain(true, Hud, Menu, MainRoot);
+        XB.WData.UpdateTerrain(true, PS.Hud, PS.Menu, MainRoot);
 
-        Menu.SetMainLoopReferences(Hud, Sett, Input, PCtrl, MainRoot, ref _appSt);
-        Menu.InitializeMenu(); // after terrain init for _imgGenMap size
+        PS.Menu.SetMainLoopReferences(PS, MainRoot);
+        PS.Menu.InitializeMenu(); // after terrain init for _imgGenMap size
 
         //NOTE[ALEX]: since spawning happens one tick delayed, the first frame's UpdateQTreeMeshes
         //            uses the incorrect location for distance calculations, consider this when
         //            debugging
-        PCtrl.SpawnPlayer(new Godot.Vector2(-XB.WData.WorldDim.X/2.0f, -XB.WData.WorldDim.Y/2.0f));
-        Menu.ShowStartupScreen();
+        PS.PCtrl.SpawnPlayer(new Godot.Vector2(-XB.WData.WorldDim.X/2.0f,
+                                               -XB.WData.WorldDim.Y/2.0f ));
+        PS.Menu.ShowStartupScreen();
 
 #if XBDEBUG
-        DebugHud.InitializeDebugHUD();
+        PS.DebugHud.InitializeDebugHUD();
 
         debug.End();
 #endif 
@@ -143,10 +140,10 @@ public partial class MainLoop : Godot.Node3D {
     // general input is handled at beginning of _PhysicsProcess below
     // similarly to _PhysicsProcess below, there is only one _Input in the entire code base
     public override void _Input(Godot.InputEvent @event) {
-        switch (_appSt.St) {
-            case XB.AppState.Application: { PCtrl.Input(@event, Sett);        break; }
-            case XB.AppState.Menu:        { Menu.Input(@event);               break; }
-            case XB.AppState.Startup:     { Menu.InputStartup(@event, PCtrl); break; }
+        switch (PS.AppSt) {
+            case XB.AppState.Application: { PS.PCtrl.Input(@event, PS.Sett);        break; }
+            case XB.AppState.Menu:        { PS.Menu.Input(@event);                  break; }
+            case XB.AppState.Startup:     { PS.Menu.InputStartup(@event, PS.PCtrl); break; }
         }
     }
 
@@ -157,34 +154,34 @@ public partial class MainLoop : Godot.Node3D {
     public override void _PhysicsProcess(double delta) {
         float dt = (float)delta;
 #if XBDEBUG
-        DebugHud.UpdateDebugHUD(dt, PCtrl);
+        PS.DebugHud.UpdateDebugHUD(dt, PS.PCtrl);
 #endif
-        Input.GetInputs();
-        Hud.UpdateHUD(dt, PCtrl, Sett, Input);
-        switch (_appSt.St) {
+        PS.Input.GetInputs();
+        PS.Hud.UpdateHUD(dt, PS.PCtrl, PS.Sett, PS.Input);
+        switch (PS.AppSt) {
             case XB.AppState.Startup: // continue updating all things behind the startup graphic
             case XB.AppState.Application: {
                 XB.ManagerSphere.UpdateSpheres(dt);
-                _pModelPos.X = PCtrl.PModel.GlobalPosition.X;
-                _pModelPos.Y = PCtrl.PModel.GlobalPosition.Z;
+                _pModelPos.X = PS.PCtrl.PModel.GlobalPosition.X;
+                _pModelPos.Y = PS.PCtrl.PModel.GlobalPosition.Z;
                 XB.ManagerTerrain.UpdateQTreeMeshes(ref _pModelPos, XB.WData.LowestPoint, 
                                                     XB.WData.HighestPoint, XB.WData.ImgMiniMap,
-                                                    MainRoot, Hud.TexMiniMap                   );
-                PCtrl.UpdatePlayer(dt, Hud, Menu, Input, Sett, MainRoot);
+                                                    MainRoot, PS.Hud.TexMiniMap                );
+                PS.PCtrl.UpdatePlayer(dt, PS.Hud, PS.Menu, PS.Input, PS.Sett, MainRoot);
                 break;
             }
             case XB.AppState.Menu: {
-                Menu.UpdateMenu(dt);
+                PS.Menu.UpdateMenu(dt);
                 break;
             }
         }
 
 #if XBDEBUG
-        if (Input.Debug1) { DebugHud.Debug1(); }
-        if (Input.Debug2) { DebugHud.Debug2(); }
-        if (Input.Debug3) { DebugHud.Debug3(); }
-        if (Input.Debug4) { DebugHud.Debug4(); }
-        if (Input.Debug5) { DebugHud.Debug5(); }
+        if (PS.Input.Debug1) { PS.DebugHud.Debug1(); }
+        if (PS.Input.Debug2) { PS.DebugHud.Debug2(); }
+        if (PS.Input.Debug3) { PS.DebugHud.Debug3(); }
+        if (PS.Input.Debug4) { PS.DebugHud.Debug4(); }
+        if (PS.Input.Debug5) { PS.DebugHud.Debug5(); }
 #endif 
     }
 }
