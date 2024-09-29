@@ -13,6 +13,7 @@ public partial class DebugHUD : Godot.Control {
     private const int    _debugLabelFontSize    = 18;
     private const int    _debugLabelOutlineSize = 4;
     private const int    _edgeOff               = 100; // distance to right edge
+    private const int    _offsetName            = 120; // extra distance to right edge for overlay
     private const int    _bgOffset              = 350; // distance of background to left edge
     private Godot.Color  _debugLabelFontOutline = new Godot.Color(0.0f, 0.0f, 0.0f, 1.0f);
     private const string _timeFormat            = "F6";
@@ -36,7 +37,7 @@ public partial class DebugHUD : Godot.Control {
         _trBlueNoise          = new Godot.TextureRect();
         Godot.Vector2I sizeBN = XB.Random.BlueNoise.GetSize();
         _trBlueNoise.Size     = sizeBN;
-        _trBlueNoise.Position = new Godot.Vector2I(XB.Settings.BaseResX
+        _trBlueNoise.Position = new Godot.Vector2I(XB.Settings.BaseResX - _offsetName
                                                    - _dimSpacer - _edgeOff - sizeBN.X,
                                                    _dimSpacer                         );
         _trBlueNoise.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
@@ -49,7 +50,7 @@ public partial class DebugHUD : Godot.Control {
 
         _trPointiness          = new Godot.TextureRect();
         _trPointiness.Size     = sizeBN; // same size as blue noise texture
-        _trPointiness.Position = new Godot.Vector2I(XB.Settings.BaseResX
+        _trPointiness.Position = new Godot.Vector2I(XB.Settings.BaseResX - _offsetName
                                                     - 2*_dimSpacer - _edgeOff - 2*sizeBN.X,
                                                     _dimSpacer                             );
         _trPointiness.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
@@ -110,7 +111,7 @@ public partial class DebugHUD : Godot.Control {
 
         _lbPlayerPos = new Godot.Label();
         _lbPlayerPos.Position = new Godot.Vector2I(_dimSpacer, _dimSpacer);
-        _lbPlayerPos.Size     = new Godot.Vector2I((int)_trPointiness.Position.X - 2*_dimSpacer, 
+        _lbPlayerPos.Size     = new Godot.Vector2I((int)_trPointiness.Position.X - 2*_dimSpacer,
                                                    3*_debugLabelSpacing + 3*_debugLabelFontSize );
         _lbPlayerPos.HorizontalAlignment = Godot.HorizontalAlignment.Right;
         _lbPlayerPos.AddThemeFontOverride    ("font",               font                  );

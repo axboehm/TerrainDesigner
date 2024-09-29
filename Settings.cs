@@ -1,3 +1,4 @@
+#define XBDEBUG
 namespace XB { // namespace open
 using SysCG = System.Collections.Generic;
 public class SettingsContainer {
@@ -183,7 +184,11 @@ public class Settings {
     private Godot.Environment        _environment;
     private XB.HUD         _hud;
     private XB.Menu        _menu;
+    private Godot.Control  _nameOverlay;
     private XB.PController _pCtrl;
+#if XBDEBUG
+    private XB.DebugHUD    _debugHud;
+#endif
 
     // settings code variables
     private static SysCG.Dictionary<string, ulong> _sPos =
@@ -248,14 +253,22 @@ public class Settings {
 
 
     public void SetMainLoopReferences(Godot.Node mainRoot, Godot.DirectionalLight3D mainLight,
-                                      Godot.Environment environment, XB.HUD hud,
-                                      XB.Menu menu, XB.PController pCtrl                      ) {
+                                      Godot.Environment environment, XB.HUD hud, XB.Menu menu,
+                                      Godot.Control nameOverlay, XB.PController pCtrl
+#if XBDEBUG
+                                      , XB.DebugHUD debugHud
+#endif
+                                      ) {
         _mainRoot    = mainRoot;
         _mainLight   = mainLight;
         _environment = environment;
-        _hud   = hud;
-        _menu  = menu;
-        _pCtrl = pCtrl;
+        _hud         = hud;
+        _menu        = menu;
+        _nameOverlay = nameOverlay;
+        _pCtrl       = pCtrl;
+#if XBDEBUG
+        _debugHud = debugHud;
+#endif
     }
 
     public void UpdateSettings(XB.SettingsContainer sc) {
@@ -330,12 +343,16 @@ public class Settings {
             window.Mode               = Godot.Window.ModeEnum.Fullscreen;
             _hud.Scale                = new Godot.Vector2(scale, scale);
             _menu.Scale               = new Godot.Vector2(scale, scale);
+            _nameOverlay.Scale        = new Godot.Vector2(scale, scale);
+            _debugHud.Scale           = new Godot.Vector2(scale, scale);
             window.ContentScaleFactor = 1.0f/scale;
             window.ContentScaleMode   = Godot.Window.ContentScaleModeEnum.Viewport;
         } else {
             window.Mode               = Godot.Window.ModeEnum.Windowed;
             _hud.Scale                = new Godot.Vector2(1.0f, 1.0f);
             _menu.Scale               = new Godot.Vector2(1.0f, 1.0f);
+            _nameOverlay.Scale        = new Godot.Vector2(1.0f, 1.0f);
+            _debugHud.Scale           = new Godot.Vector2(1.0f, 1.0f);
             window.ContentScaleFactor = scale;
             window.ContentScaleMode   = Godot.Window.ContentScaleModeEnum.Disabled;
         }

@@ -51,6 +51,8 @@ public partial class MainLoop : Godot.Node3D {
     public override void _EnterTree() {
 #if XBDEBUG
         XB.DebugProfiling.StartProfiling();
+        DebugHud = new XB.DebugHUD();
+        AddChild(DebugHud);
 #endif
 
         ProcessMode = ProcessModeEnum.Always;
@@ -87,7 +89,11 @@ public partial class MainLoop : Godot.Node3D {
         AddChild(nameOverlay);
 
         Sett = new XB.Settings();
-        Sett.SetMainLoopReferences(MainRoot, MainLight, Environment, Hud, Menu, PCtrl);
+        Sett.SetMainLoopReferences(MainRoot, MainLight, Environment, Hud, Menu, nameOverlay, PCtrl,
+#if XBDEBUG
+                                   DebugHud
+#endif
+                                   );
 
         XB.Random.InitializeRandom(InitialSeed); // fixed startup seed for reproducable runs
 
@@ -127,8 +133,6 @@ public partial class MainLoop : Godot.Node3D {
         Menu.ShowStartupScreen();
 
 #if XBDEBUG
-        DebugHud = new XB.DebugHUD();
-        AddChild(DebugHud);
         DebugHud.InitializeDebugHUD();
 
         debug.End();
