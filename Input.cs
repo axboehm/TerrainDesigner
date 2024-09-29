@@ -6,6 +6,9 @@ public class InputAction {
     public string           Key; // event in plain text
     public Godot.InputEvent Event;
 
+    //NOTE[ALEX]: description is the key for the translation dictionary,
+    //            unused inputs have to start with "~" in each translated language so that
+    //            their buttons can be hidden in the menu on startup
     public InputAction(string name, string description, string key, Godot.InputEvent iEvent) {
         Name        = name;
         Description = description;

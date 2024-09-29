@@ -300,6 +300,7 @@ public partial class Menu : Godot.Control {
         _bCK[21].Pressed     += ButtonCK21OnPressed;
         _bCK[22].Pressed     += ButtonCK22OnPressed;
         _bCK[23].Pressed     += ButtonCK23OnPressed;
+        HideUnusedKeys();
         _bDefaultsCK.Pressed += ButtonDefaultsCKOnPressed;
         _chngMsg.Visible      = false;
 
@@ -1019,6 +1020,15 @@ public partial class Menu : Godot.Control {
         var sScn  = Godot.ResourceLoader.Load<Godot.PackedScene>(path);
         var sound = sScn.Instantiate();
         _mainRoot.AddChild(sound);
+    }
+
+    // look through all inputs and hide the buttons for inputs that are not used
+    //NOTE[ALEX]: the translation dictionary (appText.csv) expects unused inputs to begin with '~'
+    //            in all languages
+    private void HideUnusedKeys() {
+        for (int i = 0; i < _bCK.Length; i++) {
+            if (Tr(_input.InputActions[i].Description)[0] == '~') { _bCK[i].Hide(); }
+        }
     }
 }
 } // namespace close 
