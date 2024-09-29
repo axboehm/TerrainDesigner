@@ -200,7 +200,7 @@ public partial class DebugHUD : Godot.Control {
 
     public void Debug3() {
         Godot.GD.Print("Debug3");
-        XB.ManagerTerrain.PrintQTReeExternal();
+        XB.ManagerTerrain.PrintQTreeExternal();
     }
 
     public void Debug4() {

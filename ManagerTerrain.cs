@@ -1263,10 +1263,11 @@ public class ManagerTerrain {
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainRequestMeshContainer);
 #endif
         
-        // Godot.GD.Print("RequestTerrainMeshContainer " + qNode.ID);
+        // Godot.GD.Print("RequestTerrainMeshContainer qNodeID: " + qNode.ID);
 
         for (int i = 0; i < _terrainMeshes.Count; i++) {
             if (!_terrainMeshes[i].InUse) {
+                // Godot.GD.Print("RequestTerrainMeshContainer reuse MeshContainer array ID: " + i);
                 qNode.AssignMeshContainer(_terrainMeshes[i]);
 #if XBDEBUG
                 debug.End();
@@ -1279,6 +1280,7 @@ public class ManagerTerrain {
         var mC    = new XB.MeshContainer(mainRoot, newID, qNode.XPos/_worldXSize,
                                          qNode.ZPos/_worldZSize                  );
         _terrainMeshes.Add(mC);
+        // Godot.GD.Print("RequestTerrainMeshContainer new MeshContainer array ID: " + newID);
         qNode.AssignMeshContainer(_terrainMeshes[newID]);
 
 #if XBDEBUG
@@ -1302,7 +1304,6 @@ public class ManagerTerrain {
         qNode.MeshContainer.SetTerrainShaderAttributes(miniMap);
         qNode.UpdateAssignedMesh(_worldXSize, _worldZSize, lowest, highest, imgHeightMap);
         qNode.ShowMeshContainer();
-        qNode.DeActivate(); // the largest tile should not stick around
 
 #if XBDEBUG
         debug.End();
@@ -1391,7 +1392,8 @@ public class ManagerTerrain {
         PrintQTree(qNode.Children[3]);
     }
 
-    public static void PrintQTReeExternal() {
+    public static void PrintQTreeExternal() {
+        Godot.GD.Print("PrintQTreeExternal");
         string temp = "";
         PrintQNodeActive(_qRoot, ref temp);
         Godot.GD.Print("Active QNodes:             " + temp);
@@ -1399,6 +1401,15 @@ public class ManagerTerrain {
         PrintQNodeMeshContainer(_qRoot, ref temp);
         Godot.GD.Print("QNodes with MeshContainer: " + temp);
         Godot.GD.Print("MeshContainers available total: " + _terrainMeshes.Count);
+        temp = "";
+        for (int i = 0; i < _terrainMeshes.Count; i++) {
+            temp += "i: " + i.ToString();
+            temp += ", ID: " + _terrainMeshes[i].ID.ToString();
+            temp += ", InUse: " + _terrainMeshes[i].InUse.ToString();
+            temp += ", MInst: " + _terrainMeshes[i].MeshInst.Visible.ToString();
+            temp += "; ";
+        }
+        Godot.GD.Print("MeshContainers: " + temp);
         Godot.GD.Print('\n');
     }
 

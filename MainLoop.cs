@@ -33,6 +33,10 @@ public partial class MainLoop : Godot.Node3D {
     public Godot.Node               MainRoot;
     public uint                     InitialSeed = 0; // random seed on application startup
                                                      // fixed to get the same starting terrain
+    // world dimensions given in exponent for power of 2:
+    // 1 - 2m, 2 - 4m, 3 - 8m, 4 - 16m, 5 - 32m, 6 - 64m, 7 - 128m, 8 - 256m, 9 - 512m
+    private const int _worldSizeExpX = 8;
+    private const int _worldSizeExpZ = 8;
 #if XBDEBUG
     public XB.DebugHUD DebugHud;
 #endif
@@ -109,11 +113,7 @@ public partial class MainLoop : Godot.Node3D {
         Sett.SetPresetSettings(XB.SettingsPreset.Default);
         Sett.SetApplicationDefaults();
 
-        // world dimensions given in exponent for power of 2:
-        // 1 - 2m, 2 - 4m, 3 - 8m, 4 - 16m, 5 - 32m, 6 - 64m, 7 - 128m, 8 - 256m, 9 - 512m
-        int worldSizeExpX = 8;
-        int worldSizeExpZ = 8;
-        XB.WData.InitializeTerrainMesh(worldSizeExpX, worldSizeExpZ);
+        XB.WData.InitializeTerrainMesh(_worldSizeExpX, _worldSizeExpZ);
         XB.WData.GenerateRandomTerrain();
         XB.WData.UpdateTerrain(true, Hud, Menu, MainRoot);
 
