@@ -21,7 +21,7 @@ public class QNode {
     public float ZPos;
     public float XSize; // dimensions in meter
     public float ZSize;
-    public float Res;   // subdivisions per meter
+    public float Res;   // subdivisions per meter of represented mesh tile
     private bool[] _worldEdge;
 
     // creates a new quadtree node and assignes it id,
@@ -219,15 +219,15 @@ public class QNode {
 #endif 
     }
 
-    public void UpdateAssignedMesh(float worldXSize, float worldZSize,
+    public void UpdateAssignedMesh(float worldRes, float worldXSize, float worldZSize,
                                    float lowestPoint, float highestPoint,
-                                   Godot.Image imgHeightMap              ) {
+                                   Godot.Image imgHeightMap                           ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.QNodeUpdateAssignedMesh);
 #endif
 
-        MeshContainer.SampleTerrainNoise(XPos, ZPos, XSize, ZSize, worldXSize, worldZSize,
-                                         Res, lowestPoint, highestPoint, imgHeightMap     );
+        MeshContainer.SampleTerrainNoise(XPos, ZPos, XSize, ZSize, worldRes,
+                                         Res, lowestPoint, highestPoint, imgHeightMap);
 
         if (worldZSize-(-ZPos+ZSize/2.0f) < XB.Constants.Epsilon) { _worldEdge[(int)XB.Sk.ZM] = true;  }
         else                                                      { _worldEdge[(int)XB.Sk.ZM] = false; }
@@ -539,7 +539,7 @@ public class MeshContainer {
     }
 
     public void SampleTerrainNoise(float xPos, float zPos, float xSize,  float zSize,
-                                   float worldXSize, float worldZSize, float res,
+                                   float worldRes, float res,
                                    float lowestPoint, float highestPoint, 
                                    Godot.Image imgHeightMap                          ) {
 #if XBDEBUG
@@ -561,7 +561,7 @@ public class MeshContainer {
                 _v3.X = (float)i*step - xSize/2.0f;
                 _v3.Z = (float)j*step - zSize/2.0f;
                 sampledNoise = XB.Terrain.HeightMapSample(_v3.X + pos.X, _v3.Z + pos.Z,
-                                                          worldXSize, worldZSize, imgHeightMap);
+                                                          worldRes, imgHeightMap       );
                 _v3.Y = sampledNoise*height + lowestPoint;
                 VerticesTile[vNumber] = _v3;
                 vNumber += 1;
@@ -619,8 +619,8 @@ public class MeshContainer {
         var debug = new XB.DebugTimedBlock(XB.D.MeshContainerSetTerrainShaderAttributes);
 #endif
 
-        MaterialTile.SetShaderParameter("scaleX",      WData.WorldDim.X);
-        MaterialTile.SetShaderParameter("scaleY",      WData.WorldDim.Y);
+        MaterialTile.SetShaderParameter("scaleX",      WData.WorldSize.X);
+        MaterialTile.SetShaderParameter("scaleY",      WData.WorldSize.Y);
         MaterialTile.SetShaderParameter("blockScale",  WData.BlockUVScale);
         MaterialTile.SetShaderParameter("uv1Scale",    WData.Mat1UVScale);
         MaterialTile.SetShaderParameter("uv2Scale",    WData.Mat2UVScale);
@@ -854,9 +854,8 @@ public class CollisionTile {
 #endif 
     }
 
-    public void SampleTerrainNoise(float worldXSize, float worldZSize,
-                                   float lowestPoint, float highestPoint, 
-                                   Godot.Image imgHeightMap              ) {
+    public void SampleTerrainNoise(float worldRes, float lowestPoint, float highestPoint, 
+                                   Godot.Image imgHeightMap                              ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.CollisionTileSampleTerrainNoise);
 #endif
@@ -872,7 +871,7 @@ public class CollisionTile {
                 _v3.X = (float)i*step - XSize/2.0f;
                 _v3.Z = (float)j*step - ZSize/2.0f;
                 sampledNoise = XB.Terrain.HeightMapSample(_v3.X + XPos, _v3.Z + ZPos,
-                                                          worldXSize, worldZSize, imgHeightMap);
+                                                          worldRes, imgHeightMap     );
                 _v3.Y = sampledNoise*height + lowestPoint;
                 // Godot.GD.Print("i: " + i + ",j: " + j + ",vN: " + vNumber + " of " + Vertices.Length);
                 Vertices[vNumber] = _v3;
@@ -1054,8 +1053,8 @@ public class ManagerTerrain {
         for (int i = 0; i < colTileAmntX; i++) {
             for (int j = 0; j < colTileAmntZ; j++) {
                 _terrainColTiles[i, j].InitializeCollisionMesh();
-                _terrainColTiles[i, j].SampleTerrainNoise(_worldXSize, _worldZSize, lowestPoint,
-                                                          highestPoint, imgHeightMap            );
+                _terrainColTiles[i, j].SampleTerrainNoise(_resolutionM, lowestPoint,
+                                                          highestPoint, imgHeightMap);
                 _terrainColTiles[i, j].ApplyToCollisionMesh();
             }
         }
@@ -1231,7 +1230,8 @@ public class ManagerTerrain {
                                            _reqNode.XSize, _reqNode.ZSize, 
                                            _worldXSize, _worldZSize, _reqNode.Res);
             _reqNode.MeshContainer.SetTerrainShaderAttributes(miniMap);
-            _reqNode.UpdateAssignedMesh(_worldXSize, _worldZSize, lowest, highest, imgHeightMap);
+            _reqNode.UpdateAssignedMesh(_resolutionM, _worldXSize, _worldZSize,
+                                        lowest, highest, imgHeightMap          );
             // Godot.GD.Print("Queue Assigned " + _reqNode.ID + " recycling children");
             RecycleChildMesh(_reqNode.Children[0]);
             RecycleChildMesh(_reqNode.Children[1]);
@@ -1302,7 +1302,8 @@ public class ManagerTerrain {
                                     qNode.XSize, qNode.ZSize, 
                                     _worldXSize, _worldZSize, qNode.Res);
         qNode.MeshContainer.SetTerrainShaderAttributes(miniMap);
-        qNode.UpdateAssignedMesh(_worldXSize, _worldZSize, lowest, highest, imgHeightMap);
+        qNode.UpdateAssignedMesh(_resolutionM, _worldXSize, _worldZSize,
+                                 lowest, highest, imgHeightMap          );
         qNode.ShowMeshContainer();
 
 #if XBDEBUG

@@ -423,7 +423,7 @@ public partial class Sphere : Godot.CharacterBody3D {
         var debug = new XB.DebugTimedBlock(XB.D.SphereMoveSphere);
 #endif
 
-        float rayDist = XB.WData.WorldDim.X + XB.WData.WorldDim.Y;
+        float rayDist = XB.WData.WorldSize.X + XB.WData.WorldSize.Y;
         _rOrig = camTrans.Origin; 
         _rDest = camTrans.Origin - rayDist*camTrans.Basis.Z;
         XB.Utils.Raycast(ref spaceState, ref _rOrig, ref _rDest, XB.LayerMasks.SphereMask,
@@ -486,7 +486,7 @@ public partial class Sphere : Godot.CharacterBody3D {
 #endif
 
         Radius += amount*_radiusMult; // mouse down will reduce radius
-        Radius  = XB.Utils.ClampF(Radius, _radiusMin, XB.WData.WorldDim.X + XB.WData.WorldDim.Y);
+        Radius  = XB.Utils.ClampF(Radius, _radiusMin, XB.WData.WorldSize.X + XB.WData.WorldSize.Y);
         UpdateConeMesh();
         XB.ManagerSphere.UpdateDam(ID);
 

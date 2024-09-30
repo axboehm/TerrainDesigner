@@ -17,9 +17,8 @@ public partial class HUD : Godot.Control {
     private Godot.TextureRect _trLinking;   // overlay when in linking mode
     private Godot.TextureRect _trSpheres;   // shows status of all available spheres
     private Godot.TextureRect _trSpheresBG; // background for _trSpheres
-    private Godot.TextureRect _trMiniMap;   // shows heightmap of terrain
+    private Godot.TextureRect _trMiniMap;   // shows heightmap of terrain, player and spheres
     private Godot.TextureRect _trMiniMapQT; // shows quadtree visualization of terrain
-    private Godot.TextureRect _trMiniMapO;  // shows player and spheres on map
     private Godot.TextureRect _trMiniMapG;  // black to white gradient below minimap
     private Godot.TextureRect _trMiniMapBG; // background for minimap information
     private Godot.TextureRect _trGuideName;
@@ -89,8 +88,6 @@ public partial class HUD : Godot.Control {
     public  Godot.ImageTexture TexMiniMap;
     private Godot.Image        _imgMiniMapQT;
     private Godot.ImageTexture _texMiniMapQT;
-    private Godot.Image        _imgMiniMapO;
-    private Godot.ImageTexture _texMiniMapO;
     private Godot.Image        _imgMiniMapG;
     private Godot.ImageTexture _texMiniMapG;
     private Godot.Image        _imgMiniMapBG;
@@ -106,7 +103,7 @@ public partial class HUD : Godot.Control {
     private const int          _gradLbFontSize  = 16;
     private const int          _gradLbOutlSize  = 2;
 
-    private Godot.ShaderMaterial _matMiniMapO;
+    private Godot.ShaderMaterial _matMiniMap;
     private Godot.Vector2[]      _spherePositions;
     private Godot.Color[]        _sphereColors;
 
@@ -151,8 +148,6 @@ public partial class HUD : Godot.Control {
         TexMiniMap    = new Godot.ImageTexture();
         _trMiniMapQT  = new Godot.TextureRect();
         _texMiniMapQT = new Godot.ImageTexture();
-        _trMiniMapO   = new Godot.TextureRect();
-        _texMiniMapO  = new Godot.ImageTexture();
         _trMiniMapG   = new Godot.TextureRect();
         _texMiniMapG  = new Godot.ImageTexture();
         _trMiniMapBG  = new Godot.TextureRect();
@@ -174,7 +169,6 @@ public partial class HUD : Godot.Control {
         AddChild(_trMiniMapBG);
         AddChild(_trMiniMap);
         AddChild(_trMiniMapQT);
-        AddChild(_trMiniMapO);
         AddChild(_trMiniMapG);
         AddChild(_trCrosshairs);
         AddChild(_lbHeightL);
@@ -246,8 +240,6 @@ public partial class HUD : Godot.Control {
 
         _imgMiniMapQT = Godot.Image.Create(_dimMMX, _dimMMY, false, Godot.Image.Format.Rgba8);
         _imgMiniMapQT.Fill(XB.Col.Transp);
-        _imgMiniMapO  = Godot.Image.Create(_dimMMX, _dimMMY, false, Godot.Image.Format.Rgba8);
-        _imgMiniMapO.Fill(XB.Col.Transp);
         _imgMiniMapG  = Godot.Image.Create(_dimMMX, _dimMMGY, false, Godot.Image.Format.L8);
         _imgMiniMapG.Fill(XB.Col.Black);
         int dimMMBGX  = _dimMMX + 2*_offsetE;
@@ -257,46 +249,41 @@ public partial class HUD : Godot.Control {
         var miniMapPosition = new Godot.Vector2I(2*_offsetE, XB.Settings.BaseResY/2 - dimMMBGY/2);
         _trMiniMap.Position      = miniMapPosition;
         _trMiniMapQT.Position    = miniMapPosition;
-        _trMiniMapO.Position     = miniMapPosition;
         _trMiniMapG.Position     = miniMapPosition + new Godot.Vector2I(0, _dimMMY + _dimMMSp);
         _trMiniMapBG.Position    = miniMapPosition - new Godot.Vector2I(_offsetE, _offsetE);
         _trMiniMap.ExpandMode    = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
         _trMiniMapQT.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
-        _trMiniMapO.ExpandMode   = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
         _trMiniMapG.ExpandMode   = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
         _trMiniMapBG.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
         _trMiniMap.StretchMode   = Godot.TextureRect.StretchModeEnum.Scale;
         _trMiniMapQT.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
-        _trMiniMapO.StretchMode  = Godot.TextureRect.StretchModeEnum.Scale;
         _trMiniMapG.StretchMode  = Godot.TextureRect.StretchModeEnum.Scale;
         _trMiniMapBG.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
         _trMiniMap.Size          = new Godot.Vector2I(_dimMMX, _dimMMY);
         _trMiniMapQT.Size        = new Godot.Vector2I(_dimMMX, _dimMMY);
-        _trMiniMapO.Size         = new Godot.Vector2I(_dimMMX, _dimMMY);
         _trMiniMapG.Size         = new Godot.Vector2I(_dimMMX, _dimMMGY);
         _trMiniMapBG.Size        = new Godot.Vector2I(dimMMBGX, dimMMBGY);
         _trMiniMap.Texture       = TexMiniMap;
         _trMiniMapQT.Texture     = _texMiniMapQT;
-        _trMiniMapO.Texture      = _texMiniMapO;
         _trMiniMapG.Texture      = _texMiniMapG;
         _trMiniMapBG.Texture     = _texMiniMapBG;
         _texMiniMapQT.SetImage(_imgMiniMapQT);
-        _texMiniMapO.SetImage (_imgMiniMapO);
         _texMiniMapG.SetImage (_imgMiniMapG);
         _texMiniMapBG.SetImage(_imgMiniMapBG);
         CreateGradientTexture(_imgMiniMapG, _texMiniMapG, _rects);
-        _matMiniMapO        = new Godot.ShaderMaterial();
-        _matMiniMapO.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.MiniMapOShader);
-        _matMiniMapO.SetShaderParameter("plColor",     XB.Col.MPlayer);
-        _matMiniMapO.SetShaderParameter("plColorLink", XB.Col.MPlayerL);
-        _matMiniMapO.SetShaderParameter("squareRatio", (float)_dimMMY/(float)_dimMMX);
-        _matMiniMapO.SetShaderParameter("halfWidth",   (_playerTriWidth/_dimMMX)/2.0f);
-        _matMiniMapO.SetShaderParameter("halfHeight",  (_playerTriHeight/_dimMMY)/2.0f);
-        _matMiniMapO.SetShaderParameter("spRadius",    (_sphereCirRadius/_dimMMY));
-        _matMiniMapO.SetShaderParameter("alphaMult",   _miniMapAlpha);
+        _matMiniMap        = new Godot.ShaderMaterial();
+        _matMiniMap.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.MiniMapShader);
+        _matMiniMap.SetShaderParameter("heightMapT",  TexMiniMap);
+        _matMiniMap.SetShaderParameter("plColor",     XB.Col.MPlayer);
+        _matMiniMap.SetShaderParameter("plColorLink", XB.Col.MPlayerL);
+        _matMiniMap.SetShaderParameter("squareRatio", (float)_dimMMY/(float)_dimMMX);
+        _matMiniMap.SetShaderParameter("halfWidth",   (_playerTriWidth/_dimMMX)/2.0f);
+        _matMiniMap.SetShaderParameter("halfHeight",  (_playerTriHeight/_dimMMY)/2.0f);
+        _matMiniMap.SetShaderParameter("spRadius",    (_sphereCirRadius/_dimMMY));
+        _matMiniMap.SetShaderParameter("alphaMult",   _miniMapAlpha);
         _spherePositions = new Godot.Vector2[XB.ManagerSphere.MaxSphereAmount];
         _sphereColors    = new Godot.Color[XB.ManagerSphere.MaxSphereAmount];
-        _trMiniMapO.Material = _matMiniMapO;
+        _trMiniMap.Material = _matMiniMap;
 
         var mmLabelPosition = miniMapPosition + new Godot.Vector2I(0, _dimMMY + 2*_dimMMSp + _dimMMGY);
         var mmLabelSize     = new Godot.Vector2I(_dimMMX, _dimMMY);
@@ -390,7 +377,6 @@ public partial class HUD : Godot.Control {
         _trSpheresBG.Modulate  = _colSpheres;
         _colMiniMap.A          = _miniMapAlpha;
         _trMiniMap.Modulate    = _colMiniMap;
-        _trMiniMapO.Modulate   = _colMiniMap;
         _trMiniMapG.Modulate   = _colMiniMap;
         _trMiniMapBG.Modulate  = _colMiniMap;
         _blockMultCur          = _blockMult;
@@ -404,14 +390,14 @@ public partial class HUD : Godot.Control {
 #endif 
     }
 
-    public void UpdateMiniMap(float low, float high) {
+    public void UpdateMiniMap(Godot.Image imgHeightMap, float low, float high) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.HUDUpdateMiniMap);
 #endif
 
-        TexMiniMap.SetImage(XB.WData.ImgMiniMap); // required because the heightmap gets created
-                                                  // after hud gets initialized
-        TexMiniMap.Update(XB.WData.ImgMiniMap);
+        TexMiniMap.SetImage(imgHeightMap); // required because the heightmap gets created
+                                        // after hud gets initialized
+        TexMiniMap.Update(imgHeightMap);
         _lbHeightL.Text = low.ToString (XB.Constants.HeightFormat) + "m";
         _lbHeightH.Text = high.ToString(XB.Constants.HeightFormat) + "m";
 
@@ -599,9 +585,9 @@ public partial class HUD : Godot.Control {
 #endif 
     }
 
-    private void UpdateMiniMapOverlayTexture(XB.PController pCtrl) {
+    private void UpdateMiniMapTexture(XB.PController pCtrl) {
 #if XBDEBUG
-        var debug = new XB.DebugTimedBlock(XB.D.HUDUpdateMiniMapOverlayTexture);
+        var debug = new XB.DebugTimedBlock(XB.D.HUDUpdateMiniMapTexture);
 #endif
 
         //NOTE[ALEX]: world corner is at 0|0, calculate % offset from corner
@@ -609,15 +595,15 @@ public partial class HUD : Godot.Control {
         //            world has z+ going forward and x+ going left,
         //            so 0|0 in world coordinates is 0|0 in world coordinates
         //            but the axes of the terrain in world space go in negative direction
-        float posX = -pCtrl.PModel.GlobalPosition.X/XB.WData.WorldDim.X;
-        float posZ = -pCtrl.PModel.GlobalPosition.Z/XB.WData.WorldDim.Y;
+        float posX = -pCtrl.PModel.GlobalPosition.X/XB.WData.WorldSize.X;
+        float posZ = -pCtrl.PModel.GlobalPosition.Z/XB.WData.WorldSize.Y;
         float xDir = +pCtrl.CCtrH.GlobalTransform.Basis.Z.X; // X coordinate of Z basis vector
         float zDir = +pCtrl.CCtrH.GlobalTransform.Basis.Z.Z;
 
-        _matMiniMapO.SetShaderParameter("plPosX", posX);
-        _matMiniMapO.SetShaderParameter("plPosZ", posZ);
-        _matMiniMapO.SetShaderParameter("plDirX", xDir);
-        _matMiniMapO.SetShaderParameter("plDirZ", zDir);
+        _matMiniMap.SetShaderParameter("plPosX", posX);
+        _matMiniMap.SetShaderParameter("plPosZ", posZ);
+        _matMiniMap.SetShaderParameter("plDirX", xDir);
+        _matMiniMap.SetShaderParameter("plDirZ", zDir);
 
         for (int i = 0; i < XB.ManagerSphere.Spheres.Length; i++) {
             if (!XB.ManagerSphere.Spheres[i].Active) { 
@@ -625,8 +611,8 @@ public partial class HUD : Godot.Control {
                 _spherePositions[i].Y = -1.0f; // to effectively ignore it
                 _sphereColors[i]      = XB.Col.Transp;
             } else {
-                posX = -XB.ManagerSphere.Spheres[i].GlobalPosition.X/XB.WData.WorldDim.X;
-                posZ = -XB.ManagerSphere.Spheres[i].GlobalPosition.Z/XB.WData.WorldDim.Y;
+                posX = -XB.ManagerSphere.Spheres[i].GlobalPosition.X/XB.WData.WorldSize.X;
+                posZ = -XB.ManagerSphere.Spheres[i].GlobalPosition.Z/XB.WData.WorldSize.Y;
                 _spherePositions[i].X = posX;
                 _spherePositions[i].Y = posZ;
 
@@ -639,8 +625,8 @@ public partial class HUD : Godot.Control {
             }
         }
 
-        _matMiniMapO.SetShaderParameter("spPos", _spherePositions);
-        _matMiniMapO.SetShaderParameter("spCol", _sphereColors);
+        _matMiniMap.SetShaderParameter("spPos", _spherePositions);
+        _matMiniMap.SetShaderParameter("spCol", _sphereColors);
 
 #if XBDEBUG
         debug.End();
@@ -708,9 +694,8 @@ public partial class HUD : Godot.Control {
         _matLinking.SetShaderParameter("alphaMult", _linkingAlpha);
         _colMiniMap.A          = XB.Utils.LerpF(_colMiniMap.A, _miniMapAlpha, _hudSm*dt);
         _trMiniMap.Modulate    = _colMiniMap;
-        _trMiniMapO.Modulate   = _colMiniMap;
-        _matMiniMapO.SetShaderParameter("alphaMult", _miniMapAlpha);
-        _matMiniMapO.SetShaderParameter("linking",   _miniMapLinking);
+        _matMiniMap.SetShaderParameter("alphaMult", _miniMapAlpha);
+        _matMiniMap.SetShaderParameter("linking",   _miniMapLinking);
         _trMiniMapG.Modulate   = _colMiniMap;
         _trMiniMapBG.Modulate  = _colMiniMap;
         _colMMLegend.A         = XB.Utils.LerpF(_colMMLegend.A,    _miniMapAlpha, _hudSm*dt);
@@ -733,12 +718,12 @@ public partial class HUD : Godot.Control {
         }
         _lbGuideName.AddThemeColorOverride("font_color", _colGuideText);
 
-        UpdateMiniMapOverlayTexture(pCtrl);
+        UpdateMiniMapTexture(pCtrl);
 
         if (sett.SC.QTreeVis) {
             XB.ManagerTerrain.UpdateQTreeTexture(_imgMiniMapQT,
-                                                 _imgMiniMapQT.GetWidth()/XB.WData.WorldDim.X,
-                                                 _rects                                       );
+                                                 _imgMiniMapQT.GetWidth()/XB.WData.WorldSize.X,
+                                                 _rects                                        );
             _texMiniMapQT.Update(_imgMiniMapQT);
         }
 

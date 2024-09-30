@@ -179,9 +179,13 @@ public partial class Menu : Godot.Control {
         _bApplySpheres.Pressed  += ButtonPopupApplySpheresOnPressed;
         _bClearSpheres.Pressed  += ButtonClearSpheresOnPressed;
         _bShowStartup.Pressed   += ButtonShowStartupOnPressed;
+        var matPauseMap    = new Godot.ShaderMaterial();
+        matPauseMap.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.GreyScaleShader);
+        matPauseMap.SetShaderParameter("texToGreyT", _pS.Hud.TexMiniMap);
         _trPauseMap.Texture      = _pS.Hud.TexMiniMap;
         _trPauseMap.ExpandMode   = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
         _trPauseMap.StretchMode  = Godot.TextureRect.StretchModeEnum.Scale;
+        _trPauseMap.Material     = matPauseMap;
 
         // system tab
         _bApplyCode.Pressed    += ButtonApplyCodeOnPressed;
@@ -340,15 +344,19 @@ public partial class Menu : Godot.Control {
         _slGenExp.DragEnded    += SliderGenExpOnDragEnded;
         _slGenExp.Step          = 0;
         _cbGenUpd.Pressed      += ButtonGenUpdOnPressed;
-        _imgGenMap = Godot.Image.Create(XB.WData.ImgMiniMap.GetWidth(),
-                                        XB.WData.ImgMiniMap.GetHeight(),
-                                        false, Godot.Image.Format.L8    );
+        _imgGenMap = Godot.Image.Create(XB.WData.ImgHeightMap.GetWidth(),
+                                        XB.WData.ImgHeightMap.GetHeight(),
+                                        false, Godot.Image.Format.Rf      );
         _imgGenMap.Fill(XB.Col.Black);
         _texGenMap = new Godot.ImageTexture();
         _texGenMap.SetImage(_imgGenMap);
-        _trGenMap.Texture = _texGenMap;
+        var matGenMap    = new Godot.ShaderMaterial();
+        matGenMap.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.GreyScaleShader);
+        matGenMap.SetShaderParameter("texToGreyT", _texGenMap);
+        _trGenMap.Texture     = _texGenMap;
         _trGenMap.ExpandMode  = Godot.TextureRect.ExpandModeEnum.IgnoreSize;
         _trGenMap.StretchMode = Godot.TextureRect.StretchModeEnum.Scale;
+        _trGenMap.Material    = matGenMap;
         _ctrlPopupG.Hide();
     }
 
@@ -976,7 +984,7 @@ public partial class Menu : Godot.Control {
     private void GenerateTerrainHeights() {
         XB.Terrain.FBM(XB.WData.TerrainHeightsMod,
                        XB.WData.WorldVerts.X, XB.WData.WorldVerts.Y,
-                       XB.WData.WorldDim.X, XB.WData.WorldDim.Y,
+                       XB.WData.WorldSize.X, XB.WData.WorldSize.Y,
                        (float)_slGenScale.Value,
                        (float)_slGenOffX.Value, (float)_slGenOffZ.Value,
                        (int)_slGenOct.Value, (float)_slGenPers.Value,

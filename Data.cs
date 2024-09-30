@@ -127,7 +127,8 @@ public struct ResourcePaths {
     public static string SpEMaskTex       = "res://assets/sphere/data/sphereEmissionMask.png";
     public static string ConeDamShader    = "res://code/shaders/spConeDam.gdshader";
     public static string ConeDamUShader   = "res://code/shaders/spConeDamU.gdshader";
-    public static string MiniMapOShader   = "res://code/shaders/miniMapO.gdshader";
+    public static string MiniMapShader    = "res://code/shaders/miniMap.gdshader";
+    public static string GreyScaleShader  = "res://code/shaders/greyScale.gdshader";
     public static string LinkingShader    = "res://code/shaders/linkingOverlay.gdshader";
 }
 
@@ -226,7 +227,7 @@ public struct Resources {
 // terrain/heightmap related functions are also included
 // there can only be one terrain in the application, so all variables can be static
 public class WData {
-    public static Godot.Image    ImgMiniMap;
+    public static Godot.Image    ImgHeightMap;
     public static Godot.Image    ImgPointiness;
     public static Godot.ImageTexture TexPointiness;
     public static float          LowestPoint  = -1.0f;    // lowest y coordinate in world
@@ -235,11 +236,11 @@ public class WData {
     public static float          KillPlane    = -4096.0f; // fallback for the player falling off
     public static float          SphereEdgeLength    = 64.0f;
     public static int            DamSegmentDivisions = 16;
-    public static Godot.Vector2  WorldDim;                   // world dimensions in meters
+    public static Godot.Vector2  WorldSize;                  // world dimensions in meters
     public static Godot.Vector2I WorldVerts;
-    public static float          WorldRes            = 0;    // subdivisions per meter
-    public static float          CollisionRes        = 1.0f;
-    public static float          TerrainTileMinimum  = 8.0f;
+    public static float          WorldRes            = 0;    // subdivisions per meter at highest division
+    public static float          CollisionRes        = 1.0f; // subdivisions of collider mesh tiles
+    public static float          TerrainTileMinimum  = 8.0f; // minimum width/height of terrain tiles
     public static float          ColliderSizeMult    = 3.0f; // multiplied with TerrainTileMinimum
     public static int            TerrainDivisionsMax = 6;
     public static float[,]       TerrainHeights;        // height value for each vertex
@@ -305,16 +306,21 @@ public class WData {
         float sizeZ = System.MathF.Pow(2, expZ);
 
         WorldRes          = 8.0f;
-        WorldDim          = new Godot.Vector2(sizeX, sizeZ);
+        //NOTE[ALEX]: WorldVerts has to be 1 larger in each dimension than the Resolution of 
+        //            ImgHeightMap, if these are different, the sampling
+        //            algorithms have to be adjusted as there is currently no consideration
+        //            for mip map sampling
+        WorldSize         = new Godot.Vector2(sizeX, sizeZ);
         WorldVerts        = new Godot.Vector2I((int)(sizeX*WorldRes) +1, (int)(sizeZ*WorldRes) +1);
         TerrainHeights    = new float[WorldVerts.X, WorldVerts.Y];
         TerrainHeightsMod = new float[WorldVerts.X, WorldVerts.Y];
 
-        ImgMiniMap = Godot.Image.Create((int)(sizeX*WorldRes), (int)(sizeZ*WorldRes),
-                                        false, Godot.Image.Format.L8                 );
-        ImgMiniMap.Fill(XB.Col.Black);
+        //NOTE[ALEX]: L8 is a single 8 bit value per pixel, Rf is a single 32 bit value per pixel
+        ImgHeightMap = Godot.Image.Create((int)(sizeX*WorldRes), (int)(sizeZ*WorldRes),
+                                          false, Godot.Image.Format.Rf                 );
+        ImgHeightMap.Fill(XB.Col.Black);
         ImgPointiness = Godot.Image.Create((int)(sizeX*WorldRes), (int)(sizeZ*WorldRes),
-                                           false, Godot.Image.Format.L8           );
+                                           false, Godot.Image.Format.L8                 );
         ImgPointiness.Fill(XB.Col.Black);
         TexPointiness = new Godot.ImageTexture();
         TexPointiness.SetImage(ImgPointiness);
@@ -331,9 +337,9 @@ public class WData {
         var debug = new XB.DebugTimedBlock(XB.D.WorldDataGenerateRandomTerrain);
 #endif
 
-        XB.Terrain.FBM(TerrainHeights, WorldVerts.X, WorldVerts.Y, WorldDim.X, WorldDim.Y,
+        XB.Terrain.FBM(TerrainHeights, WorldVerts.X, WorldVerts.Y, WorldSize.X, WorldSize.Y,
                        GenScaleDef, GenOffXDef, GenOffZDef,
-                       GenOctDef, GenPersDef, GenLacDef, GenExpDef                        );
+                       GenOctDef, GenPersDef, GenLacDef, GenExpDef                          );
         XB.Terrain.FindLowestHighest(TerrainHeights, WorldVerts.X, WorldVerts.Y,
                                      ref LowestPoint, ref HighestPoint          );
         XB.Terrain.HeightScale(TerrainHeights, WorldVerts.X, WorldVerts.Y,
@@ -357,25 +363,25 @@ public class WData {
         var debug = new XB.DebugTimedBlock(XB.D.WorldDataUpdateTerrain);
 #endif
 
-        XB.Terrain.UpdateHeightMap(TerrainHeights, LowestPoint, HighestPoint, ImgMiniMap);
-        hud.UpdateMiniMap(LowestPoint, HighestPoint);
+        XB.Terrain.UpdateHeightMap(TerrainHeights, LowestPoint, HighestPoint, ImgHeightMap);
+        hud.UpdateMiniMap(ImgHeightMap, LowestPoint, HighestPoint);
         menu.UpdatePauseMiniMap(LowestPoint, HighestPoint);
 
         XB.Terrain.BakePointiness(TerrainHeights, WorldVerts.X, WorldVerts.Y, ImgPointiness);
         TexPointiness.Update(ImgPointiness);
 
         if (reInitialize) {
-            XB.ManagerTerrain.InitializeQuadTree(WorldDim.X, WorldDim.Y, WorldRes,
+            XB.ManagerTerrain.InitializeQuadTree(WorldSize.X, WorldSize.Y, WorldRes,
                                                  CollisionRes, ColliderSizeMult*TerrainTileMinimum,
                                                  TerrainTileMinimum, TerrainDivisionsMax,
-                                                 LowestPoint, HighestPoint, ImgMiniMap, 
+                                                 LowestPoint, HighestPoint, ImgHeightMap, 
                                                  mainRoot, hud.TexMiniMap                          );
         } else {
-            XB.ManagerTerrain.ResetQuadTree(LowestPoint, HighestPoint, ImgMiniMap,
-                                            mainRoot, hud.TexMiniMap              );
+            XB.ManagerTerrain.ResetQuadTree(LowestPoint, HighestPoint, ImgHeightMap,
+                                            mainRoot, hud.TexMiniMap                );
         }
 
-        XB.ManagerTerrain.UpdateCollisionTiles(LowestPoint, HighestPoint, ImgMiniMap);
+        XB.ManagerTerrain.UpdateCollisionTiles(LowestPoint, HighestPoint, ImgHeightMap);
 
 #if XBDEBUG
         debug.End();
@@ -399,12 +405,12 @@ public class WData {
         // Godot.GD.Print("ApplySphereCone with p: " + pos + ", r: " + radius + ", a: " + angle);
         
         XB.Terrain.Cone(TerrainHeightsMod, WorldVerts.X, WorldVerts.Y,
-                        WorldDim.X, WorldDim.Y, pos.X, pos.Z,
+                        WorldSize.X, WorldSize.Y, pos.X, pos.Z,
                         radius, angle*XB.Constants.Deg2Rad, pos.Y, XB.Direction.Up);
         XB.Terrain.HeightMax(TerrainHeights, TerrainHeightsMod, WorldVerts.X, WorldVerts.Y,
                              ref LowestPoint, ref HighestPoint                             );
         XB.Terrain.Cone(TerrainHeightsMod, WorldVerts.X, WorldVerts.Y,
-                        WorldDim.X, WorldDim.Y, pos.X, pos.Z,
+                        WorldSize.X, WorldSize.Y, pos.X, pos.Z,
                         radius, angle*XB.Constants.Deg2Rad, pos.Y, XB.Direction.Down);
         XB.Terrain.HeightMin(TerrainHeights, TerrainHeightsMod, WorldVerts.X, WorldVerts.Y,
                              ref LowestPoint, ref HighestPoint                             );
@@ -428,14 +434,14 @@ public class WData {
         //                + ", p2: " + pos2 + ", r2: " + radius2 + ", a2: " + angle2                 );
         
         XB.Terrain.UnevenCapsule(TerrainHeightsMod, WorldVerts.X, WorldVerts.Y,
-                                 WorldDim.X, WorldDim.Y,
+                                 WorldSize.X, WorldSize.Y,
                                  pos1.X, pos1.Z, radius1, angle1*XB.Constants.Deg2Rad, pos1.Y,
                                  pos2.X, pos2.Z, radius2, angle2*XB.Constants.Deg2Rad, pos2.Y,
                                  XB.Direction.Up                                              );
         XB.Terrain.HeightMax(TerrainHeights, TerrainHeightsMod, WorldVerts.X, WorldVerts.Y,
                              ref LowestPoint, ref HighestPoint                             );
         XB.Terrain.UnevenCapsule(TerrainHeightsMod, WorldVerts.X, WorldVerts.Y,
-                                 WorldDim.X, WorldDim.Y,
+                                 WorldSize.X, WorldSize.Y,
                                  pos1.X, pos1.Z, radius1, angle1*XB.Constants.Deg2Rad, pos1.Y,
                                  pos2.X, pos2.Z, radius2, angle2*XB.Constants.Deg2Rad, pos2.Y,
                                  XB.Direction.Down                                            );

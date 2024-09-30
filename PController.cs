@@ -346,9 +346,9 @@ public partial class PController : Godot.CharacterBody3D {
             PlacePlayer(new Godot.Vector3(-respawnOff,
                                           contr.GlobalPosition.Y + XB.WData.LowHighExtra,
                                           contr.GlobalPosition.Z                         ));
-        } else if (contr.GlobalPosition.X < -XB.WData.WorldDim.X) {
+        } else if (contr.GlobalPosition.X < -XB.WData.WorldSize.X) {
             // Godot.GD.Print(">> out of bounds X low");
-            PlacePlayer(new Godot.Vector3(-XB.WData.WorldDim.X + respawnOff,
+            PlacePlayer(new Godot.Vector3(-XB.WData.WorldSize.X + respawnOff,
                                           contr.GlobalPosition.Y + XB.WData.LowHighExtra,
                                           contr.GlobalPosition.Z                         ));
         } else if (contr.GlobalPosition.Z > 0.0f) {
@@ -356,11 +356,11 @@ public partial class PController : Godot.CharacterBody3D {
             PlacePlayer(new Godot.Vector3(contr.GlobalPosition.X,
                                           contr.GlobalPosition.Y + XB.WData.LowHighExtra,
                                           -respawnOff                                    ));
-        } else if (contr.GlobalPosition.Z < -XB.WData.WorldDim.Y) {
+        } else if (contr.GlobalPosition.Z < -XB.WData.WorldSize.Y) {
             // Godot.GD.Print(">> out of bounds Z low");
             PlacePlayer(new Godot.Vector3(contr.GlobalPosition.X,
                                           contr.GlobalPosition.Y + XB.WData.LowHighExtra,
-                                          -XB.WData.WorldDim.Y + respawnOff              ));
+                                          -XB.WData.WorldSize.Y + respawnOff              ));
         }
 
         // STEP 3: horizontal movement relative to camera rotation
@@ -399,14 +399,14 @@ public partial class PController : Godot.CharacterBody3D {
         if        (contr.GlobalPosition.X > -respawnOff) { // limit x movement
             v.X   = XB.Utils.MinF(v.X,   0.0f);
             spV.X = XB.Utils.MinF(spV.X, 0.0f);
-        } else if (contr.GlobalPosition.X < -(XB.WData.WorldDim.X-respawnOff)) {
+        } else if (contr.GlobalPosition.X < -(XB.WData.WorldSize.X-respawnOff)) {
             v.X   = XB.Utils.MaxF(v.X,   0.0f);
             spV.X = XB.Utils.MaxF(spV.X, 0.0f);
         } 
         if        (contr.GlobalPosition.Z > -respawnOff) { // limit z movement
             v.Z   = XB.Utils.MinF(v.Z,   0.0f);
             spV.Z = XB.Utils.MinF(spV.Z, 0.0f);
-        } else if (contr.GlobalPosition.Z < -(XB.WData.WorldDim.Y-respawnOff)) {
+        } else if (contr.GlobalPosition.Z < -(XB.WData.WorldSize.Y-respawnOff)) {
             v.Z   = XB.Utils.MaxF(v.Z,   0.0f);
             spV.Z = XB.Utils.MaxF(spV.Z, 0.0f);
         }
@@ -625,7 +625,7 @@ public partial class PController : Godot.CharacterBody3D {
                 pNrm  = cam.GlobalTransform.Basis.Z;
                 XB.Utils.IntersectRayPlaneV3(ref cOrig, ref cDir, ref pOrig, ref pNrm, ref rOrig);
             }
-            float rayDistance  = XB.WData.WorldDim.X+XB.WData.WorldDim.Y;
+            float rayDistance  = XB.WData.WorldSize.X+XB.WData.WorldSize.Y;
                   rayDistance *= -1.0f;
             rDest = rOrig + rayDistance*cam.GlobalTransform.Basis.Z;
             XB.Utils.Raycast(ref spaceSt, ref rOrig, ref rDest, XB.LayerMasks.SphereMask, ref resultRC);

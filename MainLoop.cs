@@ -41,8 +41,8 @@ public partial class MainLoop : Godot.Node3D {
                                                      // fixed to get the same starting terrain
     // world dimensions given in exponent for power of 2:
     // 1 - 2m, 2 - 4m, 3 - 8m, 4 - 16m, 5 - 32m, 6 - 64m, 7 - 128m, 8 - 256m, 9 - 512m
-    private const int _worldSizeExpX = 5;
-    private const int _worldSizeExpZ = 5;
+    private const int _worldSizeExpX = 8;
+    private const int _worldSizeExpZ = 8;
 
     public static Godot.Node TR = new Godot.Node(); // for translation
     private Godot.Vector2 _qTreeRefPos = new Godot.Vector2(0.0f, 0.0f); // used as reference point
@@ -125,8 +125,8 @@ public partial class MainLoop : Godot.Node3D {
         //NOTE[ALEX]: since spawning happens one tick delayed, the first frame's UpdateQTreeMeshes
         //            uses the incorrect location for distance calculations, consider this when
         //            debugging
-        PS.PCtrl.SpawnPlayer(new Godot.Vector2(-XB.WData.WorldDim.X/2.0f,
-                                               -XB.WData.WorldDim.Y/2.0f ));
+        PS.PCtrl.SpawnPlayer(new Godot.Vector2(-XB.WData.WorldSize.X/2.0f,
+                                               -XB.WData.WorldSize.Y/2.0f ));
         PS.Menu.ShowStartupScreen();
 
 #if XBDEBUG
@@ -164,8 +164,8 @@ public partial class MainLoop : Godot.Node3D {
                 _qTreeRefPos.X = PS.PCtrl.PModel.GlobalPosition.X;
                 _qTreeRefPos.Y = PS.PCtrl.PModel.GlobalPosition.Z;
                 XB.ManagerTerrain.UpdateQTreeMeshes(ref _qTreeRefPos, XB.WData.LowestPoint, 
-                                                    XB.WData.HighestPoint, XB.WData.ImgMiniMap,
-                                                    MainRoot, PS.Hud.TexMiniMap                );
+                                                    XB.WData.HighestPoint, XB.WData.ImgHeightMap,
+                                                    MainRoot, PS.Hud.TexMiniMap                  );
                 PS.PCtrl.UpdatePlayer(dt, PS.Hud, PS.Menu, PS.Input, PS.Sett, MainRoot);
                 break;
             }

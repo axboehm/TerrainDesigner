@@ -1,5 +1,7 @@
 shader_type canvas_item;
 
+uniform sampler2D heightMapT : source_color, repeat_disable, filter_nearest;
+
 uniform vec4 plColor     : source_color;
 uniform vec4 plColorLink : source_color;
 
@@ -58,7 +60,7 @@ void vertex() {
 }
 
 void fragment() {
-    vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
+    vec4 color = texture(heightMapT, UV).rrra;
 
     float distPl = sdfTriangle(UV, tri0, tri1, tri2);
     float maskPl = step(distPl, 0.0);

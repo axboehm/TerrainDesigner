@@ -503,7 +503,8 @@ public class Terrain {
 #endif 
     }
 
-    // takes world coordinates (negative coordinates) and world size along with heightmap
+    // takes world coordinates (negative coordinates in meter),
+    // world resolution (pixels in heightmap per meter)
     // returns the sampled value from the heightmap (between 0.0 and 1.0)
     //
     // height map's pixels do not align with world dimension but are offset by 1/2
@@ -520,41 +521,42 @@ public class Terrain {
     // |W|X|Y|Z|
     // ---------
     //
-    // vertices: vW0 and vW1 are at bottom edge of tile W, vW1 = vX0, vX1 = vY0, ...
-    // vW0 samples the texture at pixel A (x = 0), 
-    // vW1 samples the texture at pixels A (x = 0) and B (x = 1) and blends linearly
+    // vertices: vWLeft and vWRight are at bottom edge of tile W, vWRight = vXLeft, vXRight = vYLeft, ...
+    // vWLeft samples the texture at pixel A (x = 0), 
+    // vWRight samples the texture at pixels A (x = 0) and B (x = 1) and blends linearly
     // the same vertically
     //
     //NOTE[ALEX]: no mipmaps
     public static float HeightMapSample(float sampleX, float sampleZ,
-                                        float worldXSize, float worldZSize, Godot.Image heightMap) {
+                                        float worldRes, Godot.Image heightMap) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainHeightMapSample);
 #endif
 
-        float sX  = (1.0f/worldXSize) * (heightMap.GetWidth() -1);
-        float sZ  = (1.0f/worldZSize) * (heightMap.GetHeight()-1);
-        float x   = -sampleX * sX;
-        float z   = -sampleZ * sZ;
-        int   xI0 = (int)x;
-        int   zI0 = (int)z;
-        int   xI1 = XB.Utils.MinI(xI0+1, heightMap.GetWidth() -1);
-        int   zI1 = XB.Utils.MinI(zI0+1, heightMap.GetHeight()-1);
+        float x   = -sampleX * worldRes;
+        float z   = -sampleZ * worldRes;
+        int   xI0 = XB.Utils.MaxI( (int)(x-0.5f), 0);
+        int   zI0 = XB.Utils.MaxI( (int)(z-0.5f), 0);
+        int   xI1 = XB.Utils.MinI( (int)(x+0.5f), heightMap.GetWidth() -1);
+        int   zI1 = XB.Utils.MinI( (int)(z+0.5f), heightMap.GetHeight()-1);
 
         // 0    0|0 in top left, in world: 0|0 in "top left", but X and Z axis go to negative
         //  AB  samples surrounding the sampled coordinates
         //  CD  sample coordinates are inside these points (including)
 
-        float sampleA = heightMap.GetPixel(xI0, zI0).B;
-        float sampleB = heightMap.GetPixel(xI1, zI0).B;
-        float sampleC = heightMap.GetPixel(xI0, zI1).B;
-        float sampleD = heightMap.GetPixel(xI1, zI1).B;
-        float upper   = XB.Utils.LerpF(sampleA, sampleB, x-xI0);
-        float lower   = XB.Utils.LerpF(sampleC, sampleD, x-xI0);
-        float result  = XB.Utils.LerpF(upper,   lower,   z-zI0);
+        float sampleA = heightMap.GetPixel(xI0, zI0).R;
+        float sampleB = heightMap.GetPixel(xI1, zI0).R;
+        float sampleC = heightMap.GetPixel(xI0, zI1).R;
+        float sampleD = heightMap.GetPixel(xI1, zI1).R;
+        //NOTE[ALEX]: since the resolution of the heightmap and the resolution of the mesh
+        //            are identical, the following interpolation can use 0.5f as the factor
+        float upper   = XB.Utils.LerpF(sampleA, sampleB, 0.5f);
+        float lower   = XB.Utils.LerpF(sampleC, sampleD, 0.5f);
+        float result  = XB.Utils.LerpF(upper,   lower,   0.5f);
 
-        // Godot.GD.Print(" world: " +sampleX +"m/" +worldXSize +"m, " +sampleZ +"m/" +worldZSize +"m");
-        // Godot.GD.Print(x + " " + z + " of " + img.GetSize() + " xI0: " + xI0 + " xI1: " + xI1
+        // Godot.GD.Print(" world: " +sampleX +"m/" +heightMap.GetWidth()*worldRes +"m, "
+        //                           +sampleZ +"m/" +heightMap.GetHeight()*worldRes +"m" );
+        // Godot.GD.Print(x + " " + z + " of " + heightMap.GetSize() + " xI0: " + xI0 + " xI1: " + xI1
         //                + " zI0: " + zI0 + " zI1: " + zI1
         //                + " samples A: " + sampleA + " B: " + sampleB + " C: " + sampleC
         //                + " D: " + sampleD + " x-xI0: " + (x-xI0) + " z-zI0: " + (z-zI0)
@@ -613,7 +615,7 @@ public class Terrain {
         highest = heights[0, 0];
         for (int i = 0; i < amountX; i++) {
             for (int j = 0; j < amountZ; j++) {
-                lowest  = XB.Utils.MinF(lowest, heights[i, j]);
+                lowest  = XB.Utils.MinF(lowest,  heights[i, j]);
                 highest = XB.Utils.MaxF(highest, heights[i, j]);
             }
         }

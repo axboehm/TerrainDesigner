@@ -258,7 +258,7 @@ public enum D {
     HUDInitializeHud,
     HUDUpdateHUD,
     HUDUpdateMiniMap,
-    HUDUpdateMiniMapOverlayTexture,
+    HUDUpdateMiniMapTexture,
     HUDUpdateSphereTexture,
     HUDUpdateSphereTextureHighlight,
     Initialize_Ready,
