@@ -12,6 +12,7 @@ public partial class Menu : Godot.Control {
                    private float              _msgDur     = 2.0f; // in seconds
     [Godot.Export] private Godot.Button       _bResume;
                    private bool               _inStartupScreen = false;
+                   private Godot.AudioStreamPlayer _menuSound; // audio effect for button clicks
 
                    // references to MainLoop variables
                    private XB.PlayerState _pS;
@@ -160,6 +161,9 @@ public partial class Menu : Godot.Control {
         _tabPrev            = _tabCont.CurrentTab;
         _crMsg.Visible      = false;
         _bResume.Pressed   += ButtonResumeOnPressed;
+        var soundScene = Godot.ResourceLoader.Load<Godot.PackedScene>(XB.ResourcePaths.ButtonAudio);
+        _menuSound     = (Godot.AudioStreamPlayer)soundScene.Instantiate();
+        _mainRoot.AddChild(_menuSound);
 
         // startup popup
         _ctrlPopupS.Hide();
@@ -617,7 +621,7 @@ public partial class Menu : Godot.Control {
     }
 
     private void ButtonResumeOnPressed() {
-        PlayUISound(XB.ResourcePaths.ButtonAudio);
+        _menuSound.Play();
         Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Captured; // hide cursor
         GetTree().Paused      = false;
         Hide();
@@ -673,13 +677,13 @@ public partial class Menu : Godot.Control {
     }
 
     private void ButtonAppDefaultsOnPressed() {
-        PlayUISound(XB.ResourcePaths.ButtonAudio);
+        _menuSound.Play();
         ShowMessage(_pS.Sett.ApplicationDefaults());
         ApplySettings();
     }
 
     private void ButtonApplyOnPressed () {
-        PlayUISound(XB.ResourcePaths.ButtonAudio);
+        _menuSound.Play();
         string preset = _obPresets.GetItemText(_obPresets.GetSelectedId());
         ShowMessage(_pS.Sett.PresetSettings(_pS.Sett.Presets[preset]));
         ApplySettings();
@@ -736,7 +740,7 @@ public partial class Menu : Godot.Control {
     }
 
     private void ButtonPopupCancelOnPressed() {
-        PlayUISound(XB.ResourcePaths.ButtonAudio);
+        _menuSound.Play();
         _ctrlPopupS.Hide();
         _ctrlPopupA.Hide();
         _ctrlPopupQ.Hide();
@@ -744,17 +748,17 @@ public partial class Menu : Godot.Control {
     }
 
     private void ButtonPopupApplySpheresOnPressed() {
-        PlayUISound(XB.ResourcePaths.ButtonAudio);
+        _menuSound.Play();
         _ctrlPopupA.Show();
     }
 
     private void ButtonPopupQuitOnPressed() {
-        PlayUISound(XB.ResourcePaths.ButtonAudio);
+        _menuSound.Play();
         _ctrlPopupQ.Show();
     }
 
     private void ButtonDefaultsCKOnPressed() {
-        PlayUISound(XB.ResourcePaths.ButtonAudio);
+        _menuSound.Play();
         ShowMessage(Tr("DEFAULT_KEYBINDINGS"));
         _pS.Input.DefaultInputActions();
         UpdateControlTab();
@@ -786,7 +790,7 @@ public partial class Menu : Godot.Control {
     private void ButtonCK23OnPressed() { ControlsChange(23); }
 
     private void ControlsChange(int id) {
-        PlayUISound(XB.ResourcePaths.ButtonAudio);
+        _menuSound.Play();
         _setKeyID        = id;
         _setKey          = true;
         _lockInput       = true;
@@ -854,7 +858,7 @@ public partial class Menu : Godot.Control {
     }
 
     private void ButtonGenerateTerrainOnPressed() {
-        PlayUISound(XB.ResourcePaths.ButtonAudio);
+        _menuSound.Play();
         _ctrlPopupG.Show();
         // restore values to defaults when opening the generation dialog
         _slGenHeight.Value = XB.WData.GenHeightDef;
@@ -896,7 +900,7 @@ public partial class Menu : Godot.Control {
     }
 
     private void ButtonShowStartupOnPressed() {
-        PlayUISound(XB.ResourcePaths.ButtonAudio);
+        _menuSound.Play();
         GetTree().Paused = false;
         Hide();
         _ctrlPopupS.Hide();
@@ -1012,12 +1016,6 @@ public partial class Menu : Godot.Control {
         _lbGenPers.Text   = _slGenPers.Value.ToString(_valueFormat);
         _lbGenLac.Text    = _slGenLac.Value.ToString(_valueFormat);
         _lbGenExp.Text    = _slGenExp.Value.ToString(_valueFormat);
-    }
-
-    public void PlayUISound(string path) {
-        var sScn  = Godot.ResourceLoader.Load<Godot.PackedScene>(path);
-        var sound = sScn.Instantiate();
-        _mainRoot.AddChild(sound);
     }
 
     // look through all inputs and hide the buttons for inputs that are not used
