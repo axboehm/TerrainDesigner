@@ -1,5 +1,7 @@
 #define XBDEBUG
 namespace XB { // namespace open
+
+// presets for graphic options
 public enum SettingsPreset {
     Minimum,
     Default,
@@ -8,13 +10,10 @@ public enum SettingsPreset {
 
 // layer is which layers the object is in, mask is which layers an object scans for collisions
 public struct LayerMasks {                //24--20--16--12--8---4---  
-    public static uint EmptyMask        = 0b000000000000000000000000;
     public static uint AimMask          = 0b000000000000000001000001;
     public static uint CamMask          = 0b000000000000000000000011;
     public static uint EnvironmentLayer = 0b000000000000000000000001;
     public static uint EnvironmentMask  = 0b000000000000000000000001;
-    public static uint MovementMask     = 0b100000000000000100000000;
-    public static uint MovementLayer    = 0b000000000000000010000000;
     public static uint PlayerMask       = 0b000000000000000110000001;
     public static uint PlayerLayer      = 0b100000000000000000000000;
     public static uint SphereLayer      = 0b000000000000010000000010;
@@ -25,7 +24,6 @@ public struct Constants {
     public const float  Tau     = 6.28318530718f;
     public const float  Pi      = 3.14159265359f;
     public const float  PiHalf  = 1.57079632679f;
-    public const float  Sqrt2   = 1.41421356237f;
     public const float  Deg2Rad = 0.01745329251f;
     public const float  Rad2Deg = 57.2957795131f;
     public const float  Epsilon = 0.01f; // for floating point comparisons (empiric)
