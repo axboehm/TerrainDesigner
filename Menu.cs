@@ -489,7 +489,7 @@ public partial class Menu : Godot.Control {
     public void ShowStartupScreen() {
         _justOpened      = true;
         _inStartupScreen = true;
-        Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Visible;
+        Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Visible; // show cursor
         Show();
         _ctrlPopupS.Show();
         _pS.AppSt = XB.AppState.Startup;
@@ -504,7 +504,7 @@ public partial class Menu : Godot.Control {
         _bResume.GrabFocus();
         _tabCont.CurrentTab   = _tPau;
         _justOpened           = true;
-        Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Visible;
+        Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Visible; // show cursor
         GetTree().Paused      = true;
         Show();
 
@@ -610,7 +610,7 @@ public partial class Menu : Godot.Control {
 
     private void ButtonResumeOnPressed() {
         PlayUISound(XB.ResourcePaths.ButtonAudio);
-        Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Captured;
+        Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Captured; // hide cursor
         GetTree().Paused      = false;
         Hide();
         _ctrlPopupS.Hide();
@@ -784,7 +784,7 @@ public partial class Menu : Godot.Control {
         _lockInput       = true;
         _mouseRelease    = false;
         _chngMsg.Visible = true;
-        Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Captured;
+        Godot.Input.MouseMode = Godot.Input.MouseModeEnum.Captured; // hide cursor
     }
 
     private void OptionButtonLanguageOnItemSelected(long id) {

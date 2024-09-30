@@ -235,13 +235,6 @@ public partial class PController : Godot.CharacterBody3D {
         var debug = new XB.DebugTimedBlock(XB.D.PControllerUpdatePlayer);
 #endif
 
-        if (GetTree().Paused) {
-#if XBDEBUG
-            debug.End();
-#endif
-            return;
-        }
-
         _spaceSt = GetWorld3D().DirectSpaceState; // get spacestate for raycasting
 
         if (_spawn) { 

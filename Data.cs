@@ -224,6 +224,7 @@ public struct Resources {
 // WData holds variables and values for world data, so everything related to the heightmap
 // and terrain generation and terrain materials
 // terrain/heightmap related functions are also included
+// there can only be one terrain in the application, so all variables can be static
 public class WData {
     public static Godot.Image    ImgMiniMap;
     public static Godot.Image    ImgPointiness;
