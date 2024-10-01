@@ -1,3 +1,8 @@
+// shader for minimap with overlays of player position and camera view positions
+// as well as all placed spheres
+// shapes are drawn using signed distance fields (sdfs)
+//NOTE[ALEX]: the aspect ratio of the texture is not accounted for, shapes will only appear
+//            correct if the texture is square
 shader_type canvas_item;
 
 uniform sampler2D heightMapT : source_color, repeat_disable, filter_nearest;
@@ -47,8 +52,6 @@ float sdfCircle(vec2 p, vec2 c0, float r) {
     float dist = length(c0-p);
     return (dist - r);
 }
-
-//TODO[ALEX]: probably the coordinates to be adjusted for the squareRatio and then use squared UVs
 
 // multiply x part with sizeY/sizeX to keep the shape of the triangle consistent
 void vertex() {

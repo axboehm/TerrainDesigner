@@ -1,3 +1,9 @@
+// complex terrain shader
+// triplanar texture mapping including texture bombing
+// height based blending between different materials
+// visualization overlay textures
+// distance based blending (uncommented because it prevents depth pass for geometry occluded by it)
+
 shader_type spatial;
 render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_schlick_ggx;
 

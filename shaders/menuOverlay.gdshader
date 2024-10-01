@@ -1,3 +1,4 @@
+// visual overlay for pause menu, creates some movement to avoid menu screen appearing static
 shader_type canvas_item;
 render_mode blend_add;
 

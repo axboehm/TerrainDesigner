@@ -10,9 +10,6 @@ public enum SphereTexSt {
 }
 
 public partial class HUD : Godot.Control {
-    [Godot.Export] private Godot.NodePath       _matHudEffectsNode;
-                   private Godot.ShaderMaterial _matHudEff;
-
     private Godot.Label       _lbFps;
     private Godot.TextureRect _trCrosshairs;
     private Godot.TextureRect _trLinking;   // overlay when in linking mode
@@ -135,8 +132,6 @@ public partial class HUD : Godot.Control {
 #endif
 
         var font = Godot.ResourceLoader.Load<Godot.Font>(XB.ResourcePaths.FontLibMono);
-
-        _matHudEff = (Godot.ShaderMaterial)GetNode<Godot.TextureRect>(_matHudEffectsNode).Material;
 
         _trCrosshairs = new Godot.TextureRect();
         _trLinking    = new Godot.TextureRect();

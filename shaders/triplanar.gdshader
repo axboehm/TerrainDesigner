@@ -1,3 +1,5 @@
+// reference shader for triplanar mapping,
+// basic implementation without height blending or texture bombing
 shader_type spatial;
 render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_schlick_ggx;
 

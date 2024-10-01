@@ -1,3 +1,4 @@
+// main shader for sphere screen with scrolling texture for ID digits
 shader_type spatial;
 render_mode blend_mix, depth_prepass_alpha, cull_back, diffuse_burley, specular_schlick_ggx;
 

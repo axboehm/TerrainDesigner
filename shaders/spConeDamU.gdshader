@@ -1,3 +1,5 @@
+// shader for cone and dam segment geometry that always shows, 
+// regardless of whether it is occluded by other geometry
 shader_type spatial;
 render_mode blend_mix, depth_test_disabled, cull_back, diffuse_burley, specular_schlick_ggx;
 

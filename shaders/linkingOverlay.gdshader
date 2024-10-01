@@ -1,3 +1,5 @@
+// shader that creates two circle segments to show that the player is in linking mode
+// segments are created by combining two signed distance fields (sdfs)
 shader_type canvas_item;
 
 uniform vec4 colInnerBright : source_color;
