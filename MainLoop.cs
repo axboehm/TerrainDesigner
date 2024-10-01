@@ -114,7 +114,10 @@ public partial class MainLoop : Godot.Node3D {
 
         // initialize, then create terrain
         XB.WData.InitializeTerrainMesh(_worldSizeExpX, _worldSizeExpZ);
-        XB.WData.GenerateRandomTerrain();
+        XB.WData.GenerateRandomTerrain(XB.WData.GenScaleDef, XB.WData.GenOffXDef,
+                                       XB.WData.GenOffZDef, XB.WData.GenOctDef,
+                                       XB.WData.GenPersDef, XB.WData.GenLacDef,
+                                       XB.WData.GenExpDef, XB.WData.GenHeightDef );
         XB.WData.UpdateTerrain(true, PS.Hud, PS.Menu, MainRoot);
 
         // initialize menu after terrain initialization for minimap (_imgGenMap size)

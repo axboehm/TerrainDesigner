@@ -1,6 +1,8 @@
 #define XBDEBUG
-namespace XB { // namespace open
 using SysCG = System.Collections.Generic;
+namespace XB { // namespace open
+
+// contains all settings related to the application and performance
 public class SettingsContainer {
     public bool   FullScreen     = false;
     public string Resolution     = "1920x1080";
@@ -69,6 +71,7 @@ public class SettingsContainer {
     }
 }
 
+// store changes to settings in one place, used to selectively apply settings to the application
 public class SettingsStateChange {
     public bool ChangeCamSens      = false;
     public bool ChangeDebanding    = false;
@@ -116,13 +119,14 @@ public class SettingsStateChange {
 // all active settings live in one SettingsContainer while the app is running
 // changes to settings in the menu, etc. are made to a second container and then
 // this class updates the active settings and makes all changes required to the application
-// the goal was to make every change to settings go through the same function to ensure
-// consistency and only one place of truth
+// the goal was to make every change of application settings go through the same function to ensure
+// consistency and only one source of truth
 public class Settings {
-    public  XB.SettingsContainer SC     = new XB.SettingsContainer(); // application settings
-    private XB.SettingsContainer _scMod = new XB.SettingsContainer(); // for changing settings
-    private static SettingsStateChange _chng = new XB.SettingsStateChange();
+    public  XB.SettingsContainer SC     = new XB.SettingsContainer();   // application settings
+    private XB.SettingsContainer _scMod = new XB.SettingsContainer();   // for changing settings
+    private SettingsStateChange  _chng  = new XB.SettingsStateChange(); // which settings changed
 
+    // available settings options
     public  int[]        FpsOptions      = new int[]    {30, 60, 120, 0};
     public  string[]     WindowModes     = new string[] {"WINDOWED", "FULLSCREEN"};
     public  string[]     Languages       = new string[] {"en", "de"};
@@ -154,6 +158,7 @@ public class Settings {
             {"Highest", XB.SettingsPreset.Maximum},
         };
 
+    // fixed values for application settings
     public  const float CamSensMax      = 100.0f;
     public  const float VolumeMin       = -60.0f;
     public  const float ShadowDistMin   = 50.0f;
@@ -184,7 +189,18 @@ public class Settings {
     private Godot.Environment        _environment;
     private XB.PlayerState           _pS;
 
-    // settings code variables
+    // settings are represented by two unsigned long integers (64 bits each),
+    // that can be shown to the user as a string of ones and zeros
+    // this code exists to make saving and loading settings easy without the need for files
+    private ulong        _setCodeR       = 0;
+    private ulong        _setCodeL       = 0;
+    private const  int   _setCodeLengthR = 47;
+    private const  int   _setCodeLengthL = 35;
+    private static ulong _sFov  = (ulong)63  << 7+7+7+8+0;
+    private static ulong _sCamX = (ulong)127 <<   7+7+8+0;
+    private static ulong _sCamY = (ulong)127 <<     7+8+0;
+    private static ulong _sVol  = (ulong)127 <<       8+0;
+    private static ulong _sShD  = (ulong)255 <<         0;
     private static SysCG.Dictionary<string, ulong> _sPos =
         new SysCG.Dictionary<string, ulong>() {
                 {"SGuide", (ulong)1 << 0 },
@@ -235,15 +251,6 @@ public class Settings {
                 {"SBlock", (ulong)1 << 45},
                 {"SQTree", (ulong)1 << 46},
             };
-    private ulong        _setCodeR       = 0;
-    private ulong        _setCodeL       = 0;
-    private const  int   _setCodeLengthR = 47;
-    private const  int   _setCodeLengthL = 35;
-    private static ulong _sFov  = (ulong)63  << 7+7+7+8+0;
-    private static ulong _sCamX = (ulong)127 <<   7+7+8+0;
-    private static ulong _sCamY = (ulong)127 <<     7+8+0;
-    private static ulong _sVol  = (ulong)127 <<       8+0;
-    private static ulong _sShD  = (ulong)255 <<         0;
 
 
     public void SetMainLoopReferences(Godot.Node mainRoot, Godot.DirectionalLight3D mainLight,
@@ -254,6 +261,9 @@ public class Settings {
         _pS          = pS;
     }
 
+    // takes a SettingsContainer with settings and compares to current settings
+    // for every value that is different, the relevant update function is called
+    // to update the settings
     public void UpdateSettings(XB.SettingsContainer sc) {
         _chng.SetAllFalse();
 
@@ -487,6 +497,7 @@ public class Settings {
         _environment.SsrEnabled = SC.SSR;
     }
 
+    // application defaults are settings related to how the app handles, but not graphics settings
     public void SetApplicationDefaults() {
         _scMod.SetAllFromSettingsContainer(SC);
         _scMod.FullScreen = false;
@@ -505,6 +516,7 @@ public class Settings {
         UpdateSettings(_scMod);
     }
 
+    // graphics settings can be set with a preset without affecting other settings
     public void SetPresetSettings(XB.SettingsPreset preset) {
         _scMod.SetAllFromSettingsContainer(SC);
         switch (preset) {
@@ -557,6 +569,7 @@ public class Settings {
         UpdateSettings(_scMod);
     }
 
+    // takes string representing two unsigned long integers (also see SettingsCodeFromSettings)
     public bool ValidateSettingsCode(string code) {
         if (code.Length != (_setCodeLengthL + _setCodeLengthR)) {
             return false;
@@ -574,7 +587,7 @@ public class Settings {
     // Internally the code is split in two, as ulong is the largest datatype available with 64 bits
     // and more are needed to store all settings values
     // the right side of the code (XB.AData.SetcodeLengthR bits) is used to store booleans and array
-    // values, the left side has the floating point values stored one after another
+    // values, the left side has multiple floating point values stored one after another
     public void SettingsCodeFromSettings(Godot.LineEdit leSetCode) {
         ulong codeR = 0;
         ulong codeL = 0;
@@ -632,7 +645,7 @@ public class Settings {
 
         // left side (numerical values)
         // fov (64), camx, camy, volume (100), shadowdist (250) (6+7+7+7+8 = 35bits)
-        codeL  = (ulong)SC.FovDef-(ulong)FovMin;
+        codeL  = (ulong)SC.FovDef-(ulong)FovMin; // only the difference from the minimum is stored
         codeL  = codeL << 7;
         codeL |= (ulong)(SC.CamXSens*_camSliderMult);
         codeL  = codeL << 7;
@@ -644,10 +657,12 @@ public class Settings {
 
         _setCodeR = codeR;
         _setCodeL = codeL;
+        // prepare string that is visible in the menu
         leSetCode.Text =   XB.Utils.ULongToBitString(_setCodeL, _setCodeLengthL)
                          + XB.Utils.ULongToBitString(_setCodeR, _setCodeLengthR);
     }
 
+    // inverse of SettingsCodeFromSettings
     public void SettingsFromSettingsCode(string bitString) {
         _scMod.SetAllFromSettingsContainer(SC);
 
@@ -749,6 +764,9 @@ public class Settings {
         UpdateSettings(_scMod);
     }
 
+    // updates all settings tabs in the menu
+    //NOTE[ALEX]: this and the following functions are part of Settings to require less
+    //            jumping around between files when editing the Menu class
     public void UpdateSettingsTabs(
             Godot.Slider slCamHor, Godot.Label lbCamHor, Godot.Slider slCamVer, Godot.Label lbCamVer,
             Godot.Slider slFov, Godot.Label lbCamFov, Godot.Slider slFrame, Godot.Label lbFrame,
@@ -1033,6 +1051,7 @@ public class Settings {
     }
 
     //NOTE[ALEX]: drop down dialogs are a bit too short with apparently no option to change that
+    //            inside of godot,
     //            adding separators at the bottom makes all entries show up without scrolling
     //            when that should be the case
     public void AddSeparators(Godot.OptionButton ob) {

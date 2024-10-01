@@ -1,5 +1,6 @@
-namespace XB { // namespace open
 using SysCG = System.Collections.Generic;
+namespace XB { // namespace open
+
 // DebugHUD is an optional hud that shows the times used by each function that is being monitored
 // monitoring has to be set up in each function manually but will be shown here automatically
 // also visible is the currently used blue noise texture and the player coordinates
@@ -280,6 +281,7 @@ public enum D {
     ManagerSphereUpdateDam,
     ManagerSphereUpdateSpheres,
     ManagerTerrainDivideQuadNode,
+    ManagerTerrainDrawQNode,
     ManagerTerrainInitializeQuadTree,
     ManagerTerrainQNodeShowReadyMeshes,
     ManagerTerrainQueueRequestProcess,
@@ -295,6 +297,7 @@ public enum D {
     ManagerTerrainUpdateQNodeMesh,
     ManagerTerrainUpdateQTreeMeshes,
     ManagerTerrainUpdateQTreeStrength,
+    ManagerTerrainUpdateQTreeTexture,
     MeshContainer,
     MeshContainerAdjustWorldEdgeSkirt,
     MeshContainerApplyToMesh,

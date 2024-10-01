@@ -1,15 +1,25 @@
-// #define XBSINGLETHREADED
 #define XBDEBUG
+// #define XBSINGLETHREADED
 // #define XBPROFILE // for timing FBM generation
 namespace XB { // namespace open
+
+// direction of geometry of cones and dam segments of spheres
+//NOTE[ALEX]: used to make direction explicit and code easier to read
 public enum Direction {
     Up,
     Down,
 }
 
 // Terrain deals with heightmap creation and modification
-// the functions use an array of floats (called tHeights in this class),
-// each float represents the height of the vertex offset from the "top left" by i/j * stepsize (1/res)
+// the functions use an array of floats (tHeights),
+// each float represents the height of the vertex at the xz position offset from 
+// the "top left" by i/j * stepsize (1/res)
+//NOTE[ALEX]: this ordering was chosen because textures have their 0|0 coordinate in the top left
+//NOTE[ALEX]: in godot when viewed from above, if the z axis is considered to be going "up" 
+//            in positive direction, then the x axis is going "left" in positive direction
+//            to have the terrain appear in the same orientation as the texture, the x and z 
+//            coordinates in the world are inverted, this has made debugging easier to me
+//            and should be considered with some of the functions in this class
 // amountX and amountZ are the dimensions of the array
 // the terrain of the world has n vertices on a side, whereas the heightmap has n-1 pixels on a side
 // this is done to keep the heightmap size and worldsize a power of two,
@@ -18,6 +28,12 @@ public enum Direction {
 public class Terrain {
     // FBM (fractal brownian motion) noise is an addition of multiple layers of perlin noise,
     // each with increasing frequency (detail) but less amplitude (strength)
+    // size is the size of the terrain (x and z dimension) in meters
+    // scale changes the "zoom" factor when sampling the noise, offset moves it in meters,
+    // octaves defines the number of iterations of adding higher frequency noise,
+    // persistence controls how much of the next layer of noise should be added,
+    // lacunarity controls the frequency of the next layer of noise to be added,
+    // exponentation is used after adding the noise layers to control the steepness of slopes
     public static void FBM(float[,] tHeights, int amountX, int amountZ, float sizeX, float sizeZ,
                            float scale, float offsetX, float offsetZ,
                            int octaves, float persistence, float lacunarity, float exponentation ) {
@@ -40,7 +56,8 @@ public class Terrain {
         float zStep = scale * (sizeZ / (float)(amountZ-1) );
 
         float amplitude     = 1.0f;
-        float normalization = 0.0f;
+        float normalization = 0.0f; // normalization is used to normalize the calculated result to
+                                    // range 0.0 to 1.0, it only needs to be calculated once
         for (int o = 0; o < octaves; o++) {
             normalization += amplitude;
             amplitude     *= ampMult;
@@ -138,7 +155,7 @@ public class Terrain {
 #endif 
     }
 
-    // scales the heights array to extend exactly from 0.0 to the parameter height
+    // scales the heights array to extend exactly from 0.0 to height
     // the lowest and highest point are updated and require ref
     public static void HeightScale(float[,] tHeights, int amountX, int amountZ,
                                    float height, ref float lowestPoint, ref float highestPoint) {
@@ -291,13 +308,15 @@ public class Terrain {
     }
 
     // flattens the entire heights array to the value of height parameter
-    public static void Flat(float[,] tHeights, int amountX, int amountZ, float height) {
+    // and updated the lowest and highest values
+    public static void Flat(float[,] tHeights, int amountX, int amountZ, float height,
+                            ref float lowest, ref float highest                       ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainFlat);
 #endif
 
-        XB.WData.LowestPoint  = height;
-        XB.WData.HighestPoint = height;
+        lowest  = height;
+        highest = height;
         for (int i = 0; i < amountX; i++) {
             for (int j = 0; j < amountZ; j++) {
                 tHeights[i, j] = height;
@@ -311,14 +330,15 @@ public class Terrain {
 
     // creates a linear gradient in x direction from value of left to value of right
     // starting at the left
+    // also updates the lowest and highest values
     public static void GradientX(float[,] tHeights, int amountX, int amountZ,
-                                 float left, float right                     ) {
+                                 float left, float right, ref float lowest, ref float highest) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainGradientX);
 #endif
 
-        XB.WData.LowestPoint  = XB.Utils.MinF(left, right);
-        XB.WData.HighestPoint = XB.Utils.MaxF(left, right);
+        lowest  = XB.Utils.MinF(left, right);
+        highest = XB.Utils.MaxF(left, right);
 
         float step = (right - left) / (float)(amountX-1);
         for (int i = 0; i < amountX; i++) {
@@ -334,14 +354,15 @@ public class Terrain {
 
     // creates a linear gradient in Z direction from value of top to value of bottom
     // starting at the top
+    // also updates the lowest and highest values
     public static void GradientY(float[,] tHeights, int amountX, int amountZ, 
-                                float top, float bottom                          ) {
+                                float top, float bottom, ref float lowest, ref float highest) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainGradientY);
 #endif
 
-        XB.WData.LowestPoint  = XB.Utils.MinF(top, bottom);
-        XB.WData.HighestPoint = XB.Utils.MaxF(top, bottom);
+        lowest  = XB.Utils.MinF(top, bottom);
+        highest = XB.Utils.MaxF(top, bottom);
 
         float step = (bottom - top) / (float)(amountZ-1);
         for (int i = 0; i < amountZ; i++) {
@@ -356,7 +377,7 @@ public class Terrain {
     }
 
     // compares two height arrays and overwrites values in the first with the lower of the two
-    // updates static lowest and highest values
+    // also updates lowest and highest values
     public static void HeightMin(float[,] tHeights, float[,] tHeightsM, int amountX, int amountZ,
                                  ref float lowest, ref float highest                             ) {
 #if XBDEBUG
@@ -377,7 +398,7 @@ public class Terrain {
     }
 
     // compares two height arrays and overwrites values in the first with the higher of the two
-    // updates static lowest and highest values
+    // also updates lowest and highest values
     public static void HeightMax(float[,] tHeights, float[,] tHeightsM, int amountX, int amountZ,
                                  ref float lowest, ref float highest                             ) {
 #if XBDEBUG
@@ -398,7 +419,7 @@ public class Terrain {
     }
 
     // replaces all values in the first height array with those of the first
-    // updates static lowest and highest values
+    // also updates lowest and highest values
     public static void HeightReplace(float[,] tHeights, float[,] tHeightsM, int amountX, int amountZ,
                                      ref float lowest, ref float highest                             ) {
 #if XBDEBUG
@@ -419,7 +440,7 @@ public class Terrain {
     }
 
     // calculates normals for given arrays of vertex position and triangle indices
-    // and writes them into normals array
+    // and writes them into given normals array
     public static void CalculateNormals(Godot.Vector3[] norms, Godot.Vector3[] verts, int[] tris) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainCalculateNormals);
@@ -455,7 +476,7 @@ public class Terrain {
     // fills heightmap texture by linearly interpolating between values of height array
     // resulting texture goes from 0.0 for the lowest value to 1.0 for the highest value
     // (flat heights will result in 0.5 grey texture)
-    // expects img to be of type L8
+    // expects img to be of type Rf (32 bit float single channel)
     // since there is one vertex more than pixels along each edge, the heightmap values
     // are interpolations of the neighboring vertices (opposite to HeightMapSample)
     //
@@ -465,10 +486,10 @@ public class Terrain {
     // C-D
     //
     // example 3x3 vertex terrain mesh with 2x2 pixel heightmap:
-    // *-*-*   X X
-    // | | |
-    // *-*-*   X X
-    // | | |
+    // *-*-*
+    // | | |   X X
+    // *-*-*
+    // | | |   X X
     // *-*-*
     //
     // width of heightMap is one smaller than count of first dimension of tHeights,
@@ -525,8 +546,6 @@ public class Terrain {
     // vWLeft samples the texture at pixel A (x = 0), 
     // vWRight samples the texture at pixels A (x = 0) and B (x = 1) and blends linearly
     // the same vertically
-    //
-    //NOTE[ALEX]: no mipmaps
     public static float HeightMapSample(float sampleX, float sampleZ,
                                         float worldRes, Godot.Image heightMap) {
 #if XBDEBUG
@@ -570,7 +589,7 @@ public class Terrain {
         return result;
     }
 
-    // sets lowest and highest static variables to the limits of float to prepare them for 
+    // sets lowest and highest to the limits of float to prepare them for 
     // new comparisons within the height array
     private static void ResetLowestHighest(ref float lowest, ref float highest) {
 #if XBDEBUG
@@ -588,8 +607,7 @@ public class Terrain {
 #endif 
     }
 
-    // compares existing lowest and highest static variables with a value,
-    // updates them is required
+    // compares existing lowest and highest with a value, updates them if required
     public static void UpdateLowestHighest(ref float lowest, ref float highest, float value) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.TerrainUpdateLowestHighest);
@@ -604,7 +622,7 @@ public class Terrain {
 #endif 
     }
 
-    // iterates through the height array and updates lowest and highest static variables
+    // iterates through the height array and updates lowest and highest
     public static void FindLowestHighest(float[,] heights, int amountX, int amountZ,
                                          ref float lowest, ref float highest        ) {
 #if XBDEBUG
@@ -628,8 +646,7 @@ public class Terrain {
     // calculates a pointiness texture for the terrain by comparing height to immediate
     // neighbor heights in 8 directions
     // pointiness is used in the terrain shader for additional modulation (purely visual)
-    // same method and requirements as UpdateHeightMap
-    //NOTE[ALEX]: no mipmaps
+    // similar methodology and requirements as UpdateHeightMap
     public static void BakePointiness(float[,] heights, int amountX, int amountZ,
                                       Godot.Image pointinessMap                  ) {
         pointinessMap.Fill(XB.Col.Black);
@@ -655,7 +672,7 @@ public class Terrain {
             for (int j = 0; j < pointinessMap.GetHeight(); j++) {
                 //NOTE[ALEX]: at the edges the pointiness is not technically correct
                 //            as some pixels are counted twice
-                //            this shortcoming is acceptable since it keeps this code much simpler
+                //            this shortcoming is acceptable as it keeps this code much simpler
                 up    = XB.Utils.MaxI(j-1, 0        );
                 right = XB.Utils.MinI(i+1, amountX-1);
                 down  = XB.Utils.MinI(j+1, amountZ-1);

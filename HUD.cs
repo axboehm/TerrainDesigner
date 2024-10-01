@@ -1,5 +1,6 @@
 #define XBDEBUG
 namespace XB { // namespace open
+
 public enum SphereTexSt {
     Uninit,
     Inactive,

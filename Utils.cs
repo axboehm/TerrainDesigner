@@ -1,5 +1,6 @@
 #define XBDEBUG
 namespace XB { // namespace open
+
 // Utils provides various basic math functions using as few allocations as possible
 // also included are functions used when drawing to textures using Godot internal rectangles,
 // references are used for the results of those functions to again reduce allocations as they

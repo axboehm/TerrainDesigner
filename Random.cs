@@ -1,6 +1,13 @@
 #define XBDEBUG
 //#define BLUENOISETEXTURE
 namespace XB { // namespace open
+
+// this class provides deterministic random functions that allow for replicable results in 
+// repeated runs of the program
+// the Xorshift algorithm is used to generate four unsigned 8 bit random numbers per iteration
+// those values are stored in an array that gets iterated through to provide random numbers
+// additionally, a bluenoise texture is created that is used in the terrain generation part
+// of the application for sampling random noise values
 public class Random {
     public  static uint   RandomSeed    = 0;    // last used random seed
     private static uint[] _randomValues = new uint[4] {1, 1, 1, 1};
@@ -12,6 +19,8 @@ public class Random {
     public  static Godot.Image BlueNoise;            // square noise texture
     private static int         _blueNoiseSize = 64;  // pixels on one side (height = width), mult of 4
 
+    // initializes the random number generator with a seed
+    // to make random numbers deterministic and reproducable
     public static void InitializeRandom(uint seed) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.RandomInitializeRandom);
@@ -32,11 +41,11 @@ public class Random {
 #else
         BlueNoise = Godot.Image.Create(_blueNoiseSize, _blueNoiseSize,
                                         false, Godot.Image.Format.L8  );
-        var  randomColor = new Godot.Color(0.0f, 0.0f, 0.0f, 0.0f);
+        var  randomValue = new Godot.Color(0.0f, 0.0f, 0.0f, 0.0f);
         for (int i = 0; i < _blueNoiseSize; i ++) {
             for (int j = 0; j < _blueNoiseSize; j ++) {
-                randomColor.B = ((float)RandomUInt()) / ((float)255);
-                BlueNoise.SetPixel(i, j, randomColor);
+                randomValue.B = ((float)RandomUInt()) / ((float)255);
+                BlueNoise.SetPixel(i, j, randomValue);
             }
         }
 #endif
@@ -46,7 +55,12 @@ public class Random {
 #endif 
     }
 
-    // returns 4 random bytes (uint 0-255)
+    // Xorshift is a pseudorandom number generator
+    // https://en.wikipedia.org/wiki/Xorshift
+    //NOTE[ALEX]: Xorshift was chosen due to its ease of implementation and good performance
+    //            the comparatively poor randomization it performs has not proven to be an issue,
+    //            so the trade off is acceptable
+    // returns 4 random bytes (8bit uint)
     private static void Xorshift() {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.RandomXorshift);
@@ -68,6 +82,7 @@ public class Random {
 #endif 
     }
 
+    // returns 8bit uint random number
     //NOTE[ALEX]: not thread-safe
     public static uint RandomUInt() {
 #if XBDEBUG
@@ -88,6 +103,7 @@ public class Random {
         return res;
     }
 
+    // returns a random float between a and b, a and b included
     public static float RandomInRangeF(float a, float b) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.RandomRandomInRangeF);
@@ -167,6 +183,7 @@ public class Random {
         return result;
     }
 
+    // returns a random unsigned integer between a and b, a and b included
     public static uint RandomInRangeU(uint a, uint b) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.RandomRandomInRangeU);
@@ -194,12 +211,16 @@ public class Random {
         return result;
     }
 
+    // returns a value between 0 and 1, 0 and 1 included sampled from the bluenoise texture
+    // given integer coordinates
     public static float RandomBlueNoise(int x, int y) {
         x %= _blueNoiseSize;
         y %= _blueNoiseSize;
         return BlueNoise.GetPixel(x, y).R;
     }
 
+    // returns a value between 0 and 1, 0 and 1 included sampled from the bluenoise texture
+    // given float coordinates, linear interpolation is used for the values between whole numbers
     public static float ValueNoise2D(float x, float y) {
         int   xI = (int)x;
         int   yI = (int)y;

@@ -1,5 +1,6 @@
 #define XBDEBUG
 namespace XB { // namespace opegn
+
 // Menu takes over as the main controlling function when the game gets paused (from PController)
 public partial class Menu : Godot.Control {
     [Godot.Export] private Godot.Label        _lbTab;
@@ -985,6 +986,8 @@ public partial class Menu : Godot.Control {
         if (_updateGenTex) { GenerateTerrainHeights(); }
     }
 
+    // generate terrain heights to show in generation dialog
+    // they are not applied to the terrain and only stored in the intermediate array
     private void GenerateTerrainHeights() {
         XB.Terrain.FBM(XB.WData.TerrainHeightsMod,
                        XB.WData.WorldVerts.X, XB.WData.WorldVerts.Y,

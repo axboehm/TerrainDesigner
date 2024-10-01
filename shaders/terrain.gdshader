@@ -45,7 +45,6 @@ uniform float scaleY      = 1.0;
 uniform float blockScale  = 1.0;
 uniform float noisePScale = 0.1;
 uniform float blockStr    = 1.0;
-uniform float albedoMult  = 0.8;
 uniform float blendDepth  = 0.2;
 uniform float blendWidth  = 0.1;
 uniform float blend34     = 0.25;

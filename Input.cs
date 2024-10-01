@@ -1,5 +1,6 @@
 #define XBDEBUG
 namespace XB { // namespace open
+
 public class InputAction {
     public string           Name;
     public string           Description;

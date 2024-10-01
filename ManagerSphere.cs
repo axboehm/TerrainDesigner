@@ -1,6 +1,7 @@
 #define XBDEBUG
 using SysCG = System.Collections.Generic;
 namespace XB { // namespace open
+
 // DamSegment holds all the mesh data required to display a segment between two linked spheres
 public class DamSegment {
     public int[] LinkedIDs; // ids of linked spheres(2)

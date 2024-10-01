@@ -2,30 +2,34 @@
 // #define XBVISUALIZECOLLIDERS
 using SysCG = System.Collections.Generic;
 namespace XB { // namespace open
-// QNode is on node in a quadtree that represents the terrain of the world
-// the entire tree gets created at initialization
-// the mesh data is kept separate from the quadtree nodes in MeshContainer
-// MeshContainers are assigned to QNodes as needed in TerrainManager
-// by keeping QNode light, creating the entire tree becomes not a performance issue,
-// but having the entire tree allows for the distance based calculations in TerrainManager
-// to be much simpler and use recursion
-public class QNode {
-    public QNode   Parent;
-    public QNode[] Children;
-    public XB.MeshContainer MeshContainer;
-    public bool  Active;      // is the tile supposed to be active
-    public bool  MeshVisible; // is the mesh of the tile visible
-    public bool  MeshReady;   // is the mesh assigned and ready (processing is staggered)
-    public int   ID;
-    public float XPos;  // center x coordinate in meter
-    public float ZPos;
-    public float XSize; // dimensions in meter
-    public float ZSize;
-    public float Res;   // subdivisions per meter of represented mesh tile
-    private bool[] _worldEdge;
 
-    // creates a new quadtree node and assignes it id,
-    // then increases id for the next node creation
+// QNode is a node in a quadtree that represents the terrain of the world
+// MeshContainer is a separate object that hold all the data of the mesh,
+// QNode itself is very light and only has a reference to all the actual mesh data,
+// MeshContainer is quite heavy with all the data
+// the entire tree gets created at initialization, since MeshContainers are not assigned
+// at creation, the tree can be thought of as sparse, as each node only contains a few
+// variables and references
+// MeshContainers are assigned to QNodes as needed in TerrainManager
+// by keeping QNode light, creating the entire tree does not become a performance or memory issue,
+// but having the entire tree allows for the distance based calculations in TerrainManager
+// to be much simpler and to use recursion when traversing the tree
+public class QNode {
+    public QNode   Parent;    // reference to parent node
+    public QNode[] Children;  // references to four child nodes
+    public XB.MeshContainer MeshContainer; // holds all data regarding the visible mesh
+    public bool  Active;      // is the tile supposed to be active (based on distance to reference)
+    public bool  MeshVisible; // is the mesh of the tile currently visible (independent of Active)
+    public bool  MeshReady;   // is the mesh assigned and ready (processing of meshes is staggered)
+    public int   ID;    // unique ID for each node assigned at startup
+    public float XPos;  // x center coordinate of mesh tile represented by this QNode in meter
+    public float ZPos;
+    public float XSize; // dimensions of mesh tile represented by this QNode in meter
+    public float ZSize;
+    public float Res;   // subdivisions per meter of mesh tile represented by this QNode
+    private bool[] _worldEdge; // is either side of the tile part of the world edge
+
+    // creates a new quadtree node, increases id for the next node's creation
     public QNode(ref int id, float xPos, float zPos, float xSize, float zSize,
                  float res, QNode parent = null                               ) {
 #if XBDEBUG
@@ -57,6 +61,7 @@ public class QNode {
 #endif 
     }
 
+    // when a node gets activated, all children should be deactivated
     public void Activate() {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.QNodeActivate);
@@ -91,6 +96,7 @@ public class QNode {
 #endif 
     }
 
+    // are all immediate children active and have their meshes ready (assigned and updated)
     public bool ChildrenActiveAndReady() {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.QNodeChildrenActiveAndReady);
@@ -108,6 +114,9 @@ public class QNode {
         return true;
     }
 
+    // are any children (recursively until leaf node) ready
+    // relevant for initialization, as the root node gets shown first for performance reasons,
+    // then gets replaced when children are ready
     public bool ChildrenActiveRecursive() {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.QNodeChildrenActiveAndReadyRecursive);
@@ -126,6 +135,7 @@ public class QNode {
         return false;
     }
 
+    // are all children (recursively until leaf node) that are active also ready
     public bool ChildrenReadyRecursive() {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.QNodeChildrenActiveAndReadyRecursive);
@@ -219,6 +229,9 @@ public class QNode {
 #endif 
     }
 
+    // update the assigned meshcontainers mesh to represent the terrain based on a given heightmap
+    // this resamples the heightmap and updates based on that
+    // also assigns shaders to that tile's edgeskirt based on whether it is part of the world edge
     public void UpdateAssignedMesh(float worldRes, float worldXSize, float worldZSize,
                                    float lowestPoint, float highestPoint,
                                    Godot.Image imgHeightMap                           ) {
@@ -261,11 +274,14 @@ public enum Sk {
 // since the tiles can have different resolutions to their neighbors,
 // gaps can appear between the tiles, to prevent this,
 // each tile gets a mesh skirt, an extension of the edges downwards to hide the gap
+// this also leads to inconsistent normals across tile edges as only that tile's faces
+// are considered for its normals, to consider the neighboring tile's faces as well adds a lot
+// of code complexity for a barely visual difference so it is not done
 public class MeshContainer {
-    public int  XAmount;
+    public int  XAmount; // vertices along x axis
     public int  ZAmount;
     public int  ID;
-    public bool InUse;
+    public bool InUse;   // currently assigned to a QNode or not
     public Godot.MeshInstance3D      MeshInst; // holds tile and skirt meshes
     public Godot.Collections.Array   MeshDataTile;
     public Godot.Collections.Array[] MeshDataSkirt;
@@ -273,17 +289,21 @@ public class MeshContainer {
     public Godot.ShaderMaterial      MaterialTile;
     public Godot.ShaderMaterial      MaterialSkirt;
     public Godot.Vector3[]   VerticesTile;
-    public Godot.Vector3[][] VerticesSkirt;
+    public Godot.Vector3[][] VerticesSkirt; // four arrays, one for each side
     public Godot.Vector2[]   UVsTile;
     public Godot.Vector2[][] UVsSkirt;
     public Godot.Vector3[]   NormalsTile;
     public Godot.Vector3[][] NormalsSkirt;
     public int[]             TrianglesTile;
     public int[][]           TrianglesSkirt;
-    private const float _skirtLength = 8.0f;
+    private const float _skirtLength = 8.0f; // vertical extension of mesh skirt in meter (not world edge)
     private Godot.Vector2 _v2;
     private Godot.Vector3 _v3;
 
+    // when a MeshContainer gets created, the relevant shaders are prepared and mesh arrays
+    // get initialized
+    // lerpRAmount and lerpGAmount are used to define the color the mesh gets when visualizing it
+    // when the MeshContainer gets released and subsequently reused, its color does not get updated
     public MeshContainer(Godot.Node root, int id, float lerpRAmount, float lerpGAmount) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.MeshContainer);
@@ -294,7 +314,6 @@ public class MeshContainer {
 
         MaterialTile        = new Godot.ShaderMaterial();
         MaterialTile.Shader = Godot.ResourceLoader.Load<Godot.Shader>(XB.ResourcePaths.TerrainShader);
-        MaterialTile.SetShaderParameter("albedoMult", XB.WData.AlbedoMult);
         MaterialTile.SetShaderParameter("tBlock",     XB.Resources.BlockTex);
         MaterialTile.SetShaderParameter("blockStr",   XB.WData.BlockStrength);
         MaterialTile.SetShaderParameter("tNoiseP1",   XB.Resources.NoiseBombing);
@@ -325,7 +344,7 @@ public class MeshContainer {
         float b = XB.Random.RandomInRangeF(0.0f, 1.0f);
         var col = new Godot.Color(r, g, b, 1.0f);
         MaterialTile.SetShaderParameter("albVis",      col);
-        MaterialTile.SetShaderParameter("albVisStr",   XB.WData.AlbVisStr);
+        MaterialTile.SetShaderParameter("albVisStr",   XB.WData.QTreeStrength);
         MaterialTile.SetShaderParameter("blendDepth",  XB.WData.BlendDepth);
         MaterialTile.SetShaderParameter("blendWidth",  XB.WData.BlendWidth);
         MaterialTile.SetShaderParameter("blend12",     XB.WData.Blend12);
@@ -380,6 +399,8 @@ public class MeshContainer {
 #endif 
     }
 
+    // create mesh arrays of the required sizes
+    // fill mesh arrays if they do not changed based on the heightmap (all except vertices and normals)
     public void UseMesh(float xPos, float zPos, float xSize, float zSize,
                         float xWorldSize, float zWorldSize, float res    ) {
 #if XBDEBUG
@@ -490,7 +511,7 @@ public class MeshContainer {
     }
 
     // separate from UseMesh, as the MeshContainer can be assigned but not updated yet
-    // for a few frames (in queue)
+    // for a few frames (waiting in queue)
     public void Use() {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.MeshContainerSampleTerrainNoise);
@@ -515,6 +536,7 @@ public class MeshContainer {
 #endif 
     }
 
+    // helper function to assign triangle indices for mesh skirt
     private void SkirtTriangleIndices(int[] triangles, int amount) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.MeshContainerSampleTerrainNoise);
@@ -538,6 +560,8 @@ public class MeshContainer {
 #endif 
     }
 
+    // iterate thorugh all vertices and assign them correctly, sampling the heightmap
+    // then calculate normals and assign mesh skirt vertices and normals
     public void SampleTerrainNoise(float xPos, float zPos, float xSize,  float zSize,
                                    float worldRes, float res,
                                    float lowestPoint, float highestPoint, 
@@ -650,6 +674,8 @@ public class MeshContainer {
 #endif 
     }
 
+    // adjust vertical position of lower vertices of edge skirt if they are part of the world edge,
+    // also adjust their normals to face exactly outwards, creating a hard edge to the terrain
     private void AdjustWorldEdgeSkirt(XB.Sk direction) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.MeshContainerAdjustWorldEdgeSkirt);
@@ -676,13 +702,16 @@ public class MeshContainer {
 #endif 
     }
 
+    // apply all calculated arrays to the mesh instance
+    // then apply relevant materials to tile and four skirt sides
+    // this step is very slow so should definitely be staggered
     public void ApplyToMesh(bool[] worldEdge) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.MeshContainerApplyToMesh);
 #endif
 
-        MeshDataTile [(int)Godot.Mesh.ArrayType.Vertex] = VerticesTile;
-        MeshDataTile [(int)Godot.Mesh.ArrayType.Normal] = NormalsTile;
+        MeshDataTile[(int)Godot.Mesh.ArrayType.Vertex] = VerticesTile;
+        MeshDataTile[(int)Godot.Mesh.ArrayType.Normal] = NormalsTile;
 
         if (worldEdge[(int)XB.Sk.ZM]) { AdjustWorldEdgeSkirt(XB.Sk.ZM); }
         if (worldEdge[(int)XB.Sk.ZP]) { AdjustWorldEdgeSkirt(XB.Sk.ZP); }
@@ -743,16 +772,18 @@ public class MeshContainer {
 
 // collision for the world is also split into tiles
 // they have a uniform resolution (as opposed to the visible mesh tiles)
-// collision tiles are created at startup for the entire terrain
+// collision tiles are created at terrain generation for the entire terrain
 // then when the heightmap changes they are all updated at once
 // their updates can not be staggered as the player or other objects might potentially fall
 // through the terrain if they are not available there yet
+// to keep performance high, collision tiles have a lower resolution than the mesh tiles
+// this can lead to the player clipping through the ground but the speedup is worth the trade off
 public class CollisionTile {
-    public int   XAmount;
+    public int   XAmount; // vertices in x direction
     public int   ZAmount;
-    public float XPos;  // center x coordinate in meter
+    public float XPos;  // x center coordinate of collision tile in meter
     public float ZPos;
-    public float XSize; // dimensions in meter
+    public float XSize; // x dimension in meter
     public float ZSize;
     public float Res;   // subdivisions per meter
     public Godot.Collections.Array MeshData;
@@ -823,6 +854,9 @@ public class CollisionTile {
     }
 #endif
 
+    // initialize vertices and triangle arrays, normals or uvs are not required as collision
+    // tiles are not visible
+    // triangle array can be filled, as its content is independent of the height of the vertices
     public void InitializeCollisionMesh() {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.CollisionTileInitializeCollisionMesh);
@@ -854,6 +888,8 @@ public class CollisionTile {
 #endif 
     }
 
+    // update the vertices array by sampling the heightmap at the corresponding position
+    // for each vertex
     public void SampleTerrainNoise(float worldRes, float lowestPoint, float highestPoint, 
                                    Godot.Image imgHeightMap                              ) {
 #if XBDEBUG
@@ -908,27 +944,38 @@ public class CollisionTile {
 }
 
 // ManagerTerrain manages the terrain mesh tiles and collision tiles along with the terrain quadtree
-// updates are handled through here and changes queued to be processed over multiple frames
-// as mesh allocation is the longest step in the whole process, 
-// that step has to be spread over multiple frames to avoid lag spikes
+// updates are handled here and changes to the nodes of the quadtree are queued to be processed
+// and assigned over multiple frames to avoid lag spikes
+// mesh allocation is the longest step in the whole process, and a queue is used to spread 
+// allocation across multiple frames
+// the quadtree always has the correct calculated state of which nodes should have their tiles
+// visible and which nodes should have their tiles hidden
+// because tiles can take a few frames to be processed and have their meshes allocated,
+// the state of which tiles should be visible and which are actually visible can be different
+// keeping track of these changes is part of this class as well
 public class ManagerTerrain {
     private static XB.QNode _qRoot;
-    private static int      _nextID      = 0;
-    private static int      _divisions   = 0;
+    private static int      _nextID      = 0;    // used in creation of quadtree
+    private static int      _divisions   = 0;    // divisions of the terrain = depth of quadtree
     private static float    _resolutionM = 0.0f; // highest resolution of visible mesh tiles (/m)
     private static float    _resolutionC = 0.0f; // resolution of collider tiles, uniform throughout
-    private static float    _sizeCTile   = 0.0f; // size of full size collision tiles
-    private static float    _worldXSize  = 0.0f;
+    private static float    _sizeCTile   = 0.0f; // size of full size collision tiles in meter
+    private static float    _worldXSize  = 0.0f; // world size in meter
     private static float    _worldZSize  = 0.0f;
     private static int      _maxVerts    = 65536; // 256*256 vertices per tile (technical maximum)
     private static Godot.Vector2                _qNodeCtr = new Godot.Vector2(0.0f, 0.0f);
-    private static SysCG.List<XB.MeshContainer> _terrainMeshes;
-    private static XB.CollisionTile[,]   _terrainColTiles;
-    private static SysCG.Queue<XB.QNode> _reqQueue;
+    private static SysCG.List<XB.MeshContainer> _terrainMeshes; // variable length
+    private static XB.CollisionTile[,]   _terrainColTiles; // fixed size array of collision tiles
+    private static SysCG.Queue<XB.QNode> _reqQueue;        // requests for MeshContainers go here
     private static XB.QNode              _reqNode;
     private static int                   _queueBudget = 1; // queue processing amount per tick
 
 
+    // calculates the required depth of the quadtree and populates the whole (sparse) tree
+    // then creates and populates the fixed size array of collision tiles
+    // creates the request queue
+    // creates and show the larges tile (root node of quadtree) so that the ground is not
+    // invisible while the "correct" tiles based on distance to the reference are prepared
     public static void InitializeQuadTree(float xSize, float zSize, float resM, float resC,
                                           float sizeCTile, float sizeMTileMin, int divMax,
                                           float lowest, float highest, Godot.Image imgHeightMap,
@@ -1006,7 +1053,10 @@ public class ManagerTerrain {
 #endif 
     }
 
-    // create a sparse quad tree without any mesh data
+    // take a quadtree node and create 4 children with correct parameters,
+    // then recursively repeat until specified amount of divisions is reached
+    // the result of calling this once with a previously created QNode is 
+    // a (sparse) quadtree without any assigned MeshContainers
     private static void DivideQuadNode(XB.QNode parent, int divisions) {
         if (divisions == 0) { return; }
 
@@ -1042,6 +1092,8 @@ public class ManagerTerrain {
 #endif 
     }
 
+    // iterate through all initialized collision tiles and update their geometry
+    // by sampling the heightmap
     public static void UpdateCollisionTiles(float lowestPoint, float highestPoint,
                                             Godot.Image imgHeightMap              ) {
 #if XBDEBUG
@@ -1064,6 +1116,10 @@ public class ManagerTerrain {
 #endif 
     }
 
+    // traverse the tree to find mesh tiles which should be active,
+    // queue requests for a MeshContainer where necessary
+    // process the queue
+    // see if any tiles should and can be replaced
     public static void UpdateQTreeMeshes(ref Godot.Vector2 refPos, float lowestPoint,
                                          float highestPoint, Godot.Image imgHeightMap,
                                          Godot.Node mainRoot, Godot.ImageTexture miniMap) {
@@ -1081,6 +1137,13 @@ public class ManagerTerrain {
 #endif 
     }
 
+    // traverse the tree starting from a given QNode and see if the mesh tile that that 
+    // node is representing should be active or if its childrens mesh tiles should be active instead
+    // recursively travel one layer deeper until either a leaf is hit or the appropriate
+    // resolution is reached
+    // to decide if a tile should be visible,
+    // a reference position is compared to the tile's dimension
+    // if a node is set active and was previously not active, a MeshContainer is requested (queued)
     private static void UpdateQNodeMesh(ref Godot.Vector2 refPos, XB.QNode qNode,
                                         Godot.Node mainRoot                      ) {
 #if XBDEBUG
@@ -1130,6 +1193,10 @@ public class ManagerTerrain {
 #endif 
     }
 
+    // traverse the tree and check whether mesh tiles of nodes that are active but not visible
+    // are ready to be shown
+    // if a parent node should have its tile replaced by the tiles of its child nodes,
+    // then that tile only gets replaced if all child tiles are ready to avoid gaps in the terrain
     private static void QNodeShowReadyMeshes(XB.QNode qNode) {
         if (qNode == null) { return; }
 #if XBDEBUG
@@ -1177,6 +1244,8 @@ public class ManagerTerrain {
 #endif 
     }
 
+    // when a parent node's mesh tile gets loaded in and replaces its children's node's mesh tiles,
+    // those node's MeshContainers and their children's, etc. have to be freed up to be reused again
     private static void RecycleChildMesh(XB.QNode qNode) {
         if (qNode == null) { return; }
         if (qNode.Active)  { return; }
@@ -1195,6 +1264,8 @@ public class ManagerTerrain {
 #endif 
     }
 
+    // when enqueueing a request, first check whether that request has already been made
+    // and is simply waiting to be processed
     private static void QueueRequestMeshUpdate(XB.QNode qNode) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainQueueRequestMeshUpdate);
@@ -1210,6 +1281,7 @@ public class ManagerTerrain {
 #endif 
     }
 
+    // each update tick, a fixed amount of request in the queue can be processed
     // only the assignment of the newly sampled mesh data is limited to processAmount tiles per tick
     // using the queue, other parts are much faster to do and can be done immediately
     private static void QueueRequestProcess(int processAmount, float lowest, float highest,
@@ -1244,6 +1316,7 @@ public class ManagerTerrain {
 #endif 
     }
 
+    // releases a node's MeshContainer if it is not already null
     private static void RecycleMeshContainer(XB.QNode qNode) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainRecycleMeshContainer);
@@ -1258,6 +1331,10 @@ public class ManagerTerrain {
 #endif 
     }
 
+    // see if a MeshContainer is available, if not, create a new MeshContainer
+    // then assign it to the requesting node
+    //NOTE[ALEX]: simply creating the MeshContainer is not performance heavy, but rather
+    //            the creation and especially assignment of the appropriate mesh are
     private static void RequestMeshContainer(XB.QNode qNode, Godot.Node mainRoot) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainRequestMeshContainer);
@@ -1288,6 +1365,9 @@ public class ManagerTerrain {
 #endif 
     }
 
+    // request a MeshContainer for the root node, which has the largest, lowest resolution
+    // mesh tile of all nodes
+    // then prepare the mesh and show it
     private static void ShowLargestTile(XB.QNode qNode, float lowest, float highest,
                                         Godot.Image imgHeightMap, Godot.Node mainRoot,
                                         Godot.ImageTexture miniMap                    ) {
@@ -1311,6 +1391,8 @@ public class ManagerTerrain {
 #endif 
     }
 
+    // deactivate all nodes of the tree recursively and recalculate and show the largest tile
+    // used when the heightmap changes, essentially "starting over"
     public static void ResetQuadTree(float lowest, float highest, Godot.Image imgHeightMap,
                                      Godot.Node mainRoot, Godot.ImageTexture miniMap       ) {
 #if XBDEBUG
@@ -1325,6 +1407,7 @@ public class ManagerTerrain {
 #endif 
     }
 
+    // reset given node, then recursively call on all child nodes until a leaf node is reached
     private static void ResetQNode(XB.QNode qNode) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainResetQNode);
@@ -1349,6 +1432,7 @@ public class ManagerTerrain {
 #endif 
     }
 
+    // update the shader of each MeshContainer that is in use
     public static void UpdateBlockStrength(float multiplier) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainUpdateBlockStrength);
@@ -1365,6 +1449,7 @@ public class ManagerTerrain {
 #endif 
     }
 
+    // update the shader of each MeshContainer that is in use
     public static void UpdateQTreeStrength(float multiplier) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainUpdateQTreeStrength);
@@ -1374,6 +1459,63 @@ public class ManagerTerrain {
             if (_terrainMeshes[i].InUse) {
                 _terrainMeshes[i].SetShaderAttribute("albVisStr", multiplier*XB.WData.QTreeStrength);
             }
+        }
+
+#if XBDEBUG
+        debug.End();
+#endif 
+    }
+
+    // update overlay texture to minimap with quadtree visualization
+    public static void UpdateQTreeTexture(Godot.Image tex, float scaleFactor,
+                                          Godot.Rect2I[] rects               ) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainUpdateQTreeTexture);
+#endif
+
+        tex.Fill(XB.Col.Transp); // clear texture before drawing quadtree tiles
+
+        DrawQNode(_qRoot, tex, scaleFactor, _divisions, rects);
+
+#if XBDEBUG
+        debug.End();
+#endif 
+    }
+
+    // traverse tree recursively to draw outline of all active nodes
+    // scaleFactor adjust meter to pixel ratio
+    private static void DrawQNode(XB.QNode qNode, Godot.Image tex,
+                                  float scaleFactor, int iteration, Godot.Rect2I[] rects) {
+#if XBDEBUG
+        var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainDrawQNode);
+#endif
+
+        if (qNode == null) {
+#if XBDEBUG
+            debug.End();
+#endif 
+            return; 
+        }
+
+        if (qNode.Active) { // shows active tiles which are not necessarily processed yet
+            // texture has 0|0 in top left, in world coordinates, "top left" has 0|0 with negative axes
+            int xCtr = (int)(-qNode.XPos*scaleFactor);
+            int yCtr = (int)(-qNode.ZPos*scaleFactor);
+            int dx   = (int)(qNode.XSize*scaleFactor);
+            int dy   = (int)(qNode.ZSize*scaleFactor);
+            int t    = 1;
+            XB.Utils.UpdateRect2I(xCtr-dx/2,      yCtr-dy/2,      dx, t,  ref rects[0]);
+            XB.Utils.UpdateRect2I(xCtr-dx/2,      yCtr-dy/2+dy-t, dx, t,  ref rects[1]);
+            XB.Utils.UpdateRect2I(xCtr-dx/2,      yCtr-dy/2,      t,  dy, ref rects[2]);
+            XB.Utils.UpdateRect2I(xCtr-dx/2+dx-t, yCtr-dy/2,      t,  dy, ref rects[3]);
+
+            var col = XB.Col.Red.Lerp(XB.Col.Green, (float)iteration/(float)_divisions);
+            for (int i = 0; i < 4; i++) { tex.FillRect(rects[i], col); }
+        } else {
+            DrawQNode(qNode.Children[0], tex, scaleFactor, iteration-1, rects);
+            DrawQNode(qNode.Children[1], tex, scaleFactor, iteration-1, rects);
+            DrawQNode(qNode.Children[2], tex, scaleFactor, iteration-1, rects);
+            DrawQNode(qNode.Children[3], tex, scaleFactor, iteration-1, rects);
         }
 
 #if XBDEBUG
@@ -1435,40 +1577,6 @@ public class ManagerTerrain {
             PrintQNodeMeshContainer(qNode.Children[1], ref s);
             PrintQNodeMeshContainer(qNode.Children[2], ref s);
             PrintQNodeMeshContainer(qNode.Children[3], ref s);
-        }
-    }
-
-    public static void UpdateQTreeTexture(Godot.Image tex, float scaleFactor,
-                                          Godot.Rect2I[] rects               ) {
-        tex.Fill(XB.Col.Transp); // clear texture before drawing quadtree tiles
-
-        DrawQNode(_qRoot, tex, scaleFactor, _divisions, rects);
-    }
-
-    // scaleFactor adjust meter to pixel ratio
-    private static void DrawQNode(XB.QNode qNode, Godot.Image tex,
-                                  float scaleFactor, int iteration, Godot.Rect2I[] rects) {
-        if (qNode == null) { return; }
-
-        if (qNode.Active) { // shows active tiles which are not necessarily processed yet
-            // texture has 0|0 in top left, in world coordinates, "top left" has 0|0 with negative axes
-            int xCtr = (int)(-qNode.XPos*scaleFactor);
-            int yCtr = (int)(-qNode.ZPos*scaleFactor);
-            int dx   = (int)(qNode.XSize*scaleFactor);
-            int dy   = (int)(qNode.ZSize*scaleFactor);
-            int t    = 1;
-            XB.Utils.UpdateRect2I(xCtr-dx/2,      yCtr-dy/2,      dx, t,  ref rects[0]);
-            XB.Utils.UpdateRect2I(xCtr-dx/2,      yCtr-dy/2+dy-t, dx, t,  ref rects[1]);
-            XB.Utils.UpdateRect2I(xCtr-dx/2,      yCtr-dy/2,      t,  dy, ref rects[2]);
-            XB.Utils.UpdateRect2I(xCtr-dx/2+dx-t, yCtr-dy/2,      t,  dy, ref rects[3]);
-
-            var col = XB.Col.Red.Lerp(XB.Col.Green, (float)iteration/(float)_divisions);
-            for (int i = 0; i < 4; i++) { tex.FillRect(rects[i], col); }
-        } else {
-            DrawQNode(qNode.Children[0], tex, scaleFactor, iteration-1, rects);
-            DrawQNode(qNode.Children[1], tex, scaleFactor, iteration-1, rects);
-            DrawQNode(qNode.Children[2], tex, scaleFactor, iteration-1, rects);
-            DrawQNode(qNode.Children[3], tex, scaleFactor, iteration-1, rects);
         }
     }
 #endif

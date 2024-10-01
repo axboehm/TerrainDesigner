@@ -1,5 +1,6 @@
 #define XBDEBUG
 namespace XB { // namespace open
+
 public enum AirSt {
     Grounded,   // player on the ground
     Rising,     // player going up

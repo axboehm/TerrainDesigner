@@ -1,6 +1,7 @@
 #define XBDEBUG
-namespace XB { // namespace open
 using SysCG = System.Collections.Generic;
+namespace XB { // namespace open
+
 // Sphere represents one sphere that the player can place
 // all data retaining to the sphere and the cone it represents are dealt with here
 // spheres get created on initialization and never deleted but re-used

@@ -30,7 +30,6 @@ public struct Constants {
     public const string HeightFormat = "F2"; // for diplay of low and high points of terrain
 }
 
-//NOTE[ALEX]: struct name intentionally kept short
 public struct Col {
     public static Godot.Color Red     = new Godot.Color(1.0f, 0.0f, 0.0f, 1.0f);
     public static Godot.Color Green   = new Godot.Color(0.0f, 1.0f, 0.0f, 1.0f);
@@ -220,10 +219,10 @@ public struct Resources {
     }
 }
 
-// WData holds variables and values for world data, so everything related to the heightmap
-// and terrain generation and terrain materials
+// WData holds variables and values for world data, so everything related to the heightmap,
+// terrain generation and terrain materials
 // terrain/heightmap related functions are also included
-// there can only be one terrain in the application, so all variables can be static
+// there can only be one terrain in the application, so all variables are static
 public class WData {
     public static Godot.Image    ImgHeightMap;
     public static Godot.Image    ImgPointiness;
@@ -232,7 +231,7 @@ public class WData {
     public static float          HighestPoint = +1.0f;    // highest y coordinate in world
     public static float          LowHighExtra = 1.0f;     // buffer amount for high/low updating
     public static float          KillPlane    = -4096.0f; // fallback for the player falling off
-    public static float          SphereEdgeLength    = 64.0f;
+    public static float          SphereEdgeLength    = 64.0f; // how far the cone extends
     public static int            DamSegmentDivisions = 16;
     public static Godot.Vector2  WorldSize;                  // world dimensions in meters
     public static Godot.Vector2I WorldVerts;
@@ -242,8 +241,9 @@ public class WData {
     public static float          ColliderSizeMult    = 3.0f; // multiplied with TerrainTileMinimum
     public static int            TerrainDivisionsMax = 6;
     public static float[,]       TerrainHeights;        // height value for each vertex
-    public static float[,]       TerrainHeightsMod;     // stores calculated values to add to terrain
+    public static float[,]       TerrainHeightsMod;     // stores intermediate calculations
 
+    // terrain generation variables, see Terrain.FBM for more detail
     public static float GenHeightMin = 0.0f;
     public static float GenHeightMax = 100.0f;
     public static float GenHeightDef = 18.0f;
@@ -269,25 +269,23 @@ public class WData {
     public static float GenExpMax    = 16.0f;
     public static float GenExpDef    = 5.21f;
 
-    public static float BlockStrength = 0.8f; // for visualizing grid
+    public static float BlockStrength = 0.8f; // for visualizing meter grid
     public static float QTreeStrength = 0.6f; // for visualizing quad tree tiles
-    public static float AlbedoMult    = 0.6f;
-    public static float Mat1UVScale   = 1.0f/8.0f;          // empirical value
+    public static float Mat1UVScale   = 1.0f/8.0f;          // scale each material's uvs
     public static float Mat2UVScale   = 1.0f/8.0f;
     public static float Mat3UVScale   = 1.0f/8.0f;
     public static float Mat4UVScale   = 1.0f/8.0f;
-    public static float NoisePScale   = 0.1f;               // perlin noise for bombing
+    public static float NoisePScale   = 0.1f;               // scale of perlin noise for bombing
     public static float BlockUVScale  = 1.0f/(2.0f*10.0f);  // block texture has 2x2 large squares
                                                             // with 10 subdivisions each per tile
-    public static float BlendDepth    = 0.2f;               // height blending edge
+    public static float BlendDepth    = 0.2f;    // height blending edge
     public static float BlendWidth    = 0.25f;
-    public static float Blend12       = 0.75f;
+    public static float Blend12       = 0.75f;   // height value for transition of materials
     public static float Blend23       = 0.38f;
     public static float Blend34       = 0.08f;
-    public static float AlbVisStr     = 0.5f;
-    public static float PointinessStr = 0.11f;
+    public static float PointinessStr = 0.11f;   // how much pointiness should show up
     public static float PointinessPow = 3.0f;
-    public static float BlendColStr   = 0.2f;
+    public static float BlendColStr   = 0.2f;    // strength of  additional color variety
     public static float BlendColScale = 4.0f;
     public static float AxisBlSharpen = 0.5f;    // triplanar blend sharpen
     public static float AxisBlWidth   = 0.50f;   // triplanar blend width (lower values -> wider blend)
@@ -295,6 +293,8 @@ public class WData {
     //public static float FogDistance   = 4000.0f; // terrain shader depth albedo blend far distance (in m)
 
 
+    // takes two values that are exponents of 2 to define the size of the world terrain,
+    // then initializes variable and texture to the corresponding sizes
     public static void InitializeTerrainMesh(int expX, int expZ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.WorldDataInitializeTerrainMesh);
@@ -328,20 +328,21 @@ public class WData {
 #endif 
     }
 
-    // generate a random terrain using Fractal Brownian Motion and the default generation parameters
+    // generate a random terrain using Fractal Brownian Motion
     // then scales the world to go from 0 to the default generation height
-    public static void GenerateRandomTerrain() {
+    public static void GenerateRandomTerrain(float genScale, float genOffX, float genOffZ,
+                                             int genOct, float genPers, float genLac,
+                                             float genExp, float genHeight                ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.WorldDataGenerateRandomTerrain);
 #endif
 
         XB.Terrain.FBM(TerrainHeights, WorldVerts.X, WorldVerts.Y, WorldSize.X, WorldSize.Y,
-                       GenScaleDef, GenOffXDef, GenOffZDef,
-                       GenOctDef, GenPersDef, GenLacDef, GenExpDef                          );
+                       genScale, genOffX, genOffZ, genOct, genPers, genLac, genExp          );
         XB.Terrain.FindLowestHighest(TerrainHeights, WorldVerts.X, WorldVerts.Y,
                                      ref LowestPoint, ref HighestPoint          );
         XB.Terrain.HeightScale(TerrainHeights, WorldVerts.X, WorldVerts.Y,
-                               GenHeightDef, ref LowestPoint, ref HighestPoint);
+                               genHeight, ref LowestPoint, ref HighestPoint);
 
         // Godot.GD.Print("Generate Terrain: LP: " + LowestPoint + ", HP: " + HighestPoint);
 
@@ -353,7 +354,7 @@ public class WData {
     // resamples the heightmap from the generated TerrainHeights array and assigns it to minimap
     // recalculates pointiness (for appearance only)
     // if reInitialize is true, the quadtree holding the terrain tiles is also created,
-    // otherwise merely reset to have all tiles recalculated using the assigned heightmap
+    // otherwise the quadtree is reset to have all tiles recalculated using the updated heightmap
     // then the terrain collision is updated
     public static void UpdateTerrain(bool reInitialize, XB.HUD hud, XB.Menu menu,
                                      Godot.Node mainRoot                         ) {
@@ -386,15 +387,23 @@ public class WData {
 #endif 
     }
 
-    // calculated two heightmaps representing truncated cones using signed distance field math
+    // calculates two heightmaps representing truncated cones using signed distance field math,
     // the two cones have the center of their truncated plateaus (or their tips if not truncated)
-    // in the same position, then one gets larger in negative y direction, and the other is mirrored
-    // vertically
-    // after each the difference between the cone heightmaps and the terrain heightmap are calculated
+    // in the same position, 
+    // one gets larger in negative y direction, and the other is mirrored vertically
+    //
+    // \ /   inverted cone -> heightmap A
+    //  X
+    // / \   "regular" cone -> heightmap B
+    //
+    // the difference between the cone heightmaps (A and B) and the terrain heightmap are
+    // calculated using Min and Max functions
     // the result is that any part of the cone that was above the terrain will create a 
-    // cone shaped platform (add to the terrain) whereas if the inverted cone was underground
-    // (also partially), those parts are cut into the terrain
+    // cone shaped platform (add to the terrain) (heightmap B)
+    // whereas if the inverted cone was below the terrain
+    // (also partially), those parts are cut into the terrain (heightmap A)
     // takes angle in degrees
+    //NOTE[ALEX]: spheres are applied one at a time, the order of their application matters
     public static void ApplySphereCone(Godot.Vector3 pos, float radius, float angle) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.WorldDataApplySphereCone);
