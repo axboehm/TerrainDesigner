@@ -1,7 +1,8 @@
 #define XBDEBUG
 namespace XB { // namespace opegn
 
-// Menu takes over as the main controlling function when the game gets paused (from PController)
+// pause menu with multiple tabs that perform different tasks
+// also has the different menu popups and the start screen
 public partial class Menu : Godot.Control {
     [Godot.Export] private Godot.Label        _lbTab;
     [Godot.Export] private Godot.Label        _lbMsg;

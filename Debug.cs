@@ -3,7 +3,8 @@ namespace XB { // namespace open
 
 // DebugHUD is an optional hud that shows the times used by each function that is being monitored
 // monitoring has to be set up in each function manually but will be shown here automatically
-// also visible is the currently used blue noise texture and the player coordinates
+// also visible is the currently used blue noise texture, the calculated pointiness texture
+// and the player coordinates
 // used primarily for debugging and performance evaluation
 public partial class DebugHUD : Godot.Control {
     private bool _visible    = false;
@@ -122,7 +123,6 @@ public partial class DebugHUD : Godot.Control {
         AddChild(_lbPlayerPos);
         _lbPlayerPos.MouseFilter = Godot.Control.MouseFilterEnum.Ignore;
 
-        ProcessMode = ProcessModeEnum.Always;
         _visible    = false;
         Hide();
     }
@@ -201,7 +201,7 @@ public partial class DebugHUD : Godot.Control {
     }
 
     public void Debug3() {
-        Godot.GD.Print("Debug3");
+        Godot.GD.Print("Debug3 - Print Quadtree");
         XB.ManagerTerrain.PrintQTreeExternal();
     }
 
@@ -224,24 +224,14 @@ public partial class DebugHUD : Godot.Control {
     }
 }
 
-// reference for adding a timed block to functions
-// place the first three lines at the beginning of the function block to be timed
-// and the last three at the end (before any return statements!)
-// if End is not called, the block will not be considered by the profiler
-#if XBDEBUG
-        var debug = new XB.DebugTimedBlock(XB.D.ClassFunction);
-#endif
-
-
-#if XBDEBUG
-        debug.End();
-#endif 
-//
+// to add a debug block, place the first three lines at the beginning of the function block
+// to be timed and the last three at the end (before any return statements!)
+// if End() is not called, the block will not be considered by the profiler
 
 // every function to be timed has to be added to this enum, the name shown in DebugHUD uses 
 // the enum name
 // naming scheme: "ClassFunction"
-//NOTE[ALEX]: current implementation does not work with parallel for loops
+//NOTE[ALEX]: current implementation does not work with parallel for loops, time those manually
 public enum D {
     Uninit,
     CollisionTile,
@@ -479,7 +469,7 @@ public class DebugProfiling {
 
     // processing happens after each frame is done
     // the duration of this function does not impact the measured times,
-    // speed is not as critical with this function
+    // performance is not as critical with this function as it is only used in debug builds
     public static void ProcessCollectedTimes(double delta) {
         DebugStats[DebugPos].FrameTime = delta;
 
@@ -583,7 +573,7 @@ public class DebugProfiling {
 
 // an object of this gets created every time a function needs to be timed
 // a lot of these are allocated each frame and not recycled, this has a lot of overhead
-// creating and processing these happens outside of the profiling of other functions,
+// however, creating and processing these happens outside of the profiling of other functions,
 // so the additional overhead is noticeable by the user but not shown in the times in DebugHUD
 public struct DebugTimedBlock {
     private XB.D   _d         = XB.D.Uninit;

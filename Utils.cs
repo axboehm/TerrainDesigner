@@ -5,6 +5,8 @@ namespace XB { // namespace open
 // also included are functions used when drawing to textures using Godot internal rectangles,
 // references are used for the results of those functions to again reduce allocations as they
 // are potentially called multiple times every frame
+//NOTE[ALEX]: custom implementations for basic functions are added to ensure consistency and
+//            control when calling these, it also allows for profiling the amounts of calls
 public class Utils {
     public  static int MaxRectSize = 5; // maximum amount of Rect2I used in functions in Utils
     private static Godot.Vector3  _v0 = new Godot.Vector3(0.0f, 0.0f, 0.0f);

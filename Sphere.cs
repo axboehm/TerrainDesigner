@@ -3,23 +3,23 @@ using SysCG = System.Collections.Generic;
 namespace XB { // namespace open
 
 // Sphere represents one sphere that the player can place
-// all data retaining to the sphere and the cone it represents are dealt with here
+// all data retaining to the sphere, its mesh and the cone it represents are dealt with here
 // spheres get created on initialization and never deleted but re-used
 public partial class Sphere : Godot.CharacterBody3D {
     [Godot.Export] private Godot.NodePath         _sphereMeshNode;
                    private Godot.MeshInstance3D   _meshInstSphere;
     [Godot.Export] private Godot.NodePath         _sphereColliderNode;
                    private Godot.CollisionShape3D _colSphere;
-                   private Godot.ShaderMaterial   _shellMat;
-                   private Godot.ShaderMaterial   _screenMat;
-                   private Godot.ShaderMaterial   _scrGhostMat;
+                   private Godot.ShaderMaterial   _shellMat;    // main shell material
+                   private Godot.ShaderMaterial   _screenMat;   // screen material (number display)
+                   private Godot.ShaderMaterial   _scrGhostMat; // always in front pass
                    private Godot.MeshInstance3D   _meshInstCone;
     [Godot.Export] private Godot.AnimationPlayer  _animPl;
-                   private Godot.Image            _imgScrolling;
+                   private Godot.Image            _imgScrolling; // the ID number texture on screen
                    private Godot.ImageTexture     _texScrolling;
 
     private const int _repeats    = 8;   // how often the id gets repeated in the texture
-    private const int _dimScrollX = 128; //NOTE[ALEX]: based on textures created for sphere
+    private const int _dimScrollX = 128; //NOTE[ALEX]: based on actual texture created for sphere
     private const int _dimScrollY = 16;
     private const int _dimThick   = 1;   // thickness of digits
     private const int _dimDigitX  = _dimScrollY/2 - 2*_dimThick;
@@ -27,28 +27,28 @@ public partial class Sphere : Godot.CharacterBody3D {
 
     public        int   ID           = 0;
     public        bool  Active       = false;
-    public        float Highlighted  = 0.0f;
+    public        float Highlighted  = 0.0f;   // multiplier for highlight color in material
     public        bool  Linked       = false;
     public        bool  LinkedTo     = false;
-    public        float Radius       = 0.0f;
+    public        float Radius       = 0.0f;   // radius of cone tip
     private const float _radiusMin   = 0.001f;
     private const float _radiusMult  = 40.0f;  // empirical
     private const float _radiusReset = 1.0f;
-    public        float Angle        = 0.0f;   // in degrees
+    public        float Angle        = 0.0f;   // angle of cone sides in degrees
     private const float _angleMult   = 600.0f; // empirical
     private const float _angleReset  = 60.0f;
     private const float _angleMin    = 1.0f;
     private const float _angleMax    = 89.0f;
 
     public  XB.SphereTexSt        TexSt;
-    private SysCG.List<XB.Sphere> _linkedSpheres;
+    private SysCG.List<XB.Sphere> _linkedSpheres; // reference to all spheres that are linked to
 
-    private Godot.Color _sphereColor    = new Godot.Color(0.0f, 0.0f, 0.0f, 1.0f); // modulating
+    private Godot.Color _sphereColor    = new Godot.Color(0.0f, 0.0f, 0.0f, 1.0f); // modulation
     private const float _sphEmitStrDef  = 2.1f;
     private const float _sphEmitStrLink = 5.8f;
     private       float _sphEmitStrTar  = _sphEmitStrDef; // lerp target
     private       float _sphEmitStr     = _sphEmitStrDef; // current actual emission strength
-    private const float _sphScrSpeed    = 0.018f;
+    private const float _sphScrSpeed    = 0.018f; // scroll speed of screen texture
     private       float _hlMult         = 0.0f;
     private const float _hlSm           = 12.0f;
     private const float _fresnelPower   = 2.0f;
@@ -83,7 +83,9 @@ public partial class Sphere : Godot.CharacterBody3D {
     private const int               _circleSteps = 36; // subdivisions for the cone circle
 
 
-    // create screen texture with id, set up cone geometry arrays, initialize sphere variables
+    // initialize sphere variables
+    // create cone geometry arrays and fill uvs and triangle indices as they will not change
+    // create screen texture with ID and set up materials
     public void InitializeSphere(int id, ref Godot.Rect2I[] rects, ref int rSize) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.SphereInitializeSphere);
@@ -234,7 +236,7 @@ public partial class Sphere : Godot.CharacterBody3D {
 #endif 
     }
 
-    // updates sphere materials to represent highlighted and linked state
+    // updates sphere's materials to represent highlighted and linked state
     public void UpdateSphere(float dt) {
         if (!Active) { return; }
 
@@ -330,6 +332,8 @@ public partial class Sphere : Godot.CharacterBody3D {
 #endif 
     }
 
+    // link this sphere with another one,
+    // play expand animation if this sphere was not linked before
     public void LinkSphere(int idLinkFrom) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.SphereLinkSphere);
@@ -347,6 +351,10 @@ public partial class Sphere : Godot.CharacterBody3D {
 #endif 
     }
 
+    // UnlinkSphere gets called from another sphere that wants to unlink from this sphere
+    // unlink this sphere from a sphere it was linked with
+    // play contract animation if this sphere was linked before and is now not linked anymore
+    // updates hud texture
     public void UnlinkSphere(XB.Sphere sphereUnlinkFrom, XB.HUD hud) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.SphereUnlinkSphere);
@@ -366,6 +374,10 @@ public partial class Sphere : Godot.CharacterBody3D {
 #endif 
     }
 
+    // unlink this sphere from all spheres it was linked with
+    // calls UnlinkSphere on all spheres that this sphere is linked with to unlink from them
+    // play contract animation
+    // updates hud's texture
     public void UnlinkFromAllSpheres(XB.HUD hud) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.SphereUnlinkFromAllSpheres);
@@ -387,6 +399,8 @@ public partial class Sphere : Godot.CharacterBody3D {
     }
 
     // remove sphere from world (does not remove from Manager Spheres array)
+    // prepares animation state for next time this sphere gets placed
+    // unlinks this sphere and updates hud's texture
     public void RemoveSphere(XB.HUD hud) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.SphereRemoveSphere);
@@ -417,6 +431,10 @@ public partial class Sphere : Godot.CharacterBody3D {
     // all parameters are only read from
     //NOTE[ALEX]: sphere movement gets slightly off when the player is moving into the terrain's
     //            edge aggressively, this limitation is acceptable for now
+    //            due to camera perspective, the player's "grip" point of the sphere will shift
+    //            along with the player's movement, after some movement, the sphere's "grip" can
+    //            be "lost", since this happens only after some time and avoiding this problem
+    //            would make this code less easy to read, this compromise is acceptable
     public void MoveSphere(ref Godot.Transform3D camTrans, ref Godot.Transform3D camTransPrev,
                            ref Godot.PhysicsDirectSpaceState3D spaceState,
                            ref Godot.Vector3 playerMovement, float dt                         ) {
@@ -481,6 +499,8 @@ public partial class Sphere : Godot.CharacterBody3D {
 #endif 
     }
 
+    // adjust radius based on amount given by mouse movement
+    // updates relevant cone and dam segment geometry
     public void ChangeSphereRadius(float amount) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.SphereChangeSphereRadius);
@@ -496,6 +516,8 @@ public partial class Sphere : Godot.CharacterBody3D {
 #endif 
     }
 
+    // adjust angle based on amount given by mouse movement
+    // updates relevant cone and dam segment geometry
     public void ChangeSphereAngle(float amount) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.SphereChangeSphereAngle);
@@ -516,7 +538,7 @@ public partial class Sphere : Godot.CharacterBody3D {
     // 0 is the center of the top of the cone,
     // n is equal to the number of divisions along the circle of the cone
     // the mesh then has 3 triangles from the center going outwards for each division segment
-    // so A, C, D are in one division segment and B, E, F are in another, etc.
+    // so A, C and D are in one division segment and B, E and F are in another, etc.
     //
     //    / |     ..    |
     //      n|n+n+1 -- 2n+n+2   // double up vertices on seam
@@ -527,8 +549,10 @@ public partial class Sphere : Godot.CharacterBody3D {
     //   \- 3|n+3+1 -- 2n+3+2
     //    \ |     ..    |
     //
-    // at 0/360 deg the vertex gets doubled up to allow for continuous UVs
-    //
+    // at 0/360 deg the vertices gets doubled up to allow for continuous UVs
+    //NOTE[ALEX]: the center vertex (0) does not get doubled up, so technically UVs are not 
+    //            continuous in y direction there, since the shader does not have any horizontal
+    //            movement at the platform part, that is not a problem
     private void UpdateConeMesh() {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.SphereUpdateConeMesh);

@@ -1,6 +1,7 @@
 #define XBDEBUG
 namespace XB { // namespace open
 
+// each input has one InputAction
 public class InputAction {
     public string           Name;
     public string           Description;
@@ -17,6 +18,7 @@ public class InputAction {
         Event       = iEvent;
     }
 
+    // key names in Godot are very long for mouse buttons, so abbreviations are used instead
     public void UpdateKey(string key) {
         switch (key) {
             case "Left Mouse Button":   { Key = "LMB";        break; }
@@ -60,9 +62,8 @@ public enum KeyID {
     ZoomOut,
 }
 
-//NOTE[ALEX]: only one Input exists, that persists throughout the running of the game
-//            when the game or a level is initialized, the input node is attached to the root
-//            when the scene gets changed, it gets de-attached but not deleted
+// Input is responsible for collecting and storing each tick's player inputs
+// the available inputs are based on a standard controller layout with an additional zoom variable
 public partial class Input : Godot.Node {
     public const int Amount = 26;   // number of total input slots
 
@@ -117,7 +118,7 @@ public partial class Input : Godot.Node {
             "ZoomIn",
             "ZoomOut",
         };
-    public string[] InputDescriptions = new string[Amount] {
+    public string[] InputDescriptions = new string[Amount] { // keys for translation dictionary
             "INP_START",
             "INP_SELECT",
             "INP_LUP",
@@ -221,6 +222,7 @@ public partial class Input : Godot.Node {
 #endif 
     }
 
+    // load default key bindings
     public void DefaultInputActions() {
         for (int i = 0; i < Amount; i++ ) {
             string name = InputNames[i];
@@ -356,6 +358,8 @@ public partial class Input : Godot.Node {
     }
 #endif
 
+    // resets all input variables
+    // useful to prevent "sticky" inputs that persist after their input has been used once
     public void ConsumeAllInputs() {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.InputConsumeAllInputs);

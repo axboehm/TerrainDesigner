@@ -1,6 +1,7 @@
 #define XBDEBUG
 namespace XB { // namespace open
 
+// player's air state, used for deciding what to do with jump input and to control animations
 public enum AirSt {
     Grounded,   // player on the ground
     Rising,     // player going up
@@ -8,6 +9,7 @@ public enum AirSt {
     Floating,   // player floating in place
 }
 
+// player's jump state, used for deciding what to do with jump input and to control animations
 public enum JumpSt {
     Landed,     // player just landed
     OnGround,   // player has not jumped
@@ -17,15 +19,14 @@ public enum JumpSt {
     TwoJumpP,   // player jumped twice and is in process (in air)
 }
 
+// used for movement speed and animations
 public enum MoveSt {
     Walk,
     Run,
 }
 
-// PController is responsible for controlling the player character and camera,
-// as it is called every frame, various other updates are also called from here
-// pulling all updates together like this makes it obvious in which order they are processed
-// and allows for all the non engine code to be timed together
+// PController is responsible for controlling the player character, camera, materials and animations
+// player inputs while not in the menu are processed along with sphere interactions
 public partial class PController : Godot.CharacterBody3D {
     [Godot.Export] private Godot.NodePath       _cameraNode;
                    private Godot.Camera3D       _cam;                 // camera object
@@ -51,12 +52,12 @@ public partial class PController : Godot.CharacterBody3D {
                    private const float          _colSm      = 14.0f;
                    private Godot.Color          _colCurrent = new Godot.Color(1.0f, 1.0f, 1.0f, 1.0f);
 
-    public        bool          ThirdP            = true;
+    public        bool          ThirdP            = true;  // in third person or first person view
     private       bool          _canShoot         = false;
     private       bool          _stickyDrag       = false; // for when drag modifying spheres
     private       int           _stickyID         = -1;
     private const float         _respawnOff       = 0.1f;  // distance to ground when respawning
-    private const float         _sphereSpawnDist  = 6.0f;  // distance to newly placed sphere in meter
+    private const float         _sphereSpawnDist  = 6.0f;  // distance to newly placed sphere in meters
     private       bool          _spawn            = false; // spawn player delayed for raycast to work
     private       Godot.Vector2 _spawnPos         = new Godot.Vector2(0.0f, 0.0f);
     private       int           _spawnAttempts    = 0;
@@ -68,8 +69,8 @@ public partial class PController : Godot.CharacterBody3D {
 
     private Godot.Vector2 _mouse = new Godot.Vector2(0.0f, 0.0f); // mouse motion this tick
 
-    private       XB.AirSt  _plA;               // player's air state
-    private       XB.JumpSt _plJ;               // player's jump state
+    private       XB.AirSt  _plA;
+    private       XB.JumpSt _plJ;
     public        bool      PlAiming  = false;  // is the player aiming
     private       bool      _plMoved  = false;  // player moved this frame
     private       float     _plYV     = 0.0f;   // player's velocity in y direction
@@ -131,12 +132,12 @@ public partial class PController : Godot.CharacterBody3D {
     private Godot.CameraAttributesPhysical _cAP;
     private XB.Sphere _sphere;
 
+    // initialize variables and references, then fill footstep audio array
     public void InitializePController(XB.Settings sett) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.PControllerInitializePController);
 #endif
 
-        ProcessMode    = ProcessModeEnum.Always;
         CollisionMask  = XB.LayerMasks.PlayerMask;
         CollisionLayer = XB.LayerMasks.PlayerLayer;
 
@@ -210,8 +211,8 @@ public partial class PController : Godot.CharacterBody3D {
 #endif 
     }
 
-    // get input using godot's system, used for mouse movement input, 
-    // general input is handled at beginning of _PhysicsProcess below
+    // get input using godot's input system, used for mouse movement input, 
+    // general input is handled in MainLoop
     public void Input(Godot.InputEvent @event, XB.Settings sett) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.PControllerInput);
@@ -841,6 +842,7 @@ public partial class PController : Godot.CharacterBody3D {
 #endif 
     }
 
+    // prepare spawning of player at given x and z coordinates
     //NOTE[ALEX]: if a raycast happens in the same frame that a mesh gets assigned,
     //            then that mesh will not be hit, 
     //            to avoid this, SpawnPlayer is called one frame delayed
@@ -858,6 +860,7 @@ public partial class PController : Godot.CharacterBody3D {
 #endif 
     }
 
+    // attempt to spawn the player at the previously prepared coordinates
     private void SpawnPlayerDelayed(ref Godot.Vector2 spawnPos, float respawnOff,
                                     ref Godot.PhysicsDirectSpaceState3D spaceSt,
                                     ref Godot.Collections.Dictionary resultRC, ref bool spawn,
@@ -897,6 +900,7 @@ public partial class PController : Godot.CharacterBody3D {
 #endif 
     }
 
+    // immediately place the player at given xyz coordinates without any other checks performed
     private void PlacePlayer(Godot.Vector3 pos) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.PControllerPlacePlayer);
