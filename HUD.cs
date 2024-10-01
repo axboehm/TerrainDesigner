@@ -97,6 +97,7 @@ public partial class HUD : Godot.Control {
     private const int          _dimMMSp = 6;
     private const float        _playerTriWidth  = 6.0f;
     private const float        _playerTriHeight = 10.0f;
+    private const float        _playerOutlThick = 1.5f;
     private const float        _sphereCirRadius = 2.0f;
     private const int          _gradLbFontSize  = 16;
     private const int          _gradLbOutlSize  = 2;
@@ -275,6 +276,7 @@ public partial class HUD : Godot.Control {
         _matMiniMap.SetShaderParameter("squareRatio", (float)_dimMMY/(float)_dimMMX);
         _matMiniMap.SetShaderParameter("halfWidth",   (_playerTriWidth/_dimMMX)/2.0f);
         _matMiniMap.SetShaderParameter("halfHeight",  (_playerTriHeight/_dimMMY)/2.0f);
+        _matMiniMap.SetShaderParameter("outlThick",   (_playerOutlThick/_dimMMY));
         _matMiniMap.SetShaderParameter("spRadius",    (_sphereCirRadius/_dimMMY));
         _matMiniMap.SetShaderParameter("alphaMult",   _miniMapAlpha);
         _spherePositions = new Godot.Vector2[XB.ManagerSphere.MaxSphereAmount];

@@ -9,6 +9,7 @@ uniform sampler2D heightMapT : source_color, repeat_disable, filter_nearest;
 
 uniform vec4 plColor     : source_color;
 uniform vec4 plColorLink : source_color;
+uniform vec4 plColorOutl : source_color = vec4(0.0, 0.0, 0.0, 1.0);
 
 uniform float plPosX     = 0.5; // as relative of heightmap texture (ends up halfway up the triangle)
 uniform float plPosZ     = 0.5;
@@ -17,6 +18,7 @@ uniform float plDirX     = 0.0; // positive goes right in texture
 uniform float plDirZ     = 1.0; // positive goes down in texture
 uniform float halfWidth  = 0.04;
 uniform float halfHeight = 0.06;
+uniform float outlThick  = 0.01;
 varying vec2 tri0; // tip of triangle
 varying vec2 tri1; // bottom left of triangle
 varying vec2 tri2; // bottom right of triangle
@@ -65,8 +67,10 @@ void vertex() {
 void fragment() {
     vec4 color = texture(heightMapT, UV).rrra;
 
-    float distPl = sdfTriangle(UV, tri0, tri1, tri2);
-    float maskPl = step(distPl, 0.0);
+    float distPl     = sdfTriangle(UV, tri0, tri1, tri2);
+    float maskPl     = step(distPl, 0.0);
+    float maskPlOut  = step(distPl, outlThick);
+          maskPlOut -= maskPl;
 
     float time         = TIME/2.0;
     float pulse        = sin(time*3.14159265359 +3.14159265359/2.0);
@@ -88,7 +92,8 @@ void fragment() {
     }
 
     vec4 colorPlayer = mix(plColor, plColorLink, linking);
-    color = mix(color, colorPlayer, maskPl);
+    color    = mix(color, colorPlayer, maskPl);
+    color    = mix(color, plColorOutl, maskPlOut);
     color.a *= alphaMult;
 
     COLOR = color;
