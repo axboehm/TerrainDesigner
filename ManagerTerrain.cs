@@ -529,7 +529,11 @@ public class MeshContainer {
         var debug = new XB.DebugTimedBlock(XB.D.MeshContainerSampleTerrainNoise);
 #endif
 
+#if XBVISUALIZECOLLIDERS
+        MeshInst.Hide();
+#else
         MeshInst.Show();
+#endif 
 
 #if XBDEBUG
         debug.End();

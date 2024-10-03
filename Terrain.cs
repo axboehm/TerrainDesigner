@@ -503,6 +503,7 @@ public class Terrain {
 #endif
 
         float scale = highest - lowest;
+        if (scale == 0.0f) { scale = 1.0f; } // avoid division by 0 if terrain is absolutely flat
         var height = new Godot.Color(0.0f, 0.0f, 0.0f, 1.0f);
 
         for (int i = 0; i < heightMap.GetWidth(); i++) {

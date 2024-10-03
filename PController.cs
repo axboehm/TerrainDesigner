@@ -339,7 +339,7 @@ public partial class PController : Godot.CharacterBody3D {
         //NOTE[ALEX]: PlacePlayer should rarely if ever be called, so the new allocations are acceptable
         if        (contr.GlobalPosition.Y < XB.WData.KillPlane || 
                    contr.GlobalPosition.Y < (XB.WData.LowestPoint - XB.WData.LowHighExtra)) {
-            // Godot.GD.Print(">> out of bounds high/low");
+            // Godot.GD.Print(">> out of bounds Y low");
             PlacePlayer(new Godot.Vector3(contr.GlobalPosition.X, 
                                           XB.WData.HighestPoint + XB.WData.LowHighExtra,
                                           contr.GlobalPosition.Z                        ));

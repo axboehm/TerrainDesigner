@@ -24,7 +24,8 @@ public class PlayerState {
 #endif
 }
 
-// MainLoop is the first non engine code that runs
+// MainLoop is the first non engine code that runs and the entry point for understanding
+// the application
 // initialization of the application and all managers and object 
 // that remain over the lifetime of the app
 // after that, initial creation of terrain
