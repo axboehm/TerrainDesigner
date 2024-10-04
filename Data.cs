@@ -129,7 +129,7 @@ public struct ResourcePaths {
     public static string LinkingShader    = "res://code/shaders/linkingOverlay.gdshader";
 }
 
-// holds loaded resources for shaders like textures
+// holds loaded resources (textures) for shaders
 public struct Resources {
     public static Godot.Texture SpShellCA;
     public static Godot.Texture SpShellRM;
@@ -294,7 +294,7 @@ public class WData {
 
 
     // takes two values that are exponents of 2 to define the size of the world terrain,
-    // then initializes variable and texture to the corresponding sizes
+    // then initializes variables and textures to the corresponding sizes
     public static void InitializeTerrainMesh(int expX, int expZ) {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.WorldDataInitializeTerrainMesh);
@@ -328,8 +328,8 @@ public class WData {
 #endif 
     }
 
-    // generate a random terrain using Fractal Brownian Motion
-    // then scales the world to go from 0 to the default generation height
+    // generates a random terrain using Fractal Brownian Motion
+    // then scales the world vertically to extend from 0 to the given generation height
     public static void GenerateRandomTerrain(float genScale, float genOffX, float genOffZ,
                                              int genOct, float genPers, float genLac,
                                              float genExp, float genHeight                ) {
@@ -354,6 +354,7 @@ public class WData {
     // resamples the heightmap from the generated TerrainHeights array and assigns it to minimap
     // recalculates pointiness (for appearance only)
     // if reInitialize is true, the quadtree holding the terrain tiles is also created,
+    // (if it already exists, it gets cleared first)
     // otherwise the quadtree is reset to have all tiles recalculated using the updated heightmap
     // then the terrain collision is updated
     public static void UpdateTerrain(bool reInitialize, XB.HUD hud, XB.Menu menu,
@@ -370,11 +371,12 @@ public class WData {
         TexPointiness.Update(ImgPointiness);
 
         if (reInitialize) {
-            XB.ManagerTerrain.InitializeQuadTree(WorldSize.X, WorldSize.Y, WorldRes,
-                                                 CollisionRes, ColliderSizeMult*TerrainTileMinimum,
+            XB.ManagerTerrain.InitializeQuadTree(WorldSize.X, WorldSize.Y,
+                                                 WorldRes, CollisionRes,
+                                                 ColliderSizeMult*TerrainTileMinimum,
                                                  TerrainTileMinimum, TerrainDivisionsMax,
                                                  LowestPoint, HighestPoint, ImgHeightMap, 
-                                                 mainRoot, hud.TexMiniMap                          );
+                                                 mainRoot, hud.TexMiniMap                );
         } else {
             XB.ManagerTerrain.ResetQuadTree(LowestPoint, HighestPoint, ImgHeightMap,
                                             mainRoot, hud.TexMiniMap                );

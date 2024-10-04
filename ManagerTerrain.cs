@@ -61,6 +61,25 @@ public class QNode {
 #endif 
     }
 
+    // recursively free all child node's MeshContainers and
+    // set them to null so that the C# garbage collector can free the objects
+    // root node needs to manually be treated afterwards
+    public void DeleteRecursively() {
+        if (Children[0] == null) { return; }
+        Children[0].DeleteRecursively();
+        Children[0].ReleaseMeshContainer();
+        Children[0] = null;
+        Children[1].DeleteRecursively();
+        Children[1].ReleaseMeshContainer();
+        Children[1] = null;
+        Children[2].DeleteRecursively();
+        Children[2].ReleaseMeshContainer();
+        Children[2] = null;
+        Children[3].DeleteRecursively();
+        Children[3].ReleaseMeshContainer();
+        Children[3] = null;
+    }
+
     // when a node gets activated, all children should be deactivated
     public void Activate() {
 #if XBDEBUG
@@ -987,6 +1006,24 @@ public class ManagerTerrain {
 #if XBDEBUG
         var debug = new XB.DebugTimedBlock(XB.D.ManagerTerrainInitializeQuadTree);
 #endif
+
+        // clear variables if they are already initialized (for ReInitialization)
+        if (_qRoot != null) {
+            _qRoot.DeleteRecursively();
+            _qRoot.ReleaseMeshContainer();
+            _qRoot = null;
+        }
+        if (_terrainMeshes != null) {
+            _terrainMeshes.Clear();
+            _terrainMeshes = null;
+        }
+        if (_terrainColTiles != null) {
+            _terrainColTiles = null;
+        }
+        if (_reqQueue != null) {
+            _reqQueue.Clear();
+            _reqQueue = null;
+        }
 
         _nextID      = 0;
         _resolutionM = resM;
