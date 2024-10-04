@@ -15,6 +15,7 @@ It is made using the Godot open source game engine.<br />
 - After modifications, the terrain samples an updated heightmap.
 
 ![General Concept](./readmeImages/readmeConcept.jpg)
+![Heighmaps](./readmeImages/readmeHeightmap.jpg)
 
 
 # Technical Overview
