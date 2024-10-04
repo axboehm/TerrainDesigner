@@ -10,7 +10,7 @@ The application is made entirely by Alexander Boehm and uses the Godot open sour
 
 - Terrain is represented by a heightmap.
 - Placeable spheres represent geometry that can modify the terrain.
-- User can interact with spheres in real time.
+- Interact with spheres in real-time.
 - To apply modifications to the terrain, heightmaps representing different modifications get blended together.
 - After modifications, the terrain samples an updated heightmap.
 
@@ -19,15 +19,16 @@ The application is made entirely by Alexander Boehm and uses the Godot open sour
 
 # Technical Overview
 
-- Application written in C# using Godot v.4.2.1 for rendering and collisions.
-- Real time performance even with large terrains was a main goal.
-- Large meshes maintain good performance by using a custom quadtree implementation to continuously adjust the mesh resolution around the camera and effectively reduce hardware load (mesh tiles farther away from the camera are larger with a lower resolution than those closer to the camera).
-- Additional performance optimizations were: staggering updating of objects across multiple frames to avoid lag spikes caused by multiple heavy calculations per frame; pre-allocation of arrays with objects on startup that are continuosly reused to avoid creating objects at run-time as much as possible which can lead to unpredictable performance impacts.
+- Application written in C# using Godot v.4.2.1 for rendering and collisions; repository contains only the custom code and not the engine code.
+- Real-Time performance even with large terrains was a main goal.
+- Large meshes split up using a custom quadtree implementation to continuously adjust the mesh resolution based on distance to reduce hardware load (distant mesh tiles are larger with a lower resolution than close ones).
+- Staggered resampling of mesh tiles across multiple frames to avoid lag spikes caused by multiple mesh re-assignments per frame
+- Minimizing of object creation at run-time by pre-allocation of arrays with objects on startup that are continuosly re-used (frontloads performance impact).
 - Single main loop that initializes objects and calls all other update functions to make the control flow obvious and prevent race conditions.
 - Code is separated into components that deal with specific tasks, e.g. terrain generation, updating spheres and their geometry, updating the 3D character, etc.
-- Representation of 3D geometry using 2D signed distance fields to get exact representations that are easy to store and modify.
-- Terrain shader made to be adaptive to any type of geometry by using height based texture blending, triplanar UV mapping and texture bombing.
-- Runtime Profiling implemented as main tool to assess performance of code and algorithms, this was fundamental for assessing the effectiveness of my optimizations based on real, collected data.
+- Representation of 3D geometry using 2D signed distance fields to get exact representations that are easy to store, modify and visualize.
+- Adaptive terrain shader that works with any type of geometry by using height based texture blending, triplanar UV mapping and texture bombing.
+- Runtime Profiling implemented to assess performance of code and algorithms, this was fundamental for assessing the effectiveness of my optimizations based on actual data.
 
 ![Technical Overview](./readmeImages/readmeTechnical.jpg)
 
