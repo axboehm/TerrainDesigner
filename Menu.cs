@@ -29,6 +29,7 @@ public partial class Menu : Godot.Control {
     private const int _tSysAud = 3;
     private const int _tSysLan = 4;
     private const int _tCon    = 2;
+    private const int _tAbo    = 3;
 
     // startup popup
     [Godot.Export] private Godot.Control     _ctrlPopupS;
@@ -106,6 +107,11 @@ public partial class Menu : Godot.Control {
                    private bool           _lockInput    = false;
                    private bool           _mouseRelease = false;
                    private int            _setKeyID     = 0;
+
+    // about tab
+    [Godot.Export] private Godot.Label  _lbAbout;
+    [Godot.Export] private Godot.Label  _lbAboutImage;
+                   private const string _aboutSpacer = "   "; // indent for urls
 
     // popup apply spheres
     [Godot.Export] private Godot.Control _ctrlPopupA;
@@ -302,6 +308,8 @@ public partial class Menu : Godot.Control {
         _bDefaultsCK.Pressed += ButtonDefaultsCKOnPressed;
         _chngMsg.Visible      = false;
 
+        // about tab
+
         // popup apply spheres
         _bPopAppSpCancel.Pressed += ButtonPopupCancelOnPressed;
         _bPopAppSp.Pressed       += ButtonApplySpheresOnPressed;
@@ -466,17 +474,17 @@ public partial class Menu : Godot.Control {
             switch (_tabCont.CurrentTab) {
                 case _tPau: { // pause
                     UpdatePauseTab();
-                    break;
-                }
+                } break;
                 case _tSys: { // system
                     UpdateSystemTabContainer();
                     UpdateSettingsTab();
-                    break;
-                }
+                } break;
                 case _tCon: { // controls
                     UpdateControlTab();
-                    break;
-                }
+                } break;
+                case _tAbo: { // about
+                    UpdateAboutTab();
+                } break;
             }
             _bResume.GrabFocus();
             _tabPrev = _tabCont.CurrentTab;
@@ -486,15 +494,14 @@ public partial class Menu : Godot.Control {
         switch (_tabCont.CurrentTab) {
             case _tPau: { // pause
                 if (_ctrlPopupG.Visible) { UpdateGenLabels(); }
-                break;
-            }
+            } break;
             case _tSys: { // system
                 UpdateSystemTabContainer();
-                break;
-            }
+            } break;
             case _tCon: { // controls
-                break;
-            }
+            } break;
+            case _tAbo: { // about
+            } break;
         }
     }
 
@@ -550,6 +557,7 @@ public partial class Menu : Godot.Control {
         _tabCont.SetTabTitle(_tPau,    Tr("TAB_PAUSE"));
         _tabCont.SetTabTitle(_tSys,    Tr("TAB_SYSTEM"));
         _tabCont.SetTabTitle(_tCon,    Tr("TAB_CONTROLS"));
+        _tabCont.SetTabTitle(_tAbo,    Tr("TAB_ABOUT"));
         _tabSys.SetTabTitle (_tSysCam, Tr("TAB_CAMERA"));
         _tabSys.SetTabTitle (_tSysDis, Tr("TAB_DISPLAY"));
         _tabSys.SetTabTitle (_tSysPer, Tr("TAB_PERFORMANCE"));
@@ -588,6 +596,25 @@ public partial class Menu : Godot.Control {
             _bCK[i].AddThemeFontSizeOverride("font_size", buttonFontSize);
             // Godot.GD.Print(_bCK[i].Text + " " + _bCK[i].Text.Length + " " + buttonFontSize);
         }
+    }
+
+    private void UpdateAboutTab() {
+        _lbTab.Text = Tr("TAB_ABOUT");
+
+        string about  = Tr("ABOUT_0") + '\n';
+               about += '\n';
+               about += Tr("ABOUT_1") + '\n';
+               about += Tr("ABOUT_2") + '\n';
+               about += "\n\n";
+               about += Tr("ABOUT_GITHUB")  + '\n' + _aboutSpacer + Tr("ABOUT_GITHUB_URL")  + '\n';
+               about += Tr("ABOUT_AXBOEHM") + '\n' + _aboutSpacer + Tr("ABOUT_AXBOEHM_URL") + '\n';
+               about += "\n\n";
+               about += Tr("ABOUT_VERSION") + " ";
+               about += Godot.ProjectSettings.GetSetting("application/config/version").ToString();
+               about += " | " + Tr("ABOUT_DATE") + '\n';
+
+        _lbAbout.Text      = about;
+        _lbAboutImage.Text = Tr("ABOUT_IMAGE");
     }
 
     // wrapped into a function to avoid large repeated function calls
