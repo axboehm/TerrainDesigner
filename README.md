@@ -30,7 +30,7 @@ See it in action: www.youtube.com/replaceMe <br />
 - Adaptive terrain shader that works with any type of geometry by using height based texture blending, triplanar UV mapping and texture bombing.
 - Custom real-time profiler to assess performance of code and algorithms. This was fundamental for assessing the effectiveness of my optimizations based on actual data.
 
-![Technical Overview](./readmeImages/readmeTechnical.gif | width=1920)
+<img src="./readmeImages/readmeTechnical.gif" alt="Technical Overview" width="1920">
 
 
 # Credits and Motivation
