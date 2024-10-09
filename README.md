@@ -1,6 +1,7 @@
 # Terrain Designer
 
 Terrain Designer is a 3D application that lets you walk around a landscape and modify it interactively and in real-time.<br />
+See it in action: www.youtube.com/replaceMe
 
 ![Terrain Designer](./readmeImages/readmeMain.jpg)
 
@@ -29,7 +30,7 @@ Terrain Designer is a 3D application that lets you walk around a landscape and m
 - Adaptive terrain shader that works with any type of geometry by using height based texture blending, triplanar UV mapping and texture bombing.
 - Custom real-time profiler to assess performance of code and algorithms. This was fundamental for assessing the effectiveness of my optimizations based on actual data.
 
-![Technical Overview](./readmeImages/readmeTechnical.jpg)
+![Technical Overview](./readmeImages/readmeTechnical.gif)
 
 
 # Credits and Motivation
