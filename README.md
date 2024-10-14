@@ -1,9 +1,10 @@
 # Terrain Designer
 
 Terrain Designer is a 3D application that lets you walk around a landscape and modify it interactively and in real-time.<br />
-See it in action: www.youtube.com/replaceMe <br />
 
 ![Terrain Designer](./readmeImages/readmeMain.jpg)
+
+See it in action: www.youtube.com/replaceMe <br />
 
 
 # General Concept
@@ -41,5 +42,7 @@ Some textures, such as those for the terrain and UI are created in code at runti
 <br />
 I made this application to help me learn how to implement complex, interrelated systems that consistently have to perform well to ensure a smooth user experience.<br />
 The functionality that I implemented is limited in scope but still allowed me enough space to try out various implementations of the ideas I had. It also let me push the final product far enough to produce a polished result that shows a variety of skills.<br />
+<br />
+For a more detailed explanation, take a look at my <a href="www.axboehm.com/worksTD.html>website</a>. <br>
 
 ![Assets](./readmeImages/readmeAssets.jpg)
