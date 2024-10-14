@@ -43,6 +43,6 @@ Some textures, such as those for the terrain and UI are created in code at runti
 I made this application to help me learn how to implement complex, interrelated systems that consistently have to perform well to ensure a smooth user experience.<br />
 The functionality that I implemented is limited in scope but still allowed me enough space to try out various implementations of the ideas I had. It also let me push the final product far enough to produce a polished result that shows a variety of skills.<br />
 <br />
-For a more detailed explanation, take a look at my <a href="www.axboehm.com/worksTD.html>website</a>. <br>
+For a more detailed explanation, take a look at my [website](www.axboehm.com/worksTD.html). <br>
 
 ![Assets](./readmeImages/readmeAssets.jpg)
