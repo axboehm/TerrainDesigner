@@ -1,10 +1,11 @@
 # Terrain Designer
 
-Terrain Designer is a 3D application that lets you walk around a landscape and modify it interactively and in real-time.<br />
+Terrain Designer is a 3D application that lets you walk around a landscape and modify it interactively and in real-time. <br />
+Terrain generation and modification is handled with custom code that you can find here. <br/>
 
 ![Terrain Designer](./readmeImages/readmeMain.jpg)
 
-See it in action: www.youtube.com/replaceMe <br />
+See it in action: www.youtube.com/yC8pnw11yRI <br />
 
 
 # General Concept
