@@ -5,7 +5,7 @@ Terrain generation and modification is handled with custom code that you can fin
 
 ![Terrain Designer](./readmeImages/readmeMain.jpg)
 
-See it in action: www.youtube.com/yC8pnw11yRI <br />
+See it in action: www.youtube.com/watch?v=yC8pnw11yRI <br />
 
 
 # General Concept
